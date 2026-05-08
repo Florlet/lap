@@ -17,18 +17,18 @@
 
     <!-- title bar -->
     <div
-      class="absolute top-0 left-0 right-0 px-2 h-12 flex flex-row flex-wrap items-center justify-between bg-base-300/80 backdrop-blur-md z-30"  
+      class="absolute top-0 left-0 right-0 px-2 h-12 flex flex-row flex-nowrap items-center justify-between bg-base-300/80 backdrop-blur-md z-30 overflow-hidden"
       data-tauri-drag-region
     >
       <!-- title -->
-      <div class="mr-1 flex flex-row items-center gap-1 min-w-0 flex-1" data-tauri-drag-region>
+      <div class="mr-1 flex flex-row items-center gap-1 min-w-0 flex-1 overflow-hidden" data-tauri-drag-region>
         <component v-if="currentTitleIcon" 
           :is="currentTitleIcon" 
           class="t-icon-size-sm shrink-0"
           :class="{ 'cursor-pointer text-primary': tempViewMode !== 'none' }" 
           @click="handleTitleClick"
         />
-        <div class="overflow-hidden min-w-0 w-fit max-w-full">
+        <div class="overflow-hidden min-w-0 flex-1">
           <div v-if="contentTitle" class="breadcrumbs p-0 min-h-0 overflow-hidden" data-tauri-drag-region>
             <ul class="min-w-0 flex-nowrap overflow-hidden">
               <li v-for="(seg, idx) in titleSegments" :key="idx" class="min-w-0 max-w-full overflow-hidden">
