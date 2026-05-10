@@ -1,7 +1,12 @@
-/// macOS drag‑pasteboard image URL extraction.
+/// Cross‑platform drag‑drop image URL extraction.
 ///
-/// On macOS we read `NSPasteboardNameDrag` which is scoped to the
-/// current drag operation — it never returns stale data.
+/// - **macOS**: reads `NSPasteboardNameDrag` which is scoped to the
+///   current drag operation and never returns stale data.
+/// - **Windows / Linux**: falls back to the system clipboard.  During
+///   a browser drag the image URL is normally placed on the clipboard
+///   as well, so checking it immediately after the drop event gives
+///   the correct URL.  The read is gated behind an `http(s)://` prefix
+///   check to reject irrelevant clipboard text.
 
 #[cfg(target_os = "macos")]
 mod imp {
@@ -26,7 +31,16 @@ mod imp {
 #[cfg(not(target_os = "macos"))]
 mod imp {
     pub fn get_drag_image_url() -> Option<String> {
-        None
+        // Browsers on Windows put the image URL on the system clipboard
+        // during a drag, so reading it right after the drop is reliable.
+        let mut clipboard = arboard::Clipboard::new().ok()?;
+        let text = clipboard.get_text().ok()?;
+        let text = text.trim();
+        if text.starts_with("http://") || text.starts_with("https://") {
+            Some(text.to_string())
+        } else {
+            None
+        }
     }
 }
 
