@@ -2372,24 +2372,31 @@ onMounted( async() => {
       const folderPath = libConfig.album.folderPath;
       if (!folderId || !folderPath) return;
       if (dt.files.length > 0) {
+        const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
+        const extRE = /\.(\w+)$/i;
         let imported = 0;
+        let skipped = 0;
         for (const file of dt.files) {
+          if (!extRE.test(file.name)) { skipped++; continue; }
+          if (file.size > MAX_FILE_SIZE) { skipped++; continue; }
           try {
             const buf = await file.arrayBuffer();
             const bytes = Array.from(new Uint8Array(buf));
             const result = await importFileBytes(bytes, file.name, folderId, folderPath);
             if (result) imported++;
+            else skipped++;
           } catch (err) {
             console.error('Failed to import file via bytes:', file.name, err);
+            skipped++;
           }
         }
         if (imported > 0) {
           await updateContent();
           toast.success(t('msgbox.drop_import.success', { count: imported }));
-        } else {
-          toast.warning(t('msgbox.drop_import.no_files'));
+          return;
         }
-        return;
+        // Fall through to URL handling — some browsers provide both
+        // file-like items and text/uri-list.
       }
       const uriList = dt.getData('text/uri-list');
       const url = (uriList || dt.getData('text/plain') || '').trim();

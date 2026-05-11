@@ -671,26 +671,15 @@ pub async fn import_file_bytes(
     folder_id: i64,
     folder_path: String,
 ) -> Result<Option<AFile>, String> {
-    let ext = name.rsplit('.').next().unwrap_or("jpg").to_string().to_lowercase();
-    let ext = match ext.as_str() {
-        "jpeg" => "jpg".to_string(),
-        s => s.to_string(),
-    };
-    let mime = match ext.as_str() {
-        "jpg" => "image/jpeg",
-        "png" => "image/png",
-        "gif" => "image/gif",
-        "webp" => "image/webp",
-        "avif" => "image/avif",
-        "bmp" => "image/bmp",
-        _ => return Err(format!("Unsupported file extension: {}", ext)),
-    };
     let dest_folder = folder_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let new_path = t_utils::save_bytes_to_folder(&bytes, mime, &dest_folder)
+        let new_path = t_utils::save_bytes_with_name(&bytes, &name, &dest_folder)
             .ok_or_else(|| "Failed to save dropped file".to_string())?;
         let file_type = t_utils::get_file_type(&new_path)
-            .ok_or_else(|| format!("Unsupported file type: {}", new_path))?;
+            .ok_or_else(|| {
+                let _ = std::fs::remove_file(&new_path);
+                format!("Unsupported file type: {}", new_path)
+            })?;
         let now = chrono::Utc::now().timestamp_millis();
         let (file, _) = AFile::add_to_db(folder_id, &new_path, file_type, now)?;
         Ok(Some(file))

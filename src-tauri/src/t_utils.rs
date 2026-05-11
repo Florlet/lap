@@ -824,6 +824,27 @@ fn validate_image_bytes(ext: &str, bytes: &[u8]) -> bool {
     }
 }
 
+/// Save bytes to a folder preserving the original file extension.
+/// Unlike `save_bytes_to_folder`, this does NOT map MIME types — it
+/// keeps whatever extension the original file had.  This supports
+/// RAW, video, TIFF, HEIC, JXL, etc. in addition to images.
+pub fn save_bytes_with_name(bytes: &[u8], name: &str, dest_folder: &str) -> Option<String> {
+    let ext = name.rsplit('.').next().unwrap_or("jpg").to_ascii_lowercase();
+    let ext = if ext == "jpeg" { "jpg" } else { ext.as_str() };
+    let now = chrono::Local::now();
+    let filename = format!("IMG_{}.{}", now.format("%Y%m%d_%H%M%S"), ext);
+    let mut destination = PathBuf::from(dest_folder);
+    destination.push(&filename);
+    let destination = get_unique_path(destination);
+
+    let mut file = fs::File::create(&destination)
+        .map_err(|e| eprintln!("Failed to create file: {}", e)).ok()?;
+    std::io::Write::write_all(&mut file, bytes)
+        .map_err(|e| eprintln!("Failed to write file: {}", e)).ok()?;
+    println!("File saved with name: {}", destination.display());
+    destination.to_str().map(|s| s.to_string())
+}
+
 /// Save downloaded bytes to a folder with auto-generated name.
 /// Content type is used to determine the file extension.
 /// Byte-level magic-number validation is performed before writing.
