@@ -586,6 +586,7 @@ import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { emit as tauriEmit, listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
+import { platform } from '@tauri-apps/plugin-os';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '@/common/toast';
 import { useUIStore } from '@/stores/uiStore';
@@ -593,7 +594,7 @@ import { getAlbum, recountAlbum, getQueryCountAndSum, getQueryTimeLine, getQuery
          copyImage, renameFile, moveFile, copyFile, deleteFile, editFileComment, getFileThumb, getFileThumbs, getFileInfo,
          setFileRotate, getFileHasTags, setFileFavorite, setFileRating, getTagsForFile, searchSimilarImages, generateEmbedding, 
          revealPath, getTagName, indexAlbum, listenIndexProgress, listenIndexFinished, setAlbumCover,
-         updateFileInfo, importFile, importFromDrag, addFileToDb, cancelIndexing as cancelIndexingApi, selectFolder, getFacesForFile, listenFaceIndexProgress,
+         updateFileInfo, importFile, importFromDrag, importUrl, importFileBytes, addFileToDb, cancelIndexing as cancelIndexingApi, selectFolder, getFacesForFile, listenFaceIndexProgress,
          openFileWithApp, getAppConfig, getIndexRecoveryInfo, clearIndexRecoveryInfo, setLastSelectedItemIndex,
          dedupGetGroup, dedupDeleteSelected, getQueryFilePosition } from '@/common/api'; 
 import { config, libConfig } from '@/common/config';
@@ -1101,6 +1102,12 @@ const acceptDrops = computed(() =>
   && libConfig.album.id > 0
   && !libConfig.album.selected
 );
+
+// DOM drop handler references (Windows/Linux — for cleanup in onBeforeUnmount)
+let domDragEnter: ((e: DragEvent) => void) | null = null;
+let domDragLeave: ((e: DragEvent) => void) | null = null;
+let domDragOver: ((e: DragEvent) => void) | null = null;
+let domDrop: ((e: DragEvent) => void) | null = null;
 
 const isProcessing = ref(false);  // show processing status
 const isLoading = ref(false);     // show loading status in GridView (for empty file list)
@@ -2299,7 +2306,13 @@ onMounted( async() => {
   window.addEventListener('keydown', handleLocalKeyDown);
   unlistenKeydown = await listen('global-keydown', handleKeyDown);
 
-  // Drag-drop file import
+  // Drag-drop file import — platform-aware
+  // macOS / Linux: Tauri native handles everything (unchanged).
+  // Windows (dragDropEnabled=false): DOM handles everything; Tauri native
+  // does not fire — the listener below is only active on macOS/Linux.
+  const osPlatform = await platform();
+
+  // Always set up Tauri handler for drag UI and file path drops
   unlistenDragDrop = await getCurrentWebview().onDragDropEvent((event: any) => {
     const { type, paths } = event.payload;
     if (type === 'enter') {
@@ -2319,11 +2332,78 @@ onMounted( async() => {
       }
       if (paths && paths.length > 0) {
         handleDropFiles(paths);
-      } else {
+      } else if (osPlatform !== 'windows') {
+        // macOS (NSPasteboardNameDrag) / Linux (clipboard fallback)
         handleBrowserDropFromTauri();
       }
     }
   });
+
+  // Windows (dragDropEnabled: false): Tauri native never fires. DOM handles
+  // drag UI, file bytes (via importFileBytes), and browser URLs.
+  // macOS / Linux: Tauri native handles everything — unchanged behaviour.
+  if (osPlatform === 'windows') {
+    domDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      if (acceptDrops.value) {
+        dragOverCount.value++;
+        isDragOver.value = true;
+      }
+    };
+    domDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragOverCount.value = Math.max(0, dragOverCount.value - 1);
+      if (dragOverCount.value === 0) isDragOver.value = false;
+    };
+    domDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    domDrop = async (e: DragEvent) => {
+      e.preventDefault();
+      dragOverCount.value = 0;
+      isDragOver.value = false;
+      if (!acceptDrops.value) {
+        showDropWarning.value = true;
+        return;
+      }
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      const folderId = libConfig.album.folderId;
+      const folderPath = libConfig.album.folderPath;
+      if (!folderId || !folderPath) return;
+      if (dt.files.length > 0) {
+        let imported = 0;
+        for (const file of dt.files) {
+          try {
+            const buf = await file.arrayBuffer();
+            const bytes = Array.from(new Uint8Array(buf));
+            const result = await importFileBytes(bytes, file.name, folderId, folderPath);
+            if (result) imported++;
+          } catch (err) {
+            console.error('Failed to import file via bytes:', file.name, err);
+          }
+        }
+        if (imported > 0) {
+          await updateContent();
+          toast.success(t('msgbox.drop_import.success', { count: imported }));
+        } else {
+          toast.warning(t('msgbox.drop_import.no_files'));
+        }
+        return;
+      }
+      const uriList = dt.getData('text/uri-list');
+      const url = (uriList || dt.getData('text/plain') || '').trim();
+      if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        handleDropUrls([url]);
+        return;
+      }
+      toast.warning(t('msgbox.drop_import.no_files'));
+    };
+    document.addEventListener('dragenter', domDragEnter);
+    document.addEventListener('dragleave', domDragLeave);
+    document.addEventListener('dragover', domDragOver);
+    document.addEventListener('drop', domDrop);
+  }
 
   unlistenImageViewer = await listen('message-from-image-viewer', async (event) => {
     const { message } = event.payload as any;
@@ -2548,6 +2628,10 @@ onBeforeUnmount(() => {
   if (unlistenFilesDeleted) unlistenFilesDeleted();
   if (unlistenFaceIndexProgress) unlistenFaceIndexProgress();
   if (unlistenDragDrop) unlistenDragDrop();
+  if (domDragEnter) document.removeEventListener('dragenter', domDragEnter);
+  if (domDragLeave) document.removeEventListener('dragleave', domDragLeave);
+  if (domDragOver) document.removeEventListener('dragover', domDragOver);
+  if (domDrop) document.removeEventListener('drop', domDrop);
 });
 
 /// watch appearance
@@ -3910,6 +3994,27 @@ async function handleBrowserDropFromTauri() {
   if (file) {
     await updateContent();
     toast.success(t('msgbox.drop_import.success', { count: 1 }));
+  } else {
+    toast.warning(t('msgbox.drop_import.no_files'));
+  }
+}
+
+async function handleDropUrls(urls: string[]) {
+  const folderId = libConfig.album.folderId;
+  const folderPath = libConfig.album.folderPath;
+  if (!folderId || !folderPath) return;
+  let imported = 0;
+  for (const url of urls) {
+    try {
+      const file = await importUrl(url, folderId, folderPath);
+      if (file) imported++;
+    } catch (e) {
+      console.error('Failed to import URL:', url, e);
+    }
+  }
+  if (imported > 0) {
+    await updateContent();
+    toast.success(t('msgbox.drop_import.success', { count: imported }));
   } else {
     toast.warning(t('msgbox.drop_import.no_files'));
   }

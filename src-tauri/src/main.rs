@@ -258,6 +258,7 @@ async fn main() {
             t_cmds::import_file,
             t_cmds::import_url,
             t_cmds::import_from_drag,
+            t_cmds::import_file_bytes,
             t_cmds::delete_file,
             t_cmds::delete_db_file,
             t_cmds::edit_file_comment,

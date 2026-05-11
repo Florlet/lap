@@ -661,6 +661,42 @@ async fn import_url_inner(url: &str, folder_id: i64, folder_path: String) -> Res
     }).await.map_err(|e| format!("Failed to save file: {}", e))?
 }
 
+
+/// Import a file from raw bytes (used by DOM-based drag-drop on Windows
+/// where Tauri native file paths are unavailable).
+#[tauri::command]
+pub async fn import_file_bytes(
+    bytes: Vec<u8>,
+    name: String,
+    folder_id: i64,
+    folder_path: String,
+) -> Result<Option<AFile>, String> {
+    let ext = name.rsplit('.').next().unwrap_or("jpg").to_string().to_lowercase();
+    let ext = match ext.as_str() {
+        "jpeg" => "jpg".to_string(),
+        s => s.to_string(),
+    };
+    let mime = match ext.as_str() {
+        "jpg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "avif" => "image/avif",
+        "bmp" => "image/bmp",
+        _ => return Err(format!("Unsupported file extension: {}", ext)),
+    };
+    let dest_folder = folder_path.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let new_path = t_utils::save_bytes_to_folder(&bytes, mime, &dest_folder)
+            .ok_or_else(|| "Failed to save dropped file".to_string())?;
+        let file_type = t_utils::get_file_type(&new_path)
+            .ok_or_else(|| format!("Unsupported file type: {}", new_path))?;
+        let now = chrono::Utc::now().timestamp_millis();
+        let (file, _) = AFile::add_to_db(folder_id, &new_path, file_type, now)?;
+        Ok(Some(file))
+    }).await.map_err(|e| format!("Failed to save file: {}", e))?
+}
+
 /// delete a file
 #[tauri::command]
 pub fn delete_file(file_id: i64, file_path: &str) -> Result<usize, String> {

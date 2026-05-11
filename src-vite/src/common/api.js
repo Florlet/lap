@@ -857,6 +857,16 @@ export async function importUrl(url, folderId, folderPath) {
   }
 }
 
+export async function importFileBytes(bytes, name, folderId, folderPath) {
+  try {
+    const result = await invoke('import_file_bytes', { bytes, name, folderId, folderPath });
+    return result;
+  } catch (error) {
+    console.error('importFileBytes error:', error);
+    return null;
+  }
+}
+
 export async function importFromDrag(folderId, folderPath) {
   try {
     const result = await invoke('import_from_drag', { folderId, folderPath });
