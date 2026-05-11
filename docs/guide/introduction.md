@@ -28,4 +28,4 @@ Lap is currently available for macOS, Linux, and Windows.
 - macOS: Download the `_aarch64.dmg` or `_x64.dmg` file and drag **Lap** into **Applications**.
 - Linux: Download the `_amd64.deb` package and install it with your package manager.
 - Windows: Download the `_x64_en-US.msi` or `_arm64_en-US.msi` installer and complete the setup wizard.
-- [Check out what's new in v0.2.1](/guide/release-notes/v0.2.1)
+- [Check out what's new in v0.2.2](/guide/release-notes/v0.2.2)
