@@ -4489,6 +4489,10 @@ pub fn create_db() -> Result<(), String> {
     match create_db_internal() {
         Ok(_) => Ok(()),
         Err(err) => {
+            if !should_recover_db(&err) {
+                return Err(err);
+            }
+
             eprintln!("create_db failed: {}. Trying recovery...", err);
             recover_current_db_file()?;
             create_db_internal().map_err(|e| format!("Database recovery retry failed: {}", e))
@@ -4561,11 +4565,6 @@ fn create_db_internal() -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_afolders_is_favorite ON afolders(is_favorite)",
-        [],
-    )
-    .map_err(|e| e.to_string())?;
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_afolders_is_excluded_from_search ON afolders(is_excluded_from_search)",
         [],
     )
     .map_err(|e| e.to_string())?;
@@ -4955,6 +4954,11 @@ fn recover_current_db_file() -> Result<(), String> {
     );
 
     Ok(())
+}
+
+fn should_recover_db(err: &str) -> bool {
+    let err = err.to_lowercase();
+    err.contains("database disk image is malformed") || err.contains("file is not a database")
 }
 
 fn path_with_suffix(path: &Path, suffix: &str) -> PathBuf {

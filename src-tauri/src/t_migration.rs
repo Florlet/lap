@@ -65,12 +65,7 @@ fn get_migrations() -> Vec<Migration> {
         },
         Migration {
             version: 5,
-            description: "Add folder search exclusion flag",
-            sql: "",
-        },
-        Migration {
-            version: 6,
-            description: "Add afiles.inode column for rename detection",
+            description: "Post v0.2.2 schema updates",
             sql: "",
         },
     ]
@@ -163,6 +158,15 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                         )
                     })?;
                 }
+                if !table_has_column(conn, "afiles", "inode")? {
+                    conn.execute("ALTER TABLE afiles ADD COLUMN inode INTEGER", [])
+                        .map_err(|e| {
+                            format!(
+                                "Migration {} failed adding inode: {}",
+                                migration.version, e
+                            )
+                        })?;
+                }
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_afolders_is_excluded_from_search ON afolders(is_excluded_from_search)",
                     [],
@@ -173,16 +177,6 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                         migration.version, e
                     )
                 })?;
-            } else if migration.version == 6 {
-                if !table_has_column(conn, "afiles", "inode")? {
-                    conn.execute("ALTER TABLE afiles ADD COLUMN inode INTEGER", [])
-                        .map_err(|e| {
-                            format!(
-                                "Migration {} failed adding inode: {}",
-                                migration.version, e
-                            )
-                        })?;
-                }
             } else if !migration.sql.trim().is_empty() {
                 conn.execute_batch(migration.sql)
                     .map_err(|e| format!("Migration {} failed: {}", migration.version, e))?;
