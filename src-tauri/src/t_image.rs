@@ -1178,8 +1178,22 @@ async fn get_edited_image(params: &EditParams) -> Result<DynamicImage, String> {
     let mut img = if should_generate_preview_for_file(&params.source_file_path, file_type) {
         let preview = get_generated_preview_bytes(&params.source_file_path).await?
             .ok_or_else(|| "Failed to resolve editable preview image".to_string())?;
-        image::load_from_memory(&preview)
-            .map_err(|e| format!("Failed to decode editable preview image: {}", e))?
+        let img = image::load_from_memory(&preview)
+            .map_err(|e| format!("Failed to decode editable preview image: {}", e))?;
+
+        #[cfg(target_os = "macos")]
+        {
+            if is_heic_path(&params.source_file_path) {
+                apply_orientation(img, params.orientation)
+            } else {
+                img
+            }
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            img
+        }
     } else {
         let path = Path::new(&params.source_file_path);
         let mut img = image::open(path).map_err(|e| e.to_string())?;
