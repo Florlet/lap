@@ -2,7 +2,15 @@
 
   <div class="w-screen h-screen flex flex-col overflow-hidden bg-base-300 text-base-content/70">
     <!-- Title Bar -->
+    <TitleBar
+      v-if="showDesktopTitleBar"
+      :titlebar="`${$t('msgbox.image_editor.title')} - ${shortenFilename(fileInfo?.name || '', 32)}`"
+      :resizable="false"
+      viewName="ImageEditor"
+      class="shrink-0 z-50"
+    />
     <div
+      v-else
       class="h-10 shrink-0 flex items-center justify-between px-4 select-none"
       :class="isMac ? 'pl-20' : ''"
       data-tauri-drag-region
@@ -498,11 +506,12 @@ import { useRouter } from 'vue-router';
 import { useUIStore } from '@/stores/uiStore';
 import { useI18n } from 'vue-i18n';
 import { config } from '@/common/config';
-import { isMac, setTheme, SCALE_VALUES, getFolderPath, getFileExtension, shortenFilename, getFullPath, combineFileName, getSelectOptions, getAssetSrc, getPreviewUrl, getThumbUrl, shouldUseBackendPreview } from '@/common/utils';
+import { isWin, isMac, isLinux, setTheme, SCALE_VALUES, getFolderPath, getFileExtension, shortenFilename, getFullPath, combineFileName, getSelectOptions, getAssetSrc, getPreviewUrl, getThumbUrl, shouldUseBackendPreview } from '@/common/utils';
 import { editImage, checkFileExists, getFileInfo } from '@/common/api';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { emit as tauriEmit, listen } from '@tauri-apps/api/event';
 
+import TitleBar from '@/components/TitleBar.vue';
 import MessageBox from '@/components/MessageBox.vue';
 import TButton from '@/components/TButton.vue';
 import SliderInput from '@/components/SliderInput.vue';
@@ -535,9 +544,33 @@ const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 
 const uiStore = useUIStore();
+const appWindow = getCurrentWebviewWindow();
+const showDesktopTitleBar = isWin || isLinux;
 
 function sendToParent(payload: Record<string, any>) {
   tauriEmit('message-from-image-editor', payload);
+}
+
+async function closeEditorWindow() {
+  try {
+    await appWindow.close();
+  } catch (error) {
+    try {
+      await appWindow.destroy();
+    } catch (destroyError) {
+      console.error('Failed to close image editor window:', error, destroyError);
+    }
+    return;
+  }
+
+  await new Promise(resolve => window.setTimeout(resolve, 100));
+  try {
+    if (await appWindow.isVisible()) {
+      await appWindow.destroy();
+    }
+  } catch {
+    // The window is already closed.
+  }
 }
 
 async function loadFileInfo(fileId: number) {
@@ -552,7 +585,7 @@ async function loadFileInfo(fileId: number) {
       initialImageSrc.value = typeof src === 'string' ? src : '';
     }
   } catch {
-    getCurrentWindow().close();
+    await closeEditorWindow();
   }
 }
 
@@ -1219,7 +1252,7 @@ onMounted(async () => {
   }
 
   if (!fileInfo.value) {
-    getCurrentWindow().close();
+    await closeEditorWindow();
     return;
   }
 
@@ -1866,11 +1899,11 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-const clickCancel = () => {
+const clickCancel = async () => {
   if (uiStore.activeAdjustments.filePath === fileInfo.value?.file_path) {
     uiStore.clearActiveAdjustments();
   }
-  getCurrentWindow().close();
+  await closeEditorWindow();
 };
 
 function closeSaveDropdown() {
@@ -1939,7 +1972,7 @@ const executeSave = async (overrides: { fileName?: string; destFilePath?: string
         uiStore.clearActiveAdjustments();
       }
       sendToParent({ type: 'success', saveAsNew, filePath: savedFilePath });
-      getCurrentWindow().close();
+      await closeEditorWindow();
     } else {
       sendToParent({ type: 'failed' });
     }
