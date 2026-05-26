@@ -455,7 +455,7 @@
       :selected-size="selectedSize"
       :show-film-strip="config.settings.grid.showFilmStrip"
       :show-quick-view="showQuickView"
-      :image-scale="imageScale"
+      :image-scale="imageDisplayScale"
       :scan-text="statusBarScanText"
       :show-update-icon="statusBarShowUpdateIcon"
       :is-update-animating="statusBarIsUpdateAnimating"
@@ -868,6 +868,7 @@ function closeQuickPreview() {
 
 // toolbar state for MediaViewer
 const imageScale = ref(1);
+const imageDisplayScale = ref(1);
 const imageMinScale = ref(0);
 const imageMaxScale = ref(10);
 const isSlideShow = ref(false);
@@ -882,6 +883,7 @@ let currentContentRequestId = 0;
 
 const onScale = (event: any) => {
   imageScale.value = event.scale;
+  imageDisplayScale.value = event.displayScale ?? event.scale;
   imageMinScale.value = event.minScale;
   imageMaxScale.value = event.maxScale;
 };

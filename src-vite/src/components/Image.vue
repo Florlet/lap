@@ -248,6 +248,7 @@ const scale = ref([1, 1]);                  // Image scale (zoom level)
 const minScale = ref(0.1);                    // Minimum zoom level
 const maxScale = ref(10);                   // Maximum zoom level
 const getActualSizeScale = () => 1 / (window.devicePixelRatio || 1);
+const getDisplayScale = (scaleValue: number) => scaleValue * (window.devicePixelRatio || 1);
 const imageRotate = ref([0, 0]);            // Image rotation
 const imageSize = ref([{ width: 0, height: 0 }, { width: 0, height: 0 }]);       // actual image size
 const imageSizeRotated = ref([{ width: 0, height: 0 }, { width: 0, height: 0 }]); // image size after rotation
@@ -1383,6 +1384,7 @@ watch(() => imageRotate.value[activeImage.value], (newValue) => {
 watch(() => scale.value[activeImage.value], (newValue) => {
   emit('scale', { 
     scale: newValue, 
+    displayScale: getDisplayScale(newValue),
     minScale: minScale.value, 
     maxScale: maxScale.value 
   });
