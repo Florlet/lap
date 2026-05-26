@@ -612,6 +612,7 @@
       "light": "Light",
       "color": "Color",
       "compare": "View original",
+      "tone": "Tone",
       "shadows": "Shadows",
       "midtones": "Midtones",
       "highlights": "Highlights",

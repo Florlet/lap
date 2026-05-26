@@ -1,7 +1,38 @@
 <template>
   <div class="space-y-1.5">
     <div class="relative w-full aspect-4/1 px-0.5">
-      <svg viewBox="0 0 256 64" class="w-full h-full" preserveAspectRatio="none">
+      <div
+        v-if="hoverBin !== null"
+        class="pointer-events-none absolute right-1 top-1 z-10 rounded-md border border-base-content/10 bg-base-100/92 px-2 py-1 text-[9px] font-semibold leading-tight text-base-content shadow-sm backdrop-blur-sm"
+      >
+        <div class="mb-1 text-[8px] uppercase tracking-[0.18em] text-base-content/45">
+          {{ $t('msgbox.image_editor.tone') }} {{ hoverBin }}
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400">L</span>
+          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.luma) }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-red-500">R</span>
+          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.red) }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-green-500">G</span>
+          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.green) }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-blue-500">B</span>
+          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.blue) }}</span>
+        </div>
+      </div>
+
+      <svg
+        viewBox="0 0 256 64"
+        class="h-full w-full"
+        preserveAspectRatio="none"
+        @mousemove="onHistogramMove"
+        @mouseleave="onHistogramLeave"
+      >
         <defs>
           <linearGradient :id="gradientId" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="rgba(148,163,184,0.62)" />
@@ -17,6 +48,16 @@
         <path :d="histogramPathR" fill="rgba(239,68,68,0.35)" style="mix-blend-mode: screen" />
         <path :d="histogramPathG" fill="rgba(34,197,94,0.35)" style="mix-blend-mode: screen" />
         <path :d="histogramPathB" fill="rgba(59,130,246,0.35)" style="mix-blend-mode: screen" />
+        <line
+          v-if="hoverBin !== null"
+          :x1="hoverX"
+          y1="0"
+          :x2="hoverX"
+          y2="64"
+          class="text-primary"
+          stroke="currentColor"
+          stroke-width="0.5"
+        />
       </svg>
     </div>
 
@@ -71,6 +112,8 @@ const smoothedHistDataG = new Float32Array(HISTOGRAM_BIN_COUNT);
 const smoothedHistDataB = new Float32Array(HISTOGRAM_BIN_COUNT);
 const histogramVersion = ref(0);
 const gradientId = `histGradient-${Math.random().toString(36).slice(2)}`;
+const hoverBin = ref<number | null>(null);
+const hoverX = ref(0);
 let histogramAnimRaf: number | null = null;
 let histogramLoadId = 0;
 let histogramSourceImage: HTMLImageElement | null = null;
@@ -118,6 +161,8 @@ function clearHistogram() {
   smoothedHistDataR.fill(0);
   smoothedHistDataG.fill(0);
   smoothedHistDataB.fill(0);
+  hoverBin.value = null;
+  hoverX.value = 0;
   histogramVersion.value++;
 }
 
@@ -562,6 +607,21 @@ function buildPathFromSmoothed(smoothed: Float32Array) {
   return path;
 }
 
+function getHistogramValueAt(display: Float32Array, bin: number) {
+  const index = Math.max(0, Math.min(HISTOGRAM_BIN_COUNT - 1, bin));
+  return display[index] || 0;
+}
+
+const hoveredValues = computed(() => {
+  const bin = hoverBin.value ?? 0;
+  return {
+    luma: getHistogramValueAt(displayedHistData, bin),
+    red: getHistogramValueAt(displayedHistDataR, bin),
+    green: getHistogramValueAt(displayedHistDataG, bin),
+    blue: getHistogramValueAt(displayedHistDataB, bin),
+  };
+});
+
 const histogramPath = computed(() => {
   histogramVersion.value;
   return buildPathFromSmoothed(smoothedHistData);
@@ -615,6 +675,24 @@ function startHistogramAnimation() {
     }
   };
   histogramAnimRaf = requestAnimationFrame(step);
+}
+
+function onHistogramMove(event: MouseEvent) {
+  const target = event.currentTarget as SVGElement | null;
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  if (rect.width <= 0) return;
+  const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+  hoverX.value = ratio * 256;
+  hoverBin.value = Math.max(0, Math.min(HISTOGRAM_BIN_COUNT - 1, Math.round(ratio * (HISTOGRAM_BIN_COUNT - 1))));
+}
+
+function onHistogramLeave() {
+  hoverBin.value = null;
+}
+
+function formatLegendValue(value: number) {
+  return `${Math.round((value / HISTOGRAM_HEIGHT) * 100)}%`;
 }
 
 watch(() => props.source, updateHistogram, { immediate: true });

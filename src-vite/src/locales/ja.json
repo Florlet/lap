@@ -605,6 +605,7 @@
       "light": "ライト",
       "color": "カラー",
       "compare": "オリジナルを表示",
+      "tone": "階調",
       "shadows": "シャドウ",
       "midtones": "中間トーン",
       "highlights": "ハイライト",
