@@ -1312,6 +1312,32 @@ let unlistenFaceIndexProgress: (() => void) | null = null;
 let unlistenLibraryTotalRefreshed: (() => void) | null = null;
 
 let resizeObserver: ResizeObserver | null = null;
+let contentUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleContentRefresh(task: () => void) {
+  if (contentUpdateTimer) {
+    clearTimeout(contentUpdateTimer);
+  }
+  contentUpdateTimer = setTimeout(() => {
+    contentUpdateTimer = null;
+    task();
+  }, 0);
+}
+
+function resetContentViewportState() {
+  scrollPosition.value = 0;
+  selectedItemIndex.value = 0;
+  if (gridViewRef.value) {
+    gridViewRef.value.scrollToPosition(0);
+  }
+}
+
+function refreshContentFromSelectionChange() {
+  resetContentViewportState();
+  updateContent();
+  // Reset ImageViewer context if open (without focusing/showing it)
+  openImageViewer(selectedItemIndex.value, false, true);
+}
 
 onMounted(() => {
   if (gridScrollContainerRef.value) {
@@ -1334,6 +1360,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopSlideShow();
+  if (contentUpdateTimer) {
+    clearTimeout(contentUpdateTimer);
+    contentUpdateTimer = null;
+  }
   window.removeEventListener('resize', handleWindowResize);
   if (resizeObserver) {
     resizeObserver.disconnect();
@@ -2823,23 +2853,12 @@ watch(
     libConfig.search.searchType
   ],
   () => {
-    setTimeout(() => {
+    scheduleContentRefresh(() => {
       // Only update content if we are currently in the Image Search view
       if (config.main.sidebarIndex === 2) {
-        scrollPosition.value = 0;   // reset file scroll position
-        selectedItemIndex.value = 0; // reset selected item index to 0
-        
-        // Also reset the GridView scroll position
-        if (gridViewRef.value) {
-          gridViewRef.value.scrollToPosition(0);
-        }
-        
-        updateContent();
-  
-        // Reset ImageViewer context if open (without focusing/showing it)
-        openImageViewer(selectedItemIndex.value, false, true);
+        refreshContentFromSelectionChange();
       }
-    }, 0);
+    });
   }
 );
 
@@ -2870,23 +2889,12 @@ watch(
     // Skip other temp modes to prevent race conditions
     if (tempViewMode.value !== 'none') return;
     
-    setTimeout(() => {
+    scheduleContentRefresh(() => {
       // Double check in case tempViewMode changed during setTimeout
       if (tempViewMode.value !== 'none') return;
-      
-      scrollPosition.value = 0;   // reset file scroll position
-      selectedItemIndex.value = 0; // reset selected item index to 0
-      
-      // Also reset the GridView scroll position
-      if (gridViewRef.value) {
-        gridViewRef.value.scrollToPosition(0);
-      }
-      
-      updateContent();
-  
-      // Reset ImageViewer context if open (without focusing/showing it)
-      openImageViewer(selectedItemIndex.value, false, true);
-    }, 0);
+
+      refreshContentFromSelectionChange();
+    });
   }, 
   { immediate: true }
 );
@@ -2955,11 +2963,13 @@ function cycleGridStyle() {
 const pendingRequests = new Set();
 
 async function fetchDataRange(start: number, end: number, reverse = false) {
+  const requestId = currentContentRequestId;
+
   // Clamp range
   start = Math.max(0, start);
   end = Math.min(totalFileCount.value, end);
   
-  if (start >= end) return;
+  if (start >= end || requestId !== currentContentRequestId) return;
 
   // Fetch in chunks
   const chunkSize = selectionChunkSize.value;
@@ -2983,7 +2993,7 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
     }
 
     if (chunkNeedsLoad) {
-      const key = `${chunkStart}-${chunkSize}`;
+      const key = `${requestId}:${chunkStart}-${chunkSize}`;
       if (pendingRequests.has(key)) {
         continue;
       }
@@ -2992,10 +3002,12 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
       
       const promise = getQueryFiles(currentQueryParams.value, chunkStart, chunkSize)
         .then(async (newFiles) => {
+          if (requestId !== currentContentRequestId) return;
           if (newFiles) {
             // Update fileList and collect reactive references
             const filesToFetch = [];
             for (let j = 0; j < newFiles.length; j++) {
+              if (requestId !== currentContentRequestId) return;
               if (chunkStart + j >= fileList.value.length) continue;
 
               const existingItem = fileList.value[chunkStart + j];

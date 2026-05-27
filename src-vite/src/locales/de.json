@@ -1021,12 +1021,12 @@
     "image_search": {
       "title": "Intelligente Suche",
       "search_image": "Bildsuche",
-      "search_model": "Suchmodell auswählen",
+      "search_model": "Modell auswählen (Neustart erforderlich)",
       "default_model_hint": "Bildsuche nur auf Englisch",
       "multilingual_model_hint": "Suche in über 50 Sprachen",
       "search_model_options": [
         "Standard (Englisch)",
-        "Mehrsprachig (50+ Sprachen)"
+        "Mehrsprachig"
       ],
       "multilingual_model_download_title": "Mehrsprachiges Suchmodell herunterladen?",
       "multilingual_model_download_message": "Das mehrsprachige Bildsuchmodell ist nicht installiert. Laden Sie es herunter, um die Suche in über 50 Sprachen zu aktivieren.",

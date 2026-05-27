@@ -3,26 +3,26 @@
     <div class="relative w-full aspect-4/1 px-0.5">
       <div
         v-if="hoverBin !== null"
-        class="pointer-events-none absolute right-1 top-1 z-10 rounded-md border border-base-content/10 bg-base-100/92 px-2 py-1 text-[9px] font-semibold leading-tight text-base-content shadow-sm backdrop-blur-sm"
+        class="pointer-events-none absolute right-1 top-1 z-10 rounded-md border border-base-content/5 bg-base-100/95 px-2 py-1 text-[9px] font-semibold leading-tight shadow-sm backdrop-blur-sm"
       >
-        <div class="mb-1 text-[8px] uppercase tracking-[0.18em] text-base-content/45">
+        <div class="mb-1 text-[8px] uppercase tracking-[0.18em] text-base-content/30">
           {{ $t('msgbox.image_editor.tone') }} {{ hoverBin }}
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="text-slate-400">L</span>
-          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.luma) }}</span>
+          <span class="text-slate-400/30">L</span>
+          <span class="w-10 text-right tabular-nums text-base-content/30">{{ formatLegendValue(hoveredValues.luma) }}</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="text-red-500">R</span>
-          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.red) }}</span>
+          <span class="text-red-500/30">R</span>
+          <span class="w-10 text-right tabular-nums text-base-content/30">{{ formatLegendValue(hoveredValues.red) }}</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="text-green-500">G</span>
-          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.green) }}</span>
+          <span class="text-green-500/30">G</span>
+          <span class="w-10 text-right tabular-nums text-base-content/30">{{ formatLegendValue(hoveredValues.green) }}</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="text-blue-500">B</span>
-          <span class="w-10 text-right tabular-nums">{{ formatLegendValue(hoveredValues.blue) }}</span>
+          <span class="text-blue-500/30">B</span>
+          <span class="w-10 text-right tabular-nums text-base-content/30">{{ formatLegendValue(hoveredValues.blue) }}</span>
         </div>
       </div>
 
@@ -61,7 +61,7 @@
       </svg>
     </div>
 
-    <div class="flex justify-between px-0.5 text-[8px] uppercase tracking-tighter font-black text-base-content/25">
+    <div class="flex justify-between px-0.5 text-[8px] uppercase tracking-tighter font-black text-base-content/30">
       <span>{{ $t('msgbox.image_editor.shadows') }}</span>
       <span>{{ $t('msgbox.image_editor.midtones') }}</span>
       <span>{{ $t('msgbox.image_editor.highlights') }}</span>

@@ -485,7 +485,13 @@ async function clickSettings(tabIndex?: number) {
   // check if the settings window is already open
   const settingsWindow = await WebviewWindow.getByLabel('settings');
   if (settingsWindow) {
-    settingsWindow.show();
+    if (isWin && await settingsWindow.isMinimized()) {
+      await settingsWindow.unminimize();
+    }
+    await settingsWindow.show();
+    if (isWin) {
+      await settingsWindow.setFocus();
+    }
     return;
   }
 

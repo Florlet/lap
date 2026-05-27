@@ -1021,12 +1021,12 @@
     "image_search": {
       "title": "智能搜索",
       "search_image": "图片搜索",
-      "search_model": "选择搜索模型",
+      "search_model": "选择模型（重启生效）",
       "default_model_hint": "仅支持英文的图片搜索",
       "multilingual_model_hint": "支持 50+ 语言搜索",
       "search_model_options": [
         "默认（英文）",
-        "多语言（50+ 语言）"
+        "多语言"
       ],
       "multilingual_model_download_title": "下载多语言搜索模型？",
       "multilingual_model_download_message": "多语言图片搜索模型尚未安装。下载后可支持 50+ 语言搜索。",

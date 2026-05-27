@@ -1021,12 +1021,12 @@
     "image_search": {
       "title": "Pesquisa inteligente",
       "search_image": "Pesquisa de imagens",
-      "search_model": "Escolher modelo de pesquisa",
+      "search_model": "Escolher modelo (requer reinicialização)",
       "default_model_hint": "Pesquisa de imagens somente em inglês",
       "multilingual_model_hint": "Pesquisa em mais de 50 idiomas",
       "search_model_options": [
         "Padrão (inglês)",
-        "Multilíngue (50+ idiomas)"
+        "Multilíngue"
       ],
       "multilingual_model_download_title": "Baixar o modelo de pesquisa multilíngue?",
       "multilingual_model_download_message": "O modelo de pesquisa de imagens multilíngue não está instalado. Baixe-o para habilitar a pesquisa em mais de 50 idiomas.",
