@@ -1258,6 +1258,21 @@ const currentImageSearchParams = ref({
   limit: 0,
 });
 
+function showEmptyContent(requestId: number) {
+  if (requestId !== currentContentRequestId) return;
+  fileList.value = [];
+  totalFileCount.value = 0;
+  totalFileSize.value = 0;
+  timelineData.value = [];
+  lastVisibleRange = { start: -1, end: -1 };
+  visibleRangeSeqId++;
+  markDedupSourceUpdated(requestId);
+  openImageViewer(0, false, true);
+  isLoading.value = false;
+  hasLoadedInitialResult.value = true;
+  contentReady.value = true;
+}
+
 // Similar Search Mode State
 const tempViewMode = ref<'none' | 'similar' | 'album' | 'person'>('none');
 const dedupQueryParams = computed(() => {
@@ -3485,6 +3500,7 @@ async function updateContent(force = false) {
         getImageSearchFileList(libConfig.search.searchText, 0, requestId);
       } else {
         contentTitle.value = localeMsg.value.search.search_images;
+        showEmptyContent(requestId);
       }
     } else if (libConfig.search.searchType === 1) { // similar
       const index = libConfig.search.similarImageHistoryIndex;
@@ -3494,6 +3510,7 @@ async function updateContent(force = false) {
         getImageSearchFileList("", libConfig.search.similarImageHistory[index], requestId);
       } else {
         contentTitle.value = localeMsg.value.search.similar_images;
+        showEmptyContent(requestId);
       }
     } else {   // filename search
       if (libConfig.search.fileName) {
@@ -3501,6 +3518,7 @@ async function updateContent(force = false) {
         getFileList({ searchFileName: libConfig.search.fileName, sortType: 3, sortOrder: 0 }, requestId); // sort by name
       } else {
         contentTitle.value = localeMsg.value.search.filename_search;
+        showEmptyContent(requestId);
       }
     }
   }

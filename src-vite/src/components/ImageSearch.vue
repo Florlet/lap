@@ -91,16 +91,16 @@
         </div>
           <IconSearch v-else class="w-4 h-4 mx-1 shrink-0" />
           
-          <span class="sidebar-item-label">{{ typeof item === 'string' ? item : item.text }}</span>
-          <ContextMenu
-            :class="[
-              'ml-auto flex flex-row items-center text-base-content/30',
-              libConfig.search.searchHistoryIndex != index ? 'invisible group-hover:visible' : ''
-            ]"
-            :iconMenu="IconMore"
-            :menuItems="searchHistoryMenuItems"
-            :smallIcon="true"
-          />
+	          <span class="sidebar-item-label">{{ typeof item === 'string' ? item : item.text }}</span>
+	          <ContextMenu
+	            :class="[
+	              'ml-auto flex flex-row items-center text-base-content/30',
+	              libConfig.search.searchHistoryIndex != index ? 'invisible group-hover:visible' : ''
+	            ]"
+	            :iconMenu="IconMore"
+	            :menuItems="() => getSearchHistoryMenuItems(index)"
+	            :smallIcon="true"
+	          />
         </div>  
       </div>
 
@@ -241,17 +241,17 @@ const searchPanelMenuItems = computed(() => [
   },
 ]);
 
-const searchHistoryMenuItems = computed(() => {
+function getSearchHistoryMenuItems(index: number) {
   return [
     {
       label: localeMsg.value.menu.home.delete,
       icon: IconTrash,
       action: () => {
-        deleteHistoryItem();
+        deleteHistoryItem(index);
       }
     },
   ];
-});
+}
 
 // search query
 const searchInputRef = ref<HTMLInputElement | null>(null);
@@ -335,9 +335,17 @@ function clearHistory() {
   showClearHistoryMsgbox.value = false;
 }
 
-function deleteHistoryItem() {
-  libConfig.search.searchHistory.splice(libConfig.search.searchHistoryIndex, 1);
-  libConfig.search.searchHistoryIndex = -1;
+function deleteHistoryItem(index: number) {
+  if (index < 0 || index >= libConfig.search.searchHistory.length) return;
+  const selectedIndex = libConfig.search.searchHistoryIndex;
+  libConfig.search.searchHistory.splice(index, 1);
+  if (selectedIndex === index) {
+    libConfig.search.searchText = '';
+    searchQuery.value = '';
+    libConfig.search.searchHistoryIndex = -1;
+  } else if (selectedIndex > index) {
+    libConfig.search.searchHistoryIndex = selectedIndex - 1;
+  }
 }
 
 function handleSearch() {
