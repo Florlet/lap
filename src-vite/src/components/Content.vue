@@ -3268,52 +3268,51 @@ async function getImageSearchFileList(
     if (requestId !== currentContentRequestId) {
       return;
     }
-    
-    searchSimilarImages(currentImageSearchParams.value).then(result => {
-      if (requestId !== currentContentRequestId) return;
 
-      if (result) {
-        fileList.value = preserveLoadedThumbnails(result);
-        totalFileCount.value = fileList.value.length;
-        totalFileSize.value = fileList.value.reduce((total, file) => total + file.size, 0);
-        markDedupSourceUpdated(requestId);
-        restoreInitialSelectionIfNeeded();
-        openImageViewer(0, false, true);
+    const result = await searchSimilarImages(currentImageSearchParams.value);
+    if (requestId !== currentContentRequestId) return;
 
-        // Reset visible range tracking when changing views
-        lastVisibleRange = { start: -1, end: -1 };
-        visibleRangeSeqId++;
+    if (result) {
+      fileList.value = preserveLoadedThumbnails(result);
+      totalFileCount.value = fileList.value.length;
+      totalFileSize.value = fileList.value.reduce((total, file) => total + file.size, 0);
+      markDedupSourceUpdated(requestId);
+      restoreInitialSelectionIfNeeded();
+      openImageViewer(0, false, true);
 
-        // Update search history with the first result's file_id
-        if (updateHistory && searchText && result.length > 0) {
-          const history = libConfig.search.searchHistory as any[];
-          const index = history.findIndex((item: any) => {
-             const text = typeof item === 'string' ? item : item.text;
-             return text === searchText;
-          });
+      // Reset visible range tracking when changing views
+      lastVisibleRange = { start: -1, end: -1 };
+      visibleRangeSeqId++;
 
-          if (index !== -1) {
-             const item = history[index];
-             const firstId = result[0].id;
+      // Update search history with the first result's file_id
+      if (updateHistory && searchText && result.length > 0) {
+        const history = libConfig.search.searchHistory as any[];
+        const index = history.findIndex((item: any) => {
+            const text = typeof item === 'string' ? item : item.text;
+            return text === searchText;
+        });
 
-             // Always update the history item's fileId to the latest first result
-             if (typeof item === 'string') {
-               history[index] = { text: item, fileId: firstId };
-             } else {
-               item.fileId = firstId;
-             }
-          }
+        if (index !== -1) {
+            const item = history[index];
+            const firstId = result[0].id;
+
+            // Always update the history item's fileId to the latest first result
+            if (typeof item === 'string') {
+              history[index] = { text: item, fileId: firstId };
+            } else {
+              item.fileId = firstId;
+            }
         }
-
-        // Fetch thumbnails for the search results
-        getFileListThumb(fileList.value);
-      } else {
-        fileList.value = [];
-        totalFileCount.value = 0;
-        totalFileSize.value = 0;
-        markDedupSourceUpdated(requestId);
       }
-    });
+
+      // Fetch thumbnails for the search results
+      getFileListThumb(fileList.value);
+    } else {
+      fileList.value = [];
+      totalFileCount.value = 0;
+      totalFileSize.value = 0;
+      markDedupSourceUpdated(requestId);
+    }
   } catch (err) {
     console.error('getImageSearchFileList error:', err);
     if (requestId === currentContentRequestId) {

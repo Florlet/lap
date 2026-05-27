@@ -68,9 +68,11 @@
     <!-- Empty State / Loading -->
     <div v-else class="absolute inset-0 flex flex-col items-center justify-center">
       <div class="text-base-content/30 flex flex-col items-center gap-2 text-center px-4">
-        <template v-if="!contentReady">
-          <!-- <span>{{ $t('tooltip.loading') }}</span> -->
+        <template v-if="showDelayedLoading">
+          <span class="loading loading-dots loading-lg text-primary"></span>
+          <span>{{ $t('tooltip.loading') }}</span>
         </template>
+        <template v-else-if="!contentReady" />
         <template v-else-if="showFolderFiles && folderExcluded">
           <span>{{ $t('tooltip.not_found.folder_excluded') }}</span>
           <span class="text-xs">{{ $t('tooltip.not_found.folder_excluded_hint') }}</span>
@@ -407,6 +409,8 @@ const filmStripItemSize = computed(() => {
 });
 
 let resizeObserver: ResizeObserver | null = null;
+const showDelayedLoading = ref(false);
+let loadingDelayTimer: ReturnType<typeof setTimeout> | null = null;
 
 function updateColumnCount() {
   if (containerRef.value) {
@@ -449,6 +453,30 @@ watch(() => props.layoutVersion, () => {
   updateLayout();
 });
 
+watch(
+  () => props.contentReady,
+  (ready) => {
+    if (loadingDelayTimer) {
+      clearTimeout(loadingDelayTimer);
+      loadingDelayTimer = null;
+    }
+
+    if (ready) {
+      showDelayedLoading.value = false;
+      return;
+    }
+
+    showDelayedLoading.value = false;
+    loadingDelayTimer = setTimeout(() => {
+      loadingDelayTimer = null;
+      if (!props.contentReady) {
+        showDelayedLoading.value = true;
+      }
+    }, 500);
+  },
+  { immediate: true }
+);
+
 watch(layoutContentHeight, (newHeight) => {
   emit('layout-update', { height: newHeight });
 });
@@ -480,6 +508,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown);
+  if (loadingDelayTimer) {
+    clearTimeout(loadingDelayTimer);
+    loadingDelayTimer = null;
+  }
   if (containerRef.value) {
     containerRef.value.removeEventListener('gesturestart', onGestureStart as any);
     containerRef.value.removeEventListener('gesturechange', onGestureChange as any);
