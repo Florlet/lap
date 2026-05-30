@@ -999,6 +999,7 @@
         "None"
       ],
       "auto_play_video": "Auto play video",
+      "loop_video": "Loop video",
       "show_comment": "Show comments",
       "show_comment_hint": "Show comments in the viewer",
       "external_image_editor": "Open image in",

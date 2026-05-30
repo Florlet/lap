@@ -236,6 +236,10 @@ const setupPlayer = (index: number) => {
 
     player.on('ended', () => {
       if (activeVideo.value === index) {
+        if (!props.isSlideShow && config.settings.loopVideo) {
+          player.play().catch(() => {});
+          return;
+        }
         isPlaying.value = false;
         isReplaying.value = true;
         if (props.isSlideShow) {

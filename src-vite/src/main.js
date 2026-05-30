@@ -143,6 +143,9 @@ listen('settings-slideShowInterval-changed', (event) => {
 listen('settings-autoPlayVideo-changed', (event) => {
   config.setAutoPlayVideo(event.payload)
 })
+listen('settings-loopVideo-changed', (event) => {
+  config.settings.loopVideo = event.payload
+})
 listen('settings-navigatorViewMode-changed', (event) => {
   config.setNavigatorViewMode(event.payload)
 })

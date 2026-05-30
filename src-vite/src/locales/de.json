@@ -999,6 +999,7 @@
         "Keine"
       ],
       "auto_play_video": "Video Autoplay",
+      "loop_video": "Video wiederholen",
       "show_comment": "Kommentar zeigen",
       "show_comment_hint": "Kommentare im Betrachter anzeigen",
       "external_image_editor": "Bild öffnen mit",

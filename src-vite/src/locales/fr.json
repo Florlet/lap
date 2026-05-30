@@ -999,6 +999,7 @@
         "Aucune"
       ],
       "auto_play_video": "Lecture auto vidéo",
+      "loop_video": "Vidéo en boucle",
       "show_comment": "Afficher commentaire",
       "show_comment_hint": "Afficher les commentaires dans le visualiseur",
       "external_image_editor": "Ouvrir l'image avec",

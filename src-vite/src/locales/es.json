@@ -999,6 +999,7 @@
         "Ninguna"
       ],
       "auto_play_video": "Autoreproducir vídeo",
+      "loop_video": "Repetir vídeo",
       "show_comment": "Mostrar comentario",
       "show_comment_hint": "Mostrar comentarios en el visor",
       "external_image_editor": "Abrir imagen con",

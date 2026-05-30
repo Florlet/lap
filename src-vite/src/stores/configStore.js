@@ -102,7 +102,6 @@ export const useConfigStore = defineStore('configStore', {
       categorySort: 0,            // category_sort_options: 0=name asc, 1=name desc, 2=count asc, 3=count desc
       showSubfolderFiles: false,  // show subfolder files (in album folder view)
       
-
       // grid view settings
       thumbnailSize: 512,         // thumbnail image size (small: 128, medium: 256, large: 512, extra large: 1024)
       grid: {
@@ -123,6 +122,7 @@ export const useConfigStore = defineStore('configStore', {
       navigatorViewMode: 0,      // 0: Auto, 1: Always hide, 2: Always show
       navigatorViewSize: 240,    // navigator view size (160, 240, 320, 400)
       autoPlayVideo: true,       // auto play video
+      loopVideo: false,          // loop video (only effective when autoPlayVideo is off)
       // showComment: false,        // show comment
       externalImageAppPath: '',    // external image app path
       externalImageAppName: '',    // external image app display name

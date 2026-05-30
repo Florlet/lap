@@ -999,6 +999,7 @@
         "无"
       ],
       "auto_play_video": "自动播放视频",
+      "loop_video": "循环播放视频",
       "show_comment": "显示备注",
       "show_comment_hint": "在查看器中显示备注",
       "external_image_editor": "打开图片使用",

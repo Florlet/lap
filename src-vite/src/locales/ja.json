@@ -999,6 +999,7 @@
         "なし"
       ],
       "auto_play_video": "動画自動再生",
+      "loop_video": "動画を繰り返す",
       "show_comment": "コメントを表示",
       "show_comment_hint": "ビューアにコメントを表示",
       "external_image_editor": "画像を開くアプリ",

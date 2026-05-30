@@ -999,6 +999,7 @@
         "없음"
       ],
       "auto_play_video": "비디오 자동 재생",
+      "loop_video": "비디오 반복 재생",
       "show_comment": "메모 표시",
       "show_comment_hint": "뷰어에 메모 표시",
       "external_image_editor": "이미지 열기 앱",
