@@ -389,6 +389,20 @@ function handleHomeKeyDown(event: KeyboardEvent) {
     return;
   }
 
+  if (matchesShortcut('app.search', event, shortcutPlatform)) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!libraryEmpty.value) {
+      if (config.main.sidebarIndex === 2 && showPanel.value) {
+        nextTick(() => (panelRef.value as any)?.focusSearchInput?.());
+      } else {
+        config.main.sidebarIndex = 2;
+        showPanel.value = true;
+      }
+    }
+    return;
+  }
+
   if (!matchesShortcut('app.sidebar.toggle', event, shortcutPlatform)) {
     return;
   }

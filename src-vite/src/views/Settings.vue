@@ -883,6 +883,7 @@ const shortcutDisplaySections: Array<{ key: string; items: ShortcutDisplayItem[]
       { actionId: 'app.scale.increase', labelKey: 'font_increase' },
       { actionId: 'app.scale.decrease', labelKey: 'font_decrease' },
       { actionId: 'app.scale.reset', labelKey: 'font_reset' },
+      { actionId: 'app.search', labelKey: 'search' },
     ],
   },
   {

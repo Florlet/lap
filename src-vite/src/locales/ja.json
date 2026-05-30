@@ -1058,9 +1058,10 @@
       "actions": {
         "toggle_sidebar": "サイドバーの切り替え",
         "open_settings": "設定を開く",
-        "font_increase": "フォントサイズを大きく",
-        "font_decrease": "フォントサイズを小さく",
-        "font_reset": "フォントサイズをリセット",
+        "font_increase": "文字サイズを大きく",
+        "font_decrease": "文字サイズを小さく",
+        "font_reset": "文字サイズをリセット",
+        "search": "検索",
         "previous_image": "前の画像",
         "next_image": "次の画像",
         "first_image": "最初の画像",

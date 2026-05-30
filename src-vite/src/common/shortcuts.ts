@@ -18,6 +18,7 @@ export type ShortcutActionId =
   | 'app.scale.decrease'
   | 'app.scale.reset'
   | 'app.preferences'
+  | 'app.search'
   | 'file.openNewWindow'
   | 'file.editImage'
   | 'file.print'
@@ -123,6 +124,13 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     contexts: ['global'],
     defaultBindings: [
       { code: 'Comma', modifiers: ['cmdOrCtrl'], label: { mac: '⌘,', windows: 'Ctrl+,', linux: 'Ctrl+,' } },
+    ],
+  },
+  {
+    id: 'app.search',
+    contexts: ['global'],
+    defaultBindings: [
+      { key: '/', modifiers: ['cmdOrCtrl'], label: { mac: '⌘/', windows: 'Ctrl+/', linux: 'Ctrl+/' } },
     ],
   },
   {

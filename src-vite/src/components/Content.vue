@@ -1196,8 +1196,6 @@ const hasLoadedInitialResult = ref(false); // avoid showing "No files found" bef
 const contentReady = ref(false);  // true after current view's content has loaded (empty or not), reset on navigation
 const dedupSourceVersion = ref(0);
 
-const searchBoxRef = ref<any>(null);
-
 // Store current query params for virtual scrolling
 const currentQueryParams = ref({
   searchFileType: 0,
@@ -1792,7 +1790,6 @@ const keyActions = {
       selectedItemIndex.value = fileList.value.length - 1;
     });
   },
-  '/': () => searchBoxRef.value.focusInput(),
 };
 
 // Local keydown handler for navigation (prevents default browser behavior)
