@@ -1399,7 +1399,13 @@ onBeforeUnmount(() => {
 });
 
 // New event handlers for GridView
-function handleItemClicked(index: number, shiftKey: boolean = false) {
+function handleItemClicked(
+  index: number,
+  modifiers: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean } = {}
+) {
+  const shiftKey = !!modifiers.shiftKey;
+  const toggleSelection = !!(modifiers.metaKey || modifiers.ctrlKey);
+
   if (!selectMode.value && shiftKey && selectedItemIndex.value >= 0 && selectedItemIndex.value !== index) {
     checkUnsavedChanges(() => {
       const wasSelectMode = selectMode.value;
@@ -1426,6 +1432,20 @@ function handleItemClicked(index: number, shiftKey: boolean = false) {
       lastSelectedIndex.value = index;
       if (!wasSelectMode) {
         toast.info(localeMsg.value.info_panel.select_mode_entered);
+      }
+    });
+    return;
+  }
+
+  if (!selectMode.value && toggleSelection && selectedItemIndex.value >= 0) {
+    checkUnsavedChanges(() => {
+      const anchorIndex = selectedItemIndex.value;
+      handleSelectMode(true, { notify: true });
+      fileList.value[anchorIndex].isSelected = true;
+
+      selectedItemIndex.value = index;
+      if (index !== anchorIndex) {
+        handleItemSelectToggled(index);
       }
     });
     return;
