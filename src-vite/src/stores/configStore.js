@@ -3,8 +3,6 @@
  */
 import { defineStore } from 'pinia';
 
-const CONFIG_STORE_KEY = import.meta.env.DEV ? 'configStore.debug' : 'configStore';
-
 export const useConfigStore = defineStore('configStore', {
   state: () => ({
     main: {
@@ -299,7 +297,5 @@ export const useConfigStore = defineStore('configStore', {
     },
 
   },
-  persist: {
-    key: CONFIG_STORE_KEY,
-  }
+  persist: true
 });
