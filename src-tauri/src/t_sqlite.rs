@@ -2615,10 +2615,6 @@ impl AThumb {
             .map(|d| d.as_secs() as i64)
     }
 
-    fn source_exists(file_path: &str) -> bool {
-        fs::metadata(file_path).is_ok()
-    }
-
     fn get_current_library_id() -> String {
         t_config::load_app_config()
             .map(|c| c.current_library_id)
@@ -3135,7 +3131,7 @@ impl AThumb {
                 error_code: 1,
                 thumb_data: None,
                 thumb_key: None,
-                thumb_mtime: None,
+                thumb_mtime: Self::get_source_mtime(file_path),
                 thumb_size: Some(thumbnail_size as i64),
                 updated_at: Some(Self::now_ts()),
                 thumb_data_base64: None,
@@ -3192,7 +3188,7 @@ impl AThumb {
 
         if let Ok(Some(thumbnail)) = Self::fetch(file_id) {
             if thumbnail.error_code == 1 {
-                if Self::source_exists(file_path) {
+                if thumbnail.is_stale(file_path, thumbnail_size) {
                     let _ = Self::delete(file_id);
                     return Ok(None);
                 }
@@ -3232,7 +3228,7 @@ impl AThumb {
         }
 
         if thumbnail.error_code == 1 {
-            if Self::source_exists(file_path) {
+            if thumbnail.is_stale(file_path, thumbnail_size) {
                 let _ = Self::delete(thumbnail.file_id);
                 return Ok(None);
             }
