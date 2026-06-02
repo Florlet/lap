@@ -364,31 +364,33 @@
       </div>
 
       <!-- info panel splitter -->
-      <div v-if="config.rightPanel.show || selectMode"
+      <div v-if="rightPanelLayoutVisible"
         class="w-1 shrink-0 transition-colors mt-12"
         :class="{
           'mb-8': config.settings.showStatusBar,
           'mb-1': !config.settings.showStatusBar,
-          'hover:bg-primary cursor-col-resize': config.rightPanel.show || selectMode,
-          'bg-primary': (config.rightPanel.show || selectMode) && isDraggingInfoPanel,
+          'hover:bg-primary cursor-col-resize': rightPanelLayoutVisible,
+          'bg-primary': rightPanelLayoutVisible && isDraggingInfoPanel,
         }" 
         @mousedown="startDraggingInfoPanelSplitter"
       ></div>
 
       <!-- info panel -->
-      <transition
-        enter-active-class="transition-all duration-200 ease-in-out overflow-hidden"
-        leave-active-class="transition-all duration-200 ease-in-out overflow-hidden"
-        enter-from-class="!w-0 opacity-0"
-        enter-to-class="opacity-100"
-        leave-from-class="opacity-100"
-        leave-to-class="!w-0 opacity-0"
+      <div
+        v-if="rightPanelMounted"
+        class="relative shrink-0"
+        :style="{ width: rightPanelLayoutVisible ? activeRightPanelWidth + 'px' : '0px' }"
       >
-        <div v-if="config.rightPanel.show || selectMode"
-          :class="[ 'pt-12 pr-1', config.settings.showStatusBar ? 'pb-8' : 'pb-1' ]" 
-          :style="{ width: activeRightPanelWidth + 'px' }">
+        <div
+          :class="[
+            'absolute right-0 z-40 pr-1 transition-transform duration-200 ease-in-out',
+            config.settings.showStatusBar ? 'pb-8' : 'pb-1',
+            rightPanelVisualVisible ? 'translate-x-0' : 'translate-x-full pointer-events-none',
+          ]"
+          :style="{ width: activeRightPanelWidth + 'px', top: '48px', bottom: config.settings.showStatusBar ? '32px' : '4px' }"
+        >
           <DedupPane
-            v-if="isDedupPanelOpen"
+            v-if="!selectMode && config.rightPanel.mode === 'dedup'"
             :key="dedupScanKey"
             :file-list="fileList"
             :selected-file-id="fileList[selectedItemIndex]?.id"
@@ -440,7 +442,7 @@
             @navigate-folder="handleInfoNavigateFolder"
           />
         </div>
-      </transition>
+      </div>
 
     </div>
 
@@ -926,7 +928,61 @@ const fileInfoRef = ref<any>(null);
 const isDedupPanelOpen = computed(() => config.rightPanel.show && config.rightPanel.mode === 'dedup');
 const isInfoPanelOpen = computed(() => config.rightPanel.show && config.rightPanel.mode === 'info');
 const RIGHT_PANEL_MIN_WIDTH = 160; // Keep aligned with left panel minimum width.
+const RIGHT_PANEL_ANIMATION_MS = 200;
 const activeRightPanelWidth = computed(() => Number(config.rightPanel.width || 360));
+const shouldShowRightPanel = computed(() => config.rightPanel.show || selectMode.value);
+const rightPanelMounted = ref(shouldShowRightPanel.value);
+const rightPanelVisualVisible = ref(shouldShowRightPanel.value);
+const rightPanelLayoutVisible = ref(shouldShowRightPanel.value);
+let rightPanelAnimationTimer: ReturnType<typeof setTimeout> | null = null;
+let rightPanelAnimationVersion = 0;
+
+async function refreshCenteredGridLayout() {
+  gridViewRef.value?.refreshLayout?.();
+  await nextTick();
+  gridViewRef.value?.centerItem?.(selectedItemIndex.value);
+}
+
+async function commitRightPanelLayout(visible: boolean) {
+  rightPanelLayoutVisible.value = visible;
+  await nextTick();
+  await refreshCenteredGridLayout();
+}
+
+function clearRightPanelAnimationTimer() {
+  if (rightPanelAnimationTimer) {
+    clearTimeout(rightPanelAnimationTimer);
+    rightPanelAnimationTimer = null;
+  }
+}
+
+watch(shouldShowRightPanel, async (visible) => {
+  clearRightPanelAnimationTimer();
+  const animationVersion = ++rightPanelAnimationVersion;
+
+  if (visible) {
+    rightPanelMounted.value = true;
+    await nextTick();
+    if (animationVersion !== rightPanelAnimationVersion) return;
+    rightPanelVisualVisible.value = true;
+    rightPanelAnimationTimer = setTimeout(() => {
+      if (animationVersion !== rightPanelAnimationVersion) return;
+      rightPanelAnimationTimer = null;
+      void commitRightPanelLayout(true);
+    }, RIGHT_PANEL_ANIMATION_MS);
+    return;
+  }
+
+  rightPanelVisualVisible.value = false;
+  rightPanelAnimationTimer = setTimeout(() => {
+    if (animationVersion !== rightPanelAnimationVersion) return;
+    rightPanelAnimationTimer = null;
+    void commitRightPanelLayout(false).then(() => {
+      if (animationVersion !== rightPanelAnimationVersion) return;
+      rightPanelMounted.value = false;
+    });
+  }, RIGHT_PANEL_ANIMATION_MS);
+});
 
 function getRightPanelMaxWidth() {
   const mainWindowWidth = window.innerWidth;
@@ -1384,6 +1440,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopSlideShow();
+  clearRightPanelAnimationTimer();
   if (contentUpdateTimer) {
     clearTimeout(contentUpdateTimer);
     contentUpdateTimer = null;
@@ -5583,6 +5640,10 @@ function stopDragging() {
   document.removeEventListener('mousemove', handleMouseMove);
   document.removeEventListener('mouseup', stopDragging);
 }
+
+defineExpose({
+  refreshCenteredGridLayout,
+});
 </script>
 
 <style scoped>

@@ -151,6 +151,7 @@ const buildQueryParams = ({ isFavorite = false, rating = -1 } = {}) => ({
   searchFolder: "",
   startDate: 0,
   endDate: 0,
+  calendarSort: 0,
   make: "",
   model: "",
   lensMake: "",

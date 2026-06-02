@@ -260,6 +260,7 @@ watch(() => props.direction, () => {
 
 onMounted(() => {
   updateContainerSize();
+  emitUpdate();
   const observer = new ResizeObserver(updateContainerSize);
   if (scrollerRef.value) {
     observer.observe(scrollerRef.value);

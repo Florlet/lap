@@ -16,28 +16,25 @@
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden">
 
-      <transition
-        enter-active-class="transition-all duration-200 ease-in-out overflow-hidden"
-        leave-active-class="transition-all duration-200 ease-in-out overflow-hidden"
-        enter-from-class="!w-0 opacity-0"
-        enter-to-class="opacity-100"
-        leave-from-class="opacity-100"
-        leave-to-class="!w-0 opacity-0"
+      <!-- left pane -->
+      <div v-if="config.leftPanel.show && !uiStore.isFullScreen"
+        :class="[
+          'relative flex my-1 ml-1 z-10 select-none',
+          !leftPanelLayoutExpanded && isMac ? 'mt-12 mb-8': '',
+        ]"
+        :style="{ width: leftPanelLayoutExpanded ? config.leftPanel.width + 'px' : '64px' }"
+        data-tauri-drag-region
       >
-        <!-- left pane -->
-        <div v-if="config.leftPanel.show && !uiStore.isFullScreen"
-          :class="[
-            'relative flex bg-base-200 rounded-box my-1 ml-1 z-10 select-none', 
-            !showPanel && isMac ? 'mt-12 mb-8': '',
-            isDraggingSplitter ? 'no-transition' : 'transition-all duration-200 ease-in-out',
-          ]"
-          :style="{ width: showPanel ? config.leftPanel.width + 'px' : '64px' }"
-          data-tauri-drag-region
-        >
+          <div
+            class="absolute inset-y-0 left-0 bg-base-200 rounded-box"
+            :class="isDraggingSplitter ? '' : 'transition-[width] duration-200 ease-in-out'"
+            :style="{ width: leftPanelVisualExpanded ? config.leftPanel.width + 'px' : '64px' }"
+          ></div>
+
           <!-- side bar -->
           <div 
             :class="[
-              'fixed top-14 min-w-16 bottom-10 flex flex-col items-center',
+              'fixed top-14 min-w-16 bottom-10 z-10 flex flex-col items-center',
               config.settings.showButtonText ? 'space-y-3' : 'space-y-1' 
             ]" 
             data-tauri-drag-region
@@ -67,7 +64,12 @@
           </div>
 
           <!-- panel-->
-          <div v-if="showPanel" class="ml-16 pr-0.5 flex-1 flex flex-col overflow-hidden">
+          <div
+            v-if="leftPanelMounted"
+            class="absolute inset-y-0 left-16 pr-0.5 flex flex-col overflow-hidden transition-[transform,opacity] duration-200 ease-in-out"
+            :class="leftPanelVisualExpanded ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'"
+            :style="{ width: Math.max(0, config.leftPanel.width - 64) + 'px' }"
+          >
             <!-- library title -->
             <div 
               class="mb-2 h-10 flex items-center justify-between whitespace-nowrap shrink-0"
@@ -116,14 +118,13 @@
             </div>
           </div>
         </div>
-      </transition> 
       
       <!-- splitter -->
       <div v-if="!uiStore.isFullScreen"
         class="w-1 transition-colors shrink-0"
         :class="{
-          'hover:bg-primary cursor-col-resize': config.leftPanel.show && showPanel,
-          'bg-primary': config.leftPanel.show && showPanel && isDraggingSplitter,
+          'hover:bg-primary cursor-col-resize': config.leftPanel.show && leftPanelLayoutExpanded,
+          'bg-primary': config.leftPanel.show && leftPanelLayoutExpanded && isDraggingSplitter,
         }" 
         @mousedown="startDraggingSplitter"
         @mouseup="stopDraggingSplitter"
@@ -136,7 +137,7 @@
           showDesktopTitleBar ? 'rounded-tl-box' : '',
         ]"
       >
-        <Content :key="libraryVersion" :titlebar="buttons[config.main.sidebarIndex].text" :libraryEmpty="libraryEmpty"/>
+        <Content ref="contentRef" :key="libraryVersion" :titlebar="buttons[config.main.sidebarIndex].text" :libraryEmpty="libraryEmpty"/>
       </div>
     </div>
 
@@ -228,7 +229,55 @@ const uiStore = useUIStore();
 
 // Panel component ref
 const panelRef = ref<any>(null);
+const contentRef = ref<any>(null);
 const showPanel = ref(true);
+const LEFT_PANEL_ANIMATION_MS = 200;
+const leftPanelMounted = ref(showPanel.value);
+const leftPanelVisualExpanded = ref(showPanel.value);
+const leftPanelLayoutExpanded = ref(showPanel.value);
+let leftPanelAnimationTimer: ReturnType<typeof setTimeout> | null = null;
+let leftPanelAnimationVersion = 0;
+
+function clearLeftPanelAnimationTimer() {
+  if (leftPanelAnimationTimer) {
+    clearTimeout(leftPanelAnimationTimer);
+    leftPanelAnimationTimer = null;
+  }
+}
+
+async function commitLeftPanelLayout(expanded: boolean) {
+  leftPanelLayoutExpanded.value = expanded;
+  await nextTick();
+  await contentRef.value?.refreshCenteredGridLayout?.();
+}
+
+watch(showPanel, async (expanded) => {
+  clearLeftPanelAnimationTimer();
+  const animationVersion = ++leftPanelAnimationVersion;
+
+  if (expanded) {
+    leftPanelMounted.value = true;
+    await nextTick();
+    if (animationVersion !== leftPanelAnimationVersion) return;
+    leftPanelVisualExpanded.value = true;
+    leftPanelAnimationTimer = setTimeout(() => {
+      if (animationVersion !== leftPanelAnimationVersion) return;
+      leftPanelAnimationTimer = null;
+      void commitLeftPanelLayout(true);
+    }, LEFT_PANEL_ANIMATION_MS);
+    return;
+  }
+
+  leftPanelVisualExpanded.value = false;
+  leftPanelAnimationTimer = setTimeout(() => {
+    if (animationVersion !== leftPanelAnimationVersion) return;
+    leftPanelAnimationTimer = null;
+    void commitLeftPanelLayout(false).then(() => {
+      if (animationVersion !== leftPanelAnimationVersion) return;
+      leftPanelMounted.value = false;
+    });
+  }, LEFT_PANEL_ANIMATION_MS);
+});
 
 // Library state
 interface Library {
@@ -372,6 +421,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  clearLeftPanelAnimationTimer();
   window.removeEventListener('keydown', handleHomeKeyDown);
   unlistenOpenPreferences?.();
   unlistenOpenPreferences = null;
@@ -487,7 +537,7 @@ function clickSidebar(index: number) {
 
 // Dragging the splitter
 function startDraggingSplitter(event: MouseEvent) {
-  if(!config.leftPanel.show) return; // no left pane or left pane is hidden
+  if(!config.leftPanel.show || !leftPanelLayoutExpanded.value) return; // no expanded left pane
 
   isDraggingSplitter.value = true;
   document.addEventListener('mousemove', handleMouseMove);

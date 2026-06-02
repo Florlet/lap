@@ -374,6 +374,8 @@ const virtualScrollContentHeight = computed(() =>
 
 const isLayoutTransitioning = ref(false);
 const startGridSize = ref(0);
+let layoutTransitionTimer: ReturnType<typeof setTimeout> | null = null;
+let layoutAnchorVersion = 0;
 
 const gap = 8; // Gap between items
 const isVerticalFilmstrip = computed(() => config.settings.grid.showFilmStrip && config.settings.grid.previewPosition >= 2);
@@ -431,17 +433,19 @@ function updateLayout() {
   emit('layout-update', { height: layoutContentHeight.value });
 }
 
-watch(() => [config.settings.grid.size, config.settings.grid.style, config.settings.grid.showFilmStrip, config.settings.grid.dateGrouping, props.sortType], () => {
+watch(() => [config.settings.grid.size, config.settings.grid.style, config.settings.grid.showFilmStrip, config.settings.grid.dateGrouping, props.sortType], async () => {
+  const anchorVersion = ++layoutAnchorVersion;
   isLayoutTransitioning.value = true;
   updateColumnCount();
-  
-  if (props.selectedItemIndex !== -1) {
-    nextTick(() => {
-      scrollToItem(props.selectedItemIndex);
-    });
-  }
 
-  setTimeout(() => {
+  await nextTick();
+  if (anchorVersion !== layoutAnchorVersion) return;
+
+  centerItem(props.selectedItemIndex);
+
+  if (layoutTransitionTimer) clearTimeout(layoutTransitionTimer);
+  layoutTransitionTimer = setTimeout(() => {
+    layoutTransitionTimer = null;
     isLayoutTransitioning.value = false;
   }, 500);
 });
@@ -517,6 +521,10 @@ onBeforeUnmount(() => {
     clearTimeout(loadingDelayTimer);
     loadingDelayTimer = null;
   }
+  if (layoutTransitionTimer) {
+    clearTimeout(layoutTransitionTimer);
+    layoutTransitionTimer = null;
+  }
   if (containerRef.value) {
     containerRef.value.removeEventListener('gesturestart', onGestureStart as any);
     containerRef.value.removeEventListener('gesturechange', onGestureChange as any);
@@ -591,12 +599,22 @@ function onKeyDown(e: KeyboardEvent) {
   }
 }
 
-function scrollToItem(index: number) {
+function scrollToItem(index: number, center = false) {
   if (!scroller.value) return;
   
   const el = scroller.value.$el;
   const displayIndex = dateGroupingEnabled.value ? fileIndexToDisplayIndex.value.get(index) : index;
   if (displayIndex === undefined) return;
+
+  const renderedItem = center ? containerRef.value?.querySelector(`#item-${index}`) : null;
+  if (renderedItem && !virtualScrollGeometry.value) {
+    renderedItem.scrollIntoView({
+      behavior: 'auto',
+      block: 'center',
+      inline: 'center',
+    });
+    return;
+  }
   
   if (!config.settings.grid.showFilmStrip) {
     let itemTop = 0;
@@ -619,6 +637,14 @@ function scrollToItem(index: number) {
     // Account for top and bottom padding
     const topPadding = 48; // pt-12 = 48px
     const bottomPadding = config.settings.showStatusBar ? 32 : 4; // pb-8 = 32px, pb-1 = 4px
+
+    if (center) {
+      el.scrollTop = Math.min(
+        Math.max(0, topPadding + (itemTop + itemBottom) / 2 - clientHeight / 2),
+        Math.max(0, el.scrollHeight - clientHeight),
+      );
+      return;
+    }
     
     const viewportTop = scrollTop;
     const viewportBottom = scrollTop + clientHeight - (topPadding + bottomPadding);
@@ -664,7 +690,7 @@ function scrollToItem(index: number) {
     
     el.scrollTo({
       [isHorizontal ? 'left' : 'top']: targetScroll,
-      behavior: 'smooth'
+      behavior: center ? 'auto' : 'smooth'
     });
   }
 }
@@ -681,6 +707,10 @@ function getColumnCount() {
 
 function getScrollTop() {
   return scroller.value ? scroller.value.$el.scrollTop : 0;
+}
+
+function centerItem(index: number) {
+  if (index >= 0) scrollToItem(index, true);
 }
 
 function getNextItemIndex(currentIndex: number, direction: 'up' | 'down'): number {
@@ -789,6 +819,8 @@ defineExpose({
   getColumnCount,
   scrollToPosition,
   getScrollTop,
+  centerItem,
+  refreshLayout: updateLayout,
   getNextItemIndex
 });
 
