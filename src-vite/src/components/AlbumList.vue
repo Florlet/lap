@@ -86,8 +86,8 @@
                   :class="shouldAnimateAlbumIcon(album) ? 'animate-spin' : ''" 
                 />
               </div>
-              <span v-if="props.showTotalCount !== false">
-                {{ (album.total ?? 0).toLocaleString() }}
+              <span v-if="props.showTotalCount !== false && album.total">
+                {{ album.total.toLocaleString() }}
               </span>
             </div>  
 

@@ -82,23 +82,26 @@
           </div>
 
           <div class="flex flex-wrap gap-1">
-            <button class="btn btn-xs btn-ghost text-base-content/70 hover:text-base-content" @click="emit('compare-group', String(activeGroup.id), activeGroup.keepItem?.file_id || 0)">
-              <IconSplitOn class="w-3.5 h-3.5" />
+            <PanelActionButton
+              :icon="IconSplitOn"
+              @click="emit('compare-group', String(activeGroup.id), activeGroup.keepItem?.file_id || 0)"
+            >
               {{ $t('info_panel.dedup.compare_group') }}
-            </button>
-            <button class="btn btn-xs btn-ghost text-base-content/70 hover:text-base-content" @click="selectGroupDuplicates(activeGroup.id, activeGroup.keepItem?.file_id || 0)">
-              <component :is="isAllGroupDuplicatesSelected(activeGroup.id) ? IconCheckNone : IconCheckAll" class="w-3.5 h-3.5" />
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="isAllGroupDuplicatesSelected(activeGroup.id) ? IconCheckNone : IconCheckAll"
+              @click="selectGroupDuplicates(activeGroup.id, activeGroup.keepItem?.file_id || 0)"
+            >
               {{ isAllGroupDuplicatesSelected(activeGroup.id) ? $t('menu.select.none') : $t('info_panel.dedup.select_group_duplicates') }}
-            </button>
-            <button
-              class="btn btn-xs btn-ghost"
-              :class="selectedDeleteCount === 0 ? 'text-base-content/30' : 'text-error'"
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="IconTrash"
               :disabled="selectedDeleteCount === 0"
+              danger
               @click="trashSelectedDuplicates(activeGroup.id, selectedDeleteBytes)"
             >
-              <IconTrash class="w-3.5 h-3.5" />
               {{ $t('menu.file.move_to_trash') }}{{ selectedDeleteCount > 0 ? `(${formatFileSize(selectedDeleteBytes)})` : '' }}
-            </button>
+            </PanelActionButton>
           </div>
           <div class="space-y-2.5">
             <button
@@ -181,9 +184,9 @@
                     {{ formatTimestamp(item.file.created_at, $t('format.date_time')) }}
                   </div>
                 </div>
-                <button class="btn btn-xs btn-ghost shrink-0" @click.stop="setKeep(activeGroup.id, item.file_id)">
+                <PanelActionButton class="shrink-0" @click.stop="setKeep(activeGroup.id, item.file_id)">
                   {{ $t('info_panel.dedup.set_keep') }}
-                </button>
+                </PanelActionButton>
               </div>
             </button>
           </div>
@@ -197,6 +200,7 @@
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { formatFileSize, getFolderName, getFolderPath, formatFolderBreadcrumb, getThumbnailDataUrl, isMac, formatTimestamp } from '@/common/utils';
 import TButton from '@/components/TButton.vue';
+import PanelActionButton from '@/components/PanelActionButton.vue';
 import { IconCheckAll, IconCheckNone, IconClose, IconLock, IconSimilar, IconSplitOn, IconTrash, IconRefresh } from '@/common/icons';
 import { dedupStartScan, dedupGetScanStatus, dedupGetOverview, listenDedupScanProgress, dedupListGroups, dedupSetKeep, getAlbum, getFileThumb } from '@/common/api';
 import { config } from '@/common/config';

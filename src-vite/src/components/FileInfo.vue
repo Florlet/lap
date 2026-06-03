@@ -259,34 +259,12 @@
             </template>
 
             <div class="flex items-center text-[10px] uppercase tracking-widest font-bold text-base-content/25 h-6">{{ $t('menu.meta.favorite') }}</div>
-            <div class="h-6 flex items-center gap-0.5">
-              <button
-                class="btn btn-ghost btn-xs min-h-0 h-6 w-6 p-0 mr-1"
-                :title="fileInfo?.is_favorite ? $t('menu.meta.unfavorite') : $t('menu.meta.favorite')"
-                @click.stop="emit('toggleFavorite')"
-              >
-                <component
-                  :is="fileInfo?.is_favorite ? IconHeartFilled : IconHeart"
-                  class="w-3.5 h-3.5"
-                  :class="fileInfo?.is_favorite ? 'text-error' : 'text-base-content/70'"
-                />
-              </button>
-              <div class="w-px h-4 bg-base-content/10 mr-1"></div>
-              <span class="mr-1 text-[11px] font-medium text-base-content/50">{{ $t('favorite.ratings') }}</span>
-              <button
-                v-for="rating in [1, 2, 3, 4, 5]"
-                :key="rating"
-                class="btn btn-ghost btn-xs min-h-0 h-6 w-6 p-0"
-                :title="getRatingLabel(rating)"
-                @click.stop="emit('setRating', (fileInfo?.rating || 0) === rating ? 0 : rating)"
-              >
-                <component
-                  :is="(fileInfo?.rating || 0) >= rating ? IconStarFilled : IconStar"
-                  class="w-3.5 h-3.5"
-                  :class="(fileInfo?.rating || 0) >= rating ? 'text-warning' : 'text-base-content/30'"
-                />
-              </button>
-            </div>
+            <FavoriteRatingControl
+              :favorite="Boolean(fileInfo?.is_favorite)"
+              :rating="Number(fileInfo?.rating || 0)"
+              @favorite="emit('toggleFavorite')"
+              @rating="(rating) => emit('setRating', rating)"
+            />
 
             <!-- Tags -->
             <div class="flex items-center text-[10px] uppercase tracking-widest font-bold text-base-content/25 min-h-6 py-1">{{ $t('file_info.tags') }}</div>
@@ -468,7 +446,7 @@ import {
 } from '@/common/utils';
 import { 
   IconClose, IconLocation, IconArrowDown, IconArrowUp, IconCameraAperture, 
-  IconFile, IconFolderSearch, IconHeart, IconHeartFilled, IconStar, IconStarFilled, IconEdit,
+  IconFile, IconFolderSearch, IconEdit,
   IconFolderExpanded,
   IconPhoto,
   IconRotate,
@@ -478,6 +456,7 @@ import {
   IconZoomOut,
 } from '@/common/icons';
 import TButton from '@/components/TButton.vue';
+import FavoriteRatingControl from '@/components/FavoriteRatingControl.vue';
 import ImageHistogram from '@/components/ImageHistogram.vue';
 import MapView from '@/components/MapView.vue';
 
@@ -620,18 +599,6 @@ function toggleMetadata() {
 
 function toggleMapPanel() {
   config.infoPanel.showMap = !config.infoPanel.showMap;
-}
-
-function getRatingLabel(rating: number) {
-  const keys: Record<number, string> = {
-    5: 'five_stars',
-    4: 'four_stars',
-    3: 'three_stars',
-    2: 'two_stars',
-    1: 'one_star',
-  };
-  const key = keys[rating];
-  return localeMsg.value.favorite?.[key] || `${rating}★`;
 }
 
 const quickSave = async (): Promise<boolean> => {

@@ -1948,7 +1948,11 @@ function handleLocalKeyDown(event: KeyboardEvent) {
 
   if (matchesShortcut('view.close', event, shortcutPlatform)) {
     if (selectMode.value) {
-      handleSelectMode(false);
+      if (selectedCount.value > 0) {
+        selectNoneInCurrentList();
+      } else {
+        handleSelectMode(false);
+      }
       event.preventDefault();
       return;
     } else if (showQuickView.value) {
@@ -2036,7 +2040,11 @@ function handleLocalKeyDown(event: KeyboardEvent) {
 
   if (matchesShortcut('meta.favorite', event, shortcutPlatform)) {
     event.preventDefault();
-    void toggleFavorite();
+    if (selectMode.value) {
+      void toggleSelectModeFavorite();
+    } else {
+      void toggleFavorite();
+    }
     return;
   }
 
@@ -3148,6 +3156,9 @@ watch(
     const selectedItems = getActionableSelectedItems();
     selectedCount.value = selectedItems.length;
     selectedSize.value = selectedItems.reduce((total, item) => total + (item.size || 0), 0);
+    if (selectedItems.length === 0) {
+      showSelectionLimitHint.value = false;
+    }
   }
 );
 
@@ -3591,6 +3602,7 @@ async function updateContent(force = false) {
   tempViewMode.value = 'none';
   showQuickView.value = false;
   isSlideShow.value = false;
+  showSelectionLimitHint.value = false;
   stopSlideShow();
 
   backupState.value = null;
@@ -4786,6 +4798,14 @@ const selectModeSetFavorites = async (isFavorite: boolean) => {
     await Promise.all(updates); // parallelize DB updates
   }
 }
+
+const toggleSelectModeFavorite = async () => {
+  if (!selectMode.value || selectedCount.value === 0) return;
+  const selectedItems = getActionableSelectedItems();
+  if (selectedItems.length === 0) return;
+  const shouldFavorite = !selectedItems.every(item => Boolean(item.is_favorite));
+  await selectModeSetFavorites(shouldFavorite);
+};
 
 const setSelectedFileRating = async (rating: number) => {
   if (selectedItemIndex.value >= 0) {

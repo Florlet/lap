@@ -22,37 +22,41 @@
           <span class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
             {{ $t('info_panel.select_title') }}
           </span>
+          <span
+            class="ml-auto min-w-0 truncate text-right text-[11px] font-semibold"
+            :class="selectedCount > 0 ? 'text-base-content/60' : 'text-base-content/35'"
+          >
+            {{ selectionSummaryText }}
+          </span>
         </div>
         <div class="flex flex-wrap items-center gap-1">
-          <button
-            class="btn btn-xs btn-ghost"
-            :class="fileCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+          <PanelActionButton
+            :icon="IconCheckAll"
             :disabled="fileCount === 0"
             @click="$emit('selectAll')"
           >
-            <IconCheckAll class="w-3.5 h-3.5" />
             {{ $t('menu.select.all') }}
-          </button>
-          <button
-            class="btn btn-xs btn-ghost"
-            :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+          </PanelActionButton>
+          <PanelActionButton
+            :icon="IconCheckNone"
             :disabled="selectedCount === 0"
             @click="$emit('selectNone')"
           >
-            <IconCheckNone class="w-3.5 h-3.5" />
             {{ $t('menu.select.none') }}
-          </button>
-          <button
-            class="btn btn-xs btn-ghost"
-            :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+          </PanelActionButton>
+          <PanelActionButton
             :disabled="selectedCount === 0"
             @click="$emit('selectInvert')"
           >
             {{ $t('menu.select.invert') }}
-          </button>
+          </PanelActionButton>
         </div>
-        <div v-if="showSelectionLimitHint" class="mx-2 text-xs font-medium leading-relaxed text-warning">
-          {{ $t('info_panel.select_limit_hint', { count: selectionLimit }) }}
+        <div
+          v-if="showSelectionLimitHint"
+          class="mx-2 flex items-center gap-1.5 rounded-box bg-base-100/40 px-2 py-1.5 text-[11px] font-medium leading-snug text-base-content/50"
+        >
+          <IconInformation class="h-3.5 w-3.5 shrink-0 text-base-content/35" />
+          <span>{{ $t('info_panel.select_limit_hint', { count: selectionLimit }) }}</span>
         </div>
         <div v-if="selectedFiles.length > 0">
           <div class="mx-2 flex flex-wrap gap-1.5">
@@ -85,17 +89,6 @@
           </div>
         </div>
 
-        <div class="mx-2 pt-1 space-y-2 text-xs text-base-content/50 font-medium">
-          <div class="font-semibold">
-            <span>{{ selectedCount > 0 ? `${$t('toolbar.filter.select_count', { count: selectedCount.toLocaleString() })} (${formatFileSize(selectedSize)})` : $t('info_panel.select_hint') }}</span>
-          </div>
-          <!-- <div>
-            <span>{{ multiSelectTypeBreakdown }}</span>
-          </div>
-          <div v-if="multiSelectDateRange">
-            <span>{{ multiSelectDateRange }}</span>
-          </div> -->
-        </div>
       </div>
 
       <div class="border-t border-base-content/5 px-1 py-4 space-y-3">
@@ -107,42 +100,35 @@
             {{ $t('info_panel.file_actions') }}
           </div>
           <div class="flex flex-wrap items-center gap-1">
-            <button
-              class="btn btn-xs btn-ghost"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+            <PanelActionButton
+              :icon="IconMoveTo"
               :disabled="selectedCount === 0"
               @click="$emit('moveTo')"
             >
-              <IconMoveTo class="w-3.5 h-3.5" />
               {{ $t('menu.file.move_to') }}
-            </button>
-            <button
-              class="btn btn-xs btn-ghost"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="IconCopyTo"
               :disabled="selectedCount === 0"
               @click="$emit('copyTo')"
             >
-              <IconCopyTo class="w-3.5 h-3.5" />
               {{ $t('menu.file.copy_to') }}
-            </button>
-            <button
-              class="btn btn-xs btn-ghost"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="IconDownload"
               :disabled="selectedCount === 0"
               @click="$emit('exportTo')"
             >
-              <IconDownload class="w-3.5 h-3.5" />
               {{ $t('menu.file.export_to') }}
-            </button>
-            <button
-              class="btn btn-xs btn-ghost"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-error'"
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="IconTrash"
               :disabled="selectedCount === 0"
+              danger
               @click="$emit('trash')"
             >
-              <IconTrash class="w-3.5 h-3.5" />
               {{ $t('menu.file.move_to_trash') }}
-            </button>
+            </PanelActionButton>
           </div>
         </div>
         <div class="space-y-2">
@@ -150,65 +136,40 @@
             {{ $t('info_panel.labels_and_display') }}
           </div>
           <div class="rounded-box border border-base-content/5 bg-base-100/30 px-2 py-1.5">
-            <div class="flex items-center gap-0.5">
-              <button
-                class="btn btn-ghost btn-xs min-h-0 h-6 w-6 p-0 mr-1"
-                :title="multiSelectFavorite ? $t('info_panel.unfavorite_all') : $t('info_panel.favorite_all')"
-                :disabled="selectedCount === 0"
-                @click="$emit(multiSelectFavorite ? 'unfavoriteAll' : 'favoriteAll')"
-              >
-                <component
-                  :is="multiSelectFavorite ? IconHeartFilled : IconHeart"
-                  class="w-3.5 h-3.5"
-                  :class="selectedCount === 0 ? 'text-base-content/30' : (multiSelectFavorite ? 'text-error' : 'text-base-content/70')"
-                />
-              </button>
-              <div class="w-px h-4 bg-base-content/10 mx-1"></div>
-              <span class="mr-1 text-[11px] font-medium" :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70'">{{ $t('favorite.ratings') }}</span>
-              <button
-                v-for="rating in [1, 2, 3, 4, 5]"
-                :key="rating"
-                class="btn btn-ghost btn-xs min-h-0 h-6 w-6 p-0"
-                :title="getRatingLabel(rating)"
-                :disabled="selectedCount === 0"
-                @click="$emit('setRatingAll', multiSelectRating === rating ? 0 : rating)"
-              >
-                <component
-                  :is="(multiSelectRating || 0) >= rating ? IconStarFilled : IconStar"
-                  class="w-3.5 h-3.5"
-                  :class="selectedCount === 0 ? 'text-base-content/30' : ((multiSelectRating || 0) >= rating ? 'text-warning' : 'text-base-content/70')"
-                />
-              </button>
-            </div>
+            <FavoriteRatingControl
+              :favorite="multiSelectFavorite"
+              :rating="multiSelectRating"
+              :disabled="selectedCount === 0"
+              :favorite-label="$t('info_panel.favorite_all')"
+              :unfavorite-label="$t('info_panel.unfavorite_all')"
+              label-class="text-base-content/70"
+              inactive-rating-class="text-base-content/70"
+              @favorite="(favorite) => $emit(favorite ? 'favoriteAll' : 'unfavoriteAll')"
+              @rating="(rating) => $emit('setRatingAll', rating)"
+            />
           </div>
           <div class="flex flex-wrap items-center gap-1">
-            <button
-              class="btn btn-xs btn-ghost gap-1"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+            <PanelActionButton
+              :icon="IconTag"
               :disabled="selectedCount === 0"
               @click="$emit('tagAll')"
             >
-              <IconTag class="w-3.5 h-3.5" />
-              <span>{{ $t('menu.meta.tag') }}</span>
-            </button>
-            <button
-              class="btn btn-xs btn-ghost gap-1"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+              {{ $t('menu.meta.tag') }}
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="IconComment"
               :disabled="selectedCount === 0"
               @click="$emit('commentAll')"
             >
-              <IconComment class="w-3.5 h-3.5" />
-              <span>{{ $t('menu.meta.comment') }}</span>
-            </button>
-            <button
-              class="btn btn-xs btn-ghost gap-1"
-              :class="selectedCount === 0 ? 'text-base-content/30' : 'text-base-content/70 hover:text-base-content'"
+              {{ $t('menu.meta.comment') }}
+            </PanelActionButton>
+            <PanelActionButton
+              :icon="IconRotate"
               :disabled="selectedCount === 0"
               @click="$emit('rotateAll')"
             >
-              <IconRotate class="w-3.5 h-3.5" />
-              <span>{{ rotateDisplayLabel }}</span>
-            </button>
+              {{ rotateDisplayLabel }}
+            </PanelActionButton>
           </div>
         </div>
       </div>
@@ -227,16 +188,15 @@ import {
   IconComment,
   IconCopyTo,
   IconDownload,
-  IconHeart,
-  IconHeartFilled,
+  IconInformation,
   IconMoveTo,
   IconRotate,
-  IconStar,
-  IconStarFilled,
   IconTag,
   IconTrash,
 } from '@/common/icons';
 import TButton from '@/components/TButton.vue';
+import FavoriteRatingControl from '@/components/FavoriteRatingControl.vue';
+import PanelActionButton from '@/components/PanelActionButton.vue';
 
 const props = defineProps({
   selectedFiles: {
@@ -283,12 +243,17 @@ defineEmits([
   'unselectFile',
 ]);
 
-const { locale, messages } = useI18n();
+const { locale, messages, t } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 const SELECTED_THUMBNAIL_LIMIT = 19;
 
 const visibleSelectedFiles = computed(() => props.selectedFiles.slice(0, SELECTED_THUMBNAIL_LIMIT));
 const hiddenSelectedCount = computed(() => Math.max(0, props.selectedFiles.length - SELECTED_THUMBNAIL_LIMIT));
+const selectionSummaryText = computed(() => {
+  if (props.selectedCount <= 0) return localeMsg.value.info_panel.select_hint;
+  const countText = t('toolbar.filter.select_count', { count: props.selectedCount.toLocaleString() });
+  return `${countText} (${formatFileSize(props.selectedSize)})`;
+});
 
 function getSelectedThumbnailStyle(file: any): CSSProperties {
   return { rotate: `${Number(file?.rotate || 0)}deg` };
@@ -326,7 +291,7 @@ const multiSelectFavorite = computed(() => {
   if (!props.selectedFiles.length) return false;
   const favorites = props.selectedFiles.map((f: any) => Boolean(f.is_favorite));
   const first = favorites[0];
-  return favorites.every((favorite: boolean) => favorite === first) ? first : false;
+  return favorites.every((favorite: boolean) => favorite === first) ? first : null;
 });
 
 const multiSelectRotate = computed(() => {
@@ -348,15 +313,4 @@ const rotateDisplayLabel = computed(() => {
   return `${rotateText} (${multiSelectRotate.value}°)`;
 });
 
-function getRatingLabel(rating: number) {
-  const keys: Record<number, string> = {
-    5: 'five_stars',
-    4: 'four_stars',
-    3: 'three_stars',
-    2: 'two_stars',
-    1: 'one_star',
-  };
-  const key = keys[rating];
-  return localeMsg.value.favorite?.[key] || `${rating}★`;
-}
 </script>
