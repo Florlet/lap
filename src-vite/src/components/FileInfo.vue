@@ -202,32 +202,64 @@
 
             <!-- Album -->
             <div class="flex items-center text-[10px] uppercase tracking-widest font-bold text-base-content/25 h-6">{{ $t('file_info.album_name') }}</div>
-            <div class="flex items-center text-xs font-semibold text-base-content/65 break-all">{{ fileInfo?.album_name }}</div>
+            <div class="group/album flex items-center gap-1 min-w-0">
+              <span class="flex-1 min-w-0 text-xs font-semibold text-base-content/65 break-all">{{ fileInfo?.album_name }}</span>
+              <TButton
+                :icon="IconEdit"
+                :tooltip="$t('menu.album.edit')"
+                :buttonSize="'small'"
+                class="shrink-0 opacity-0 pointer-events-none transition-opacity duration-150 group-hover/album:opacity-100 group-hover/album:pointer-events-auto"
+                @click.stop="emit('editAlbum', fileInfo?.album_id)"
+              />
+            </div>
 
             <!-- Path -->
             <div class="flex items-center text-[10px] uppercase tracking-widest font-bold text-base-content/25 h-6">{{ $t('file_info.folder') }}</div>
-            <div class="flex items-center gap-1 min-w-0">
+            <div class="group/path flex items-center gap-1 min-w-0">
               <IconFolderExpanded class="w-3.5 h-3.5 shrink-0 text-base-content/65" />
-              <div class="breadcrumbs p-0 min-h-0 overflow-hidden min-w-0">
-                <ul class="min-w-0 flex-nowrap overflow-hidden">
-                <li
-                  v-for="(item, idx) in folderBreadcrumbs"
-                  :key="`${item.path}-${idx}`"
-                  class="min-w-0 max-w-full overflow-hidden"
+              <div ref="folderBreadcrumbContainerRef" class="relative min-w-0 flex-1 overflow-hidden">
+                <div class="flex items-center whitespace-nowrap text-xs font-semibold text-base-content/65">
+                  <template v-if="folderBreadcrumbStartIndex > 0">
+                    <span>…</span>
+                    <span class="mx-1 text-base-content/30">&gt;</span>
+                  </template>
+                  <template
+                    v-for="(item, idx) in visibleFolderBreadcrumbs"
+                    :key="item.path"
+                  >
+                    <span
+                      v-if="idx > 0"
+                      class="mx-1 text-base-content/30"
+                    >&gt;</span>
+                    <button
+                      type="button"
+                      class="shrink-0 cursor-pointer transition-colors hover:text-base-content"
+                      @click.stop="emit('navigateFolder', item.path)"
+                    >{{ item.label }}</button>
+                  </template>
+                </div>
+                <div
+                  ref="folderBreadcrumbMeasureRef"
+                  class="pointer-events-none invisible absolute left-0 top-0 flex items-center whitespace-nowrap text-xs font-semibold"
+                  aria-hidden="true"
                 >
-                  <a
-                    v-if="idx < folderBreadcrumbs.length - 1"
-                    class="block max-w-48 truncate cursor-pointer transition-colors text-xs font-semibold text-base-content/65 hover:text-base-content"
-                    @click.stop="emit('navigateFolder', item.path)"
-                  >{{ item.label }}</a>
+                  <span data-breadcrumb-ellipsis>…<span class="mx-1">&gt;</span></span>
+                  <span data-breadcrumb-separator class="mx-1">&gt;</span>
                   <span
-                    v-else
-                    class="block max-w-48 truncate text-xs font-semibold text-base-content/65 cursor-pointer hover:text-base-content"
-                    @click.stop="emit('navigateFolder', item.path)"
-                  >{{ item.label }}</span>
-                </li>
-                </ul>
+                    v-for="(item, idx) in folderBreadcrumbs"
+                    :key="`measure-${item.path}`"
+                    data-breadcrumb-measure
+                    class="shrink-0"
+                  ><span v-if="idx > 0" class="mx-1">&gt;</span>{{ item.label }}</span>
+                </div>
               </div>
+              <TButton
+                :icon="IconExternal"
+                :tooltip="isMac ? $t('menu.file.reveal_in_finder') : $t('menu.file.reveal_in_file_explorer')"
+                :buttonSize="'small'"
+                class="shrink-0 opacity-0 pointer-events-none transition-opacity duration-150 group-hover/path:opacity-100 group-hover/path:pointer-events-auto"
+                @click.stop="revealFileInFolder"
+              />
             </div>
 
             <!-- Size -->
@@ -425,12 +457,11 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from '@/common/toast';
 import { useUIStore } from '@/stores/uiStore';
 import { config } from '@/common/config';
-import { renameFile, editImage, getAlbum } from '@/common/api';
+import { renameFile, editImage, getAlbum, revealPath } from '@/common/api';
 import { 
   extractFileName, 
   getFileExtension,
-  getFolderPath, 
-  getFolderName,
+  getFolderPath,
   buildFolderBreadcrumbs,
   formatDimensionText, 
   formatFileSize, 
@@ -442,7 +473,8 @@ import {
   getCountryName,
   combineFileName,
   isValidFileName,
-  getAssetSrc
+  getAssetSrc,
+  isMac
 } from '@/common/utils';
 import { 
   IconClose, IconLocation, IconArrowDown, IconArrowUp, IconCameraAperture, 
@@ -454,6 +486,7 @@ import {
   IconVideoPlay,
   IconZoomIn,
   IconZoomOut,
+  IconExternal,
 } from '@/common/icons';
 import TButton from '@/components/TButton.vue';
 import FavoriteRatingControl from '@/components/FavoriteRatingControl.vue';
@@ -481,6 +514,7 @@ const emit = defineEmits([
   'quickEditTag',
   'quickEditComment',
   'navigateFolder',
+  'editAlbum',
 ]);
 
 const toast = useToast();
@@ -660,8 +694,66 @@ let albumRootRequestSeq = 0;
 const folderBreadcrumbs = computed(() => {
   const folderPath = getFolderPath(props.fileInfo?.file_path);
   if (!folderPath) return [];
-  return buildFolderBreadcrumbs(folderPath, albumRootPath.value, props.fileInfo?.album_name || getFolderName(albumRootPath.value));
+  return buildFolderBreadcrumbs(folderPath, albumRootPath.value);
 });
+const folderBreadcrumbContainerRef = ref<HTMLElement | null>(null);
+const folderBreadcrumbMeasureRef = ref<HTMLElement | null>(null);
+const folderBreadcrumbStartIndex = ref(0);
+const visibleFolderBreadcrumbs = computed(() =>
+  folderBreadcrumbs.value.slice(folderBreadcrumbStartIndex.value)
+);
+let folderBreadcrumbResizeObserver: ResizeObserver | null = null;
+
+async function updateFolderBreadcrumbVisibility() {
+  await nextTick();
+  const container = folderBreadcrumbContainerRef.value;
+  const measure = folderBreadcrumbMeasureRef.value;
+  if (!container || !measure || folderBreadcrumbs.value.length === 0) {
+    folderBreadcrumbStartIndex.value = 0;
+    return;
+  }
+
+  const itemWidths = Array.from(
+    measure.querySelectorAll<HTMLElement>('[data-breadcrumb-measure]')
+  ).map(item => item.offsetWidth);
+  const totalWidth = itemWidths.reduce((sum, width) => sum + width, 0);
+  if (totalWidth <= container.clientWidth) {
+    folderBreadcrumbStartIndex.value = 0;
+    return;
+  }
+
+  const ellipsisWidth = measure.querySelector<HTMLElement>('[data-breadcrumb-ellipsis]')?.offsetWidth || 0;
+  const separatorWidth = measure.querySelector<HTMLElement>('[data-breadcrumb-separator]')?.offsetWidth || 0;
+  let usedWidth = ellipsisWidth;
+  let startIndex = itemWidths.length - 1;
+  for (let index = itemWidths.length - 1; index >= 0; index--) {
+    const itemWidth = itemWidths[index] - (index === itemWidths.length - 1 ? separatorWidth : 0);
+    if (index < itemWidths.length - 1 && usedWidth + itemWidth > container.clientWidth) {
+      break;
+    }
+    usedWidth += itemWidth;
+    startIndex = index;
+  }
+  folderBreadcrumbStartIndex.value = startIndex;
+}
+
+watch(folderBreadcrumbContainerRef, (container) => {
+  folderBreadcrumbResizeObserver?.disconnect();
+  folderBreadcrumbResizeObserver = null;
+  if (container) {
+    folderBreadcrumbResizeObserver = new ResizeObserver(updateFolderBreadcrumbVisibility);
+    folderBreadcrumbResizeObserver.observe(container);
+  }
+  updateFolderBreadcrumbVisibility();
+});
+
+watch(folderBreadcrumbs, updateFolderBreadcrumbVisibility, { flush: 'post' });
+
+function revealFileInFolder() {
+  if (props.fileInfo?.file_path) {
+    revealPath(props.fileInfo.file_path);
+  }
+}
 
 watch(
   () => props.fileInfo?.album_id,
@@ -676,6 +768,10 @@ watch(
   },
   { immediate: true }
 );
+
+onBeforeUnmount(() => {
+  folderBreadcrumbResizeObserver?.disconnect();
+});
 
 const startRename = () => {
   if (!props.fileInfo) return;

@@ -310,6 +310,7 @@ let unlistenOpenPreferences: (() => void) | null = null;
 let unlistenOpenAbout: (() => void) | null = null;
 let unlistenAlbumsRefreshed: (() => void) | null = null;
 let unlistenAddAlbumRequested: (() => void) | null = null;
+let unlistenEditAlbumRequested: (() => void) | null = null;
 const shortcutPlatform: ShortcutPlatform = isMac ? 'mac' : (isLinux ? 'linux' : 'windows');
 const {
   updateAvailable,
@@ -406,6 +407,15 @@ onMounted(async () => {
     (panelRef.value as any)?.albumListRef?.clickNewAlbum();
   });
 
+  unlistenEditAlbumRequested = await listen('edit-album-requested', async (event: any) => {
+    const albumId = Number(event.payload?.albumId || 0);
+    if (albumId <= 0) return;
+    if (config.main.sidebarIndex !== 0) config.main.sidebarIndex = 0;
+    showPanel.value = true;
+    await nextTick();
+    (panelRef.value as any)?.albumListRef?.openAlbumEdit(albumId);
+  });
+
   unlistenAlbumsRefreshed = await listen('albums-refreshed', () => {
     void checkLibraryEmpty();
   });
@@ -431,6 +441,8 @@ onBeforeUnmount(() => {
   unlistenAlbumsRefreshed = null;
   unlistenAddAlbumRequested?.();
   unlistenAddAlbumRequested = null;
+  unlistenEditAlbumRequested?.();
+  unlistenEditAlbumRequested = null;
 });
 
 function handleHomeKeyDown(event: KeyboardEvent) {

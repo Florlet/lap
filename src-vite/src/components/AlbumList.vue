@@ -140,14 +140,14 @@
     <AlbumEdit
       v-if="showAlbumEdit"
       :isNewAlbum="isNewAlbum"
-      :albumId="isNewAlbum ? 0 : selection.albumId.value"
-      :inputName="isNewAlbum ? '' : selectedAlbum?.name"
-      :inputDescription="isNewAlbum ? '' : selectedAlbum?.description"
-      :albumPath="isNewAlbum ? '' : selectedAlbum?.path"
-      :albumCoverFileId="isNewAlbum ? undefined : selectedAlbum?.cover_file_id"
-      :createdAt="isNewAlbum ? '' : formatTimestamp(selectedAlbum?.created_at ?? 0, $t('format.date_time'))"
-      :modifiedAt="isNewAlbum ? '' : formatTimestamp(selectedAlbum?.modified_at ?? 0, $t('format.date_time'))"
-      :lastScanTime="isNewAlbum ? '' : formatTimestamp((selectedAlbum?.last_scan_time ?? 0) / 1000, $t('format.date_time'))"
+      :albumId="isNewAlbum ? 0 : editingAlbumId"
+      :inputName="isNewAlbum ? '' : editingAlbum?.name"
+      :inputDescription="isNewAlbum ? '' : editingAlbum?.description"
+      :albumPath="isNewAlbum ? '' : editingAlbum?.path"
+      :albumCoverFileId="isNewAlbum ? undefined : editingAlbum?.cover_file_id"
+      :createdAt="isNewAlbum ? '' : formatTimestamp(editingAlbum?.created_at ?? 0, $t('format.date_time'))"
+      :modifiedAt="isNewAlbum ? '' : formatTimestamp(editingAlbum?.modified_at ?? 0, $t('format.date_time'))"
+      :lastScanTime="isNewAlbum ? '' : formatTimestamp((editingAlbum?.last_scan_time ?? 0) / 1000, $t('format.date_time'))"
       @ok="clickEditAlbum"
       @cancel="showAlbumEdit = false"
     />
@@ -259,12 +259,14 @@ const showRemoveAlbumMsgbox = ref(false);   // show remove album
 const albums = ref<Album[]>([]);
 const albumCovers = ref<Record<number, string>>({});
 const isNewAlbum = ref(false);
+const editingAlbumId = ref(0);
 const isEditList = ref(false);  // edit album list
 const isLoading = ref(true);    // loading albums
 const isDragging = ref(false);  // dragging albums
 
 const getAlbumById = (id: number) => albums.value.find(album => album.id === id);
 const selectedAlbum = computed(() => getAlbumById(selection.albumId.value)) || {};
+const editingAlbum = computed(() => getAlbumById(editingAlbumId.value));
 const isAlbumQueued = (albumId: number) =>
   getAlbumQueueIndex(albumId, libConfig.index.albumQueue as any[]) >= 0;
 const syncIndexStatus = () => {
@@ -304,16 +306,26 @@ const isAlbumScanning = (albumId: number) =>
 const getAlbumIcon = (album: any) => getAlbumScanIcon(getAlbumStatus(album));
 const shouldAnimateAlbumIcon = (album: any) => shouldAnimateAlbumScanIcon(getAlbumStatus(album));
 
+const openAlbumEdit = async (albumId: number) => {
+  if (!getAlbumById(albumId)) {
+    const album = await getAlbum(albumId);
+    if (!album) return;
+    if (!getAlbumById(albumId)) {
+      albums.value.push(album);
+    }
+  }
+  editingAlbumId.value = albumId;
+  isNewAlbum.value = false;
+  showAlbumEdit.value = true;
+};
+
 // Get menu items for a specific album (function for lazy evaluation)
 const getMoreMenuItems = (album: any) => {
   return [
     {
       label: localeMsg.value.menu.album.edit,
       icon: IconEdit,
-      action: () => {
-        showAlbumEdit.value = true;
-        isNewAlbum.value = false;
-      }
+      action: () => openAlbumEdit(album.id)
     },
     {
       label: isAlbumQueued(album.id)
@@ -494,6 +506,7 @@ onBeforeUnmount(() => {
 
 /// Add a new album
 const clickNewAlbum = async () => {
+  editingAlbumId.value = 0;
   showAlbumEdit.value = true;
   isNewAlbum.value = true;
 };
@@ -547,10 +560,11 @@ const clickEditAlbum = async (folderPathParam: string, newName: string, newDescr
     }
   } else {
     // Edit existing album
-    const result = await editAlbum(selection.albumId.value, newName, newDescription);
-    if(result && selectedAlbum.value) {
-      selectedAlbum.value.name = newName;
-      selectedAlbum.value.description = newDescription;
+    const result = await editAlbum(editingAlbumId.value, newName, newDescription);
+    if(result && editingAlbum.value) {
+      editingAlbum.value.name = newName;
+      editingAlbum.value.description = newDescription;
+      tauriEmit('album-updated', { albumId: editingAlbumId.value, name: newName, description: newDescription });
       showAlbumEdit.value = false;
     }
   }
@@ -860,6 +874,7 @@ defineExpose({
   albums,
   isEditList,
   clickNewAlbum,
+  openAlbumEdit,
   refreshAlbums,
   clickFinalSubFolder,
   clickReorder,

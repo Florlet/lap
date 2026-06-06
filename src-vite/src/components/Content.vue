@@ -438,6 +438,7 @@
             @quick-edit-tag="clickTag"
             @quick-edit-comment="openCommentEditor"
             @navigate-folder="handleInfoNavigateFolder"
+            @edit-album="openAlbumEdit"
           />
         </div>
       </div>
@@ -2230,6 +2231,7 @@ let unlistenThumbnailReady: (() => void) | undefined;
 let unlistenTriggerNextAlbum: (() => void) | undefined;
 let unlistenRefreshContent: (() => void) | undefined;
 let unlistenFilesDeleted: (() => void) | undefined;
+let unlistenAlbumUpdated: (() => void) | undefined;
 const showIndexRecoveryMsgbox = ref(false);
 const recoverySkipFilePath = ref('');  // local: file path from crash trace
 const indexRecoveryTitle = computed(() => localeMsg.value.search.index.recovery.title);
@@ -2969,6 +2971,17 @@ onMounted( async() => {
     await updateSelectedImage(selectedItemIndex.value);
   });
 
+  unlistenAlbumUpdated = await listen('album-updated', (event: any) => {
+    const { albumId, name } = event.payload || {};
+    const targetId = Number(albumId || 0);
+    if (targetId <= 0 || !name) return;
+    for (const file of fileList.value) {
+      if (Number(file.album_id) === targetId) {
+        file.album_name = name;
+      }
+    }
+  });
+
   if (libConfig.index.albumQueue.length > 0 && libConfig.index.status === 1) {
     processNextAlbum();
   }
@@ -3021,6 +3034,7 @@ onBeforeUnmount(() => {
   if (unlistenThumbnailReady) unlistenThumbnailReady();
   if (unlistenRefreshContent) unlistenRefreshContent();
   if (unlistenFilesDeleted) unlistenFilesDeleted();
+  if (unlistenAlbumUpdated) unlistenAlbumUpdated();
   if (unlistenFaceIndexProgress) unlistenFaceIndexProgress();
   if (domDragEnter) document.removeEventListener('dragenter', domDragEnter);
   if (domDragLeave) document.removeEventListener('dragleave', domDragLeave);
@@ -5038,6 +5052,12 @@ const handleInfoNavigateFolder = (folderPath: string) => {
   const targetFile = fileList.value[selectedItemIndex.value];
   if (!folderPath || !targetFile?.album_id) return;
   enterAlbumPreviewMode(targetFile, folderPath);
+};
+
+const openAlbumEdit = (albumId: number) => {
+  if (Number(albumId || 0) > 0) {
+    tauriEmit('edit-album-requested', { albumId });
+  }
 };
 
 const FILE_TYPE_IMAGE = 1;
