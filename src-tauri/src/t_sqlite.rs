@@ -22,6 +22,7 @@ use std::fs;
 use std::io::Cursor;
 use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
+use std::process;
 use std::sync::{Condvar, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, State};
@@ -2562,6 +2563,10 @@ impl AThumb {
         data.starts_with(&[0x89, 0x50, 0x4E, 0x47])
     }
 
+    fn is_complete_jpeg(data: &[u8]) -> bool {
+        data.starts_with(&[0xFF, 0xD8, 0xFF]) && data.ends_with(&[0xFF, 0xD9])
+    }
+
     fn generation_lock_key(file_id: i64, thumbnail_size: u32) -> String {
         format!("{}:{}", file_id, thumbnail_size)
     }
@@ -2670,7 +2675,8 @@ impl AThumb {
         if !path.exists() {
             return Ok(None);
         }
-        fs::read(path).map(Some).map_err(|e| e.to_string())
+        let data = fs::read(path).map_err(|e| e.to_string())?;
+        Ok(Self::is_complete_jpeg(&data).then_some(data))
     }
 
     fn write_thumb_cache_bytes(
@@ -2683,7 +2689,29 @@ impl AThumb {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
-        fs::write(&path, data).map_err(|e| e.to_string())?;
+        if !Self::is_complete_jpeg(data) {
+            return Err("Invalid JPEG thumbnail data".to_string());
+        }
+
+        let temp_path = path.with_extension(format!(
+            "{}.{}.tmp",
+            process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        fs::write(&temp_path, data).map_err(|e| e.to_string())?;
+        if let Err(first_error) = fs::rename(&temp_path, &path) {
+            // Windows does not replace an existing destination with rename.
+            if !path.exists()
+                || fs::remove_file(&path).is_err()
+                || fs::rename(&temp_path, &path).is_err()
+            {
+                let _ = fs::remove_file(&temp_path);
+                return Err(first_error.to_string());
+            }
+        }
         Ok(path)
     }
 

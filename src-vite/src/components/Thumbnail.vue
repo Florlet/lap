@@ -22,7 +22,7 @@
     >
       <!-- image -->
       <img
-        :src="file.thumbnail"
+        :src="thumbnailSrc"
         :class="{
           'group-hover:scale-115': shouldScaleThumbnail,
           'scale-115': shouldScaleThumbnail && isSelected,
@@ -33,6 +33,7 @@
         }"
         :style="imgStyle"
         loading="lazy"
+        @error="retryThumbnail"
       />
       <video
         v-if="showVideoPreview"
@@ -47,7 +48,7 @@
           'opacity-0': !isVideoPreviewReady,
         }"
         :style="imgStyle"
-        :poster="file.thumbnail"
+        :poster="thumbnailSrc"
         muted
         autoplay
         loop
@@ -160,7 +161,7 @@ import { computed, nextTick, ref, watch, toRef, onBeforeUnmount, type CSSPropert
 import { useI18n } from 'vue-i18n';
 import { useUIStore } from '@/stores/uiStore';
 import { config } from '@/common/config';
-import { isMac, shortenFilename, formatFileSize, formatDimensionText, formatDuration, formatTimestamp, formatCaptureSettings, formatCameraInfo, getAssetSrc } from '@/common/utils';
+import { isMac, shortenFilename, formatFileSize, formatDimensionText, formatDuration, formatTimestamp, formatCaptureSettings, formatCameraInfo, getAssetSrc, getThumbUrl } from '@/common/utils';
 import ContextMenu from '@/components/ContextMenu.vue';
 import { useFileMenuItems } from '@/common/fileMenu';
 
@@ -219,6 +220,24 @@ const isVideoPreviewReady = ref(false);
 const isVideoFile = computed(() => props.file?.file_type === 2);
 const isGeometryGridStyle = computed(() => config.settings.grid.style === 2 || config.settings.grid.style === 3);
 const shouldScaleThumbnail = computed(() => config.settings.grid.style === 1 || isGeometryGridStyle.value);
+const thumbnailSrc = ref(props.file.thumbnail || '');
+let thumbnailRetryCount = 0;
+
+watch(() => props.file.thumbnail, (src) => {
+  thumbnailSrc.value = src || '';
+  thumbnailRetryCount = 0;
+});
+
+function retryThumbnail() {
+  const isThumbnailProtocol = thumbnailSrc.value.startsWith('thumb://localhost')
+    || thumbnailSrc.value.startsWith('http://thumb.localhost')
+    || thumbnailSrc.value.startsWith('https://thumb.localhost');
+  if (thumbnailRetryCount > 0 || !isThumbnailProtocol) {
+    return;
+  }
+  thumbnailRetryCount++;
+  thumbnailSrc.value = getThumbUrl(props.file.id, true, config.settings.thumbnailSize);
+}
 
 // Robust ResizeObserver setup using watch to handle v-if
 watch(containerRef, (el) => {
