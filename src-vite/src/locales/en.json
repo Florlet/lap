@@ -260,15 +260,16 @@
         "similar": "Similar"
       },
       "scanning": "Scanning duplicates...",
+      "error_title": "Unable to scan duplicates",
+      "error_desc": "The scan could not be completed. Try again after updating the file list.",
       "empty_title": "No duplicates found",
       "empty_desc": "Try adding more files or updating the current filter range.",
       "similar_title": "Similar photos are coming next",
       "similar_desc": "This tab will be used for visually similar images after the exact-duplicate workflow is expanded.",
       "reclaimable_size": "Reclaimable",
-      "groups_title": "Groups",
-      "group_limit_hint": "Showing up to {count} groups",
-      "group_label": "Group {index}",
-      "items": "items",
+      "groups_title": "Duplicate Sets",
+      "actions_title": "Actions",
+      "rescan": "Rescan",
       "keep_strategy": "Default keep rule",
       "keep_strategy_options": {
         "best_quality": "Best quality",
@@ -276,10 +277,9 @@
         "oldest_modified": "Prefer oldest modified"
       },
       "keep_label": "Keep",
-      "select_group_duplicates": "Select all duplicates",
-      "compare_group": "Compare",
-      "set_keep": "Set as keep",
-      "duplicate_files_summary": "{count} duplicate files ({size})"
+      "move_selected_to_trash": "Move selected to Trash",
+      "set_keep": "Keep this",
+      "duplicate_files_summary": "{count} duplicates ({size})"
     }
   },
   "tooltip": {

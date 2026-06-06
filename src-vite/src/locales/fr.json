@@ -260,15 +260,16 @@
         "similar": "Similaires"
       },
       "scanning": "Analyse des doublons en cours...",
+      "error_title": "Impossible d’analyser les doublons",
+      "error_desc": "L’analyse n’a pas pu aboutir. Actualisez la liste des fichiers et réessayez.",
       "empty_title": "Aucun doublon potentiel dans cette liste",
       "empty_desc": "Essayez d'élargir les filtres ou d'analyser une autre liste de fichiers.",
       "similar_title": "Les photos similaires arrivent ensuite",
       "similar_desc": "Cet onglet sera utilisé pour les images visuellement similaires lorsque le flux des doublons exacts sera étendu.",
       "reclaimable_size": "Récupérable",
-      "groups_title": "Groupes",
-      "group_limit_hint": "Affichage jusqu a {count} groupes",
-      "group_label": "Groupe {index}",
-      "items": "éléments",
+      "groups_title": "Groupes de doublons",
+      "actions_title": "Actions",
+      "rescan": "Relancer l’analyse",
       "keep_strategy": "Règle de conservation par défaut",
       "keep_strategy_options": {
         "best_quality": "Meilleure qualité",
@@ -276,10 +277,9 @@
         "oldest_modified": "Préférer le plus ancien (modification)"
       },
       "keep_label": "Conserver",
-      "select_group_duplicates": "Sélectionner tous les doublons",
-      "compare_group": "Comparer",
-      "set_keep": "Définir comme à conserver",
-      "duplicate_files_summary": "{count} fichiers en double ({size})"
+      "move_selected_to_trash": "Mettre la sélection à la corbeille",
+      "set_keep": "Conserver celui-ci",
+      "duplicate_files_summary": "{count} doublons ({size})"
     }
   },
   "tooltip": {

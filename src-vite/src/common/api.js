@@ -1392,12 +1392,7 @@ export async function listenIndexProgress(callback) {
 
 // start deduplication scan
 export async function dedupStartScan(params = null) {
-  try {
-    const result = await invoke('dedup_start_scan', { params });
-    return result;
-  } catch (error) {
-    console.error('dedupStartScan error:', error);
-  }
+  return await invoke('dedup_start_scan', { params });
 }
 
 // get deduplication scan status
@@ -1421,7 +1416,7 @@ export async function dedupCancelScan() {
 }
 
 // list deduplication groups
-export async function dedupListGroups(page = 1, pageSize = 50, sortBy = 'size_desc', filter = 'all') {
+export async function dedupListGroups(page = 1, pageSize = 0, sortBy = 'size_desc', filter = 'all') {
   try {
     const groups = await invoke('dedup_list_groups', { page, pageSize, sortBy, filter });
     return groups;
@@ -1440,24 +1435,9 @@ export async function dedupGetOverview() {
   }
 }
 
-// get deduplication group
-export async function dedupGetGroup(groupId) {
-  try {
-    const group = await invoke('dedup_get_group', { groupId });
-    return group;
-  } catch (error) {
-    console.error('dedupGetGroup error:', error);
-  }
-}
-
 // set keep file in duplicate group
 export async function dedupSetKeep(groupId, fileId) {
-  try {
-    const result = await invoke('dedup_set_keep', { groupId, fileId });
-    return result;
-  } catch (error) {
-    console.error('dedupSetKeep error:', error);
-  }
+  return await invoke('dedup_set_keep', { groupId, fileId });
 }
 
 // delete selected duplicates

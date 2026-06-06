@@ -260,15 +260,16 @@
         "similar": "유사"
       },
       "scanning": "중복 항목 스캔 중...",
+      "error_title": "중복 항목을 스캔할 수 없습니다",
+      "error_desc": "스캔을 완료하지 못했습니다. 파일 목록을 업데이트한 후 다시 시도하세요.",
       "empty_title": "현재 목록에 중복 후보가 없습니다",
       "empty_desc": "필터를 넓히거나 다른 파일 목록에서 실행해 보세요.",
       "similar_title": "유사 사진 기능은 다음 단계로 준비 중입니다",
       "similar_desc": "정확한 중복 워크플로를 확장한 뒤 이 탭은 시각적으로 유사한 이미지를 위해 사용됩니다.",
       "reclaimable_size": "정리 가능",
-      "groups_title": "그룹",
-      "group_limit_hint": "최대 {count}개 그룹 표시",
-      "group_label": "그룹 {index}",
-      "items": "개",
+      "groups_title": "중복 그룹",
+      "actions_title": "작업",
+      "rescan": "다시 스캔",
       "keep_strategy": "기본 유지 규칙",
       "keep_strategy_options": {
         "best_quality": "최고 품질 우선",
@@ -276,10 +277,9 @@
         "oldest_modified": "오래된 수정일 우선"
       },
       "keep_label": "유지",
-      "select_group_duplicates": "모든 중복 선택",
-      "compare_group": "비교",
-      "set_keep": "유지 항목으로 설정",
-      "duplicate_files_summary": "중복 파일 {count}개 ({size})"
+      "move_selected_to_trash": "선택 항목을 휴지통으로",
+      "set_keep": "이 항목 유지",
+      "duplicate_files_summary": "중복 {count}개 ({size})"
     }
   },
   "tooltip": {

@@ -1310,7 +1310,10 @@ pub fn dedup_start_scan(
 pub fn dedup_get_scan_status(
     state: tauri::State<'_, crate::t_dedup::DedupState>,
 ) -> Result<crate::t_dedup::DedupScanStatus, String> {
-    let status = state.status.lock().unwrap();
+    let mut status = state.status.lock().unwrap().clone();
+    status.is_scanning = state
+        .is_scanning
+        .load(std::sync::atomic::Ordering::SeqCst);
     Ok(status.clone())
 }
 
@@ -1337,11 +1340,6 @@ pub fn dedup_list_groups(
 #[tauri::command]
 pub fn dedup_get_overview() -> Result<crate::t_dedup::DedupOverview, String> {
     crate::t_dedup::get_overview()
-}
-
-#[tauri::command]
-pub fn dedup_get_group(group_id: i64) -> Result<crate::t_dedup::DedupGroup, String> {
-    crate::t_dedup::get_group(group_id)
 }
 
 #[tauri::command]

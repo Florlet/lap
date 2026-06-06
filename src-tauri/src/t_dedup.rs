@@ -15,11 +15,13 @@ use tauri::Emitter;
 // ----------------------------------------------------------------------------
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DedupScanStatus {
     pub state: String, // "running", "idle", "finished", "error"
     pub processed: u64,
     pub total: u64,
     pub groups: u64,
+    pub is_scanning: bool,
 }
 
 impl Default for DedupScanStatus {
@@ -29,6 +31,7 @@ impl Default for DedupScanStatus {
             processed: 0,
             total: 0,
             groups: 0,
+            is_scanning: false,
         }
     }
 }
@@ -84,6 +87,7 @@ pub fn start_scan(
         status.processed = 0;
         status.total = 0;
         status.groups = 0;
+        status.is_scanning = true;
     }
 
     std::thread::spawn(move || {
@@ -106,6 +110,7 @@ pub fn start_scan(
         }
 
         is_scanning_clone.store(false, Ordering::SeqCst);
+        final_status.is_scanning = false;
         let _ = app_handle.emit("dedup-scan-progress", final_status.clone());
     });
 
@@ -599,10 +604,16 @@ pub fn get_overview() -> Result<DedupOverview, String> {
         .query_row(
             "SELECT 
                 COALESCE(COUNT(*), 0),
-                COALESCE(SUM(file_count), 0),
-                COALESCE(SUM(total_size - file_size), 0)
-             FROM duplicate_groups
-             WHERE file_count > 1",
+                COALESCE(SUM(current_file_count - 1), 0),
+                COALESCE(SUM((current_file_count - 1) * file_size), 0)
+             FROM (
+                SELECT file_size,
+                       (SELECT COUNT(*)
+                        FROM duplicate_group_items
+                        WHERE group_id = duplicate_groups.id) AS current_file_count
+                FROM duplicate_groups
+             )
+             WHERE current_file_count > 1",
             [],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
@@ -652,13 +663,20 @@ pub fn list_groups(
          FROM duplicate_groups
          {}
          ORDER BY {}
-         LIMIT ?1 OFFSET ?2",
-        filter_clause, order_clause
+         {}",
+        filter_clause,
+        order_clause,
+        if page_size == 0 { "" } else { "LIMIT ?1 OFFSET ?2" }
     );
 
     let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+    let query_params = if page_size == 0 {
+        Vec::new()
+    } else {
+        vec![page_size, offset]
+    };
     let groups_iter = stmt
-        .query_map(params![page_size, offset], |row| {
+        .query_map(rusqlite::params_from_iter(query_params), |row| {
             Ok(DedupGroup {
                 id: row.get(0)?,
                 hash: row.get(1)?,
@@ -718,34 +736,6 @@ fn get_group_items(conn: &Connection, group_id: i64) -> Result<Vec<DedupGroupIte
     }
 
     Ok(items)
-}
-
-pub fn get_group(group_id: i64) -> Result<DedupGroup, String> {
-    let conn = get_db_conn()?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, hash, file_size, file_count, total_size, reviewed, updated_at
-         FROM duplicate_groups WHERE id = ?1",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let mut group = stmt
-        .query_row(params![group_id], |row| {
-            Ok(DedupGroup {
-                id: row.get(0)?,
-                hash: row.get(1)?,
-                file_size: row.get(2)?,
-                file_count: row.get(3)?,
-                total_size: row.get(4)?,
-                reviewed: row.get(5)?,
-                updated_at: row.get(6)?,
-                items: Vec::new(),
-            })
-        })
-        .map_err(|e| e.to_string())?;
-
-    group.items = get_group_items(&conn, group_id)?;
-    Ok(group)
 }
 
 pub fn set_keep(group_id: i64, file_id: i64) -> Result<(), String> {

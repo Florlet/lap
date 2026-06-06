@@ -260,15 +260,16 @@
         "similar": "Semelhantes"
       },
       "scanning": "Escaneando duplicados...",
+      "error_title": "Não foi possível escanear os duplicados",
+      "error_desc": "O escaneamento não pôde ser concluído. Atualize a lista de arquivos e tente novamente.",
       "empty_title": "Nenhum duplicado potencial nesta lista",
       "empty_desc": "Amplie os filtros ou teste outra lista de arquivos.",
       "similar_title": "As fotos semelhantes vêm em seguida",
       "similar_desc": "Esta aba será usada para imagens visualmente semelhantes quando o fluxo de duplicatas exatas for expandido.",
       "reclaimable_size": "Recuperável",
-      "groups_title": "Grupos",
-      "group_limit_hint": "Mostrando ate {count} grupos",
-      "group_label": "Grupo {index}",
-      "items": "itens",
+      "groups_title": "Grupos duplicados",
+      "actions_title": "Ações",
+      "rescan": "Verificar novamente",
       "keep_strategy": "Regra de retenção padrão",
       "keep_strategy_options": {
         "best_quality": "Melhor qualidade",
@@ -276,10 +277,9 @@
         "oldest_modified": "Preferir mais antigo (modificação)"
       },
       "keep_label": "Manter",
-      "select_group_duplicates": "Selecionar todos os duplicados",
-      "compare_group": "Comparar",
-      "set_keep": "Definir como manter",
-      "duplicate_files_summary": "{count} arquivos duplicados ({size})"
+      "move_selected_to_trash": "Mover seleção para o lixo",
+      "set_keep": "Manter este",
+      "duplicate_files_summary": "{count} duplicados ({size})"
     }
   },
   "tooltip": {

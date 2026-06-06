@@ -260,15 +260,16 @@
         "similar": "Ähnlich"
       },
       "scanning": "Duplikate werden gescannt...",
+      "error_title": "Duplikate konnten nicht gescannt werden",
+      "error_desc": "Der Scan konnte nicht abgeschlossen werden. Aktualisieren Sie die Dateiliste und versuchen Sie es erneut.",
       "empty_title": "Keine potenziellen Duplikate in dieser Liste",
       "empty_desc": "Erweitern Sie den Filter oder prüfen Sie eine andere Dateiliste.",
       "similar_title": "Ähnliche Fotos folgen als Nächstes",
       "similar_desc": "Dieser Tab wird für visuell ähnliche Bilder verwendet, sobald der Workflow für exakte Duplikate erweitert wurde.",
       "reclaimable_size": "Freigebbar",
-      "groups_title": "Gruppen",
-      "group_limit_hint": "Es werden bis zu {count} Gruppen angezeigt",
-      "group_label": "Gruppe {index}",
-      "items": "Elemente",
+      "groups_title": "Duplikatgruppen",
+      "actions_title": "Aktionen",
+      "rescan": "Erneut scannen",
       "keep_strategy": "Standard-Regel zum Behalten",
       "keep_strategy_options": {
         "best_quality": "Beste Qualität",
@@ -276,10 +277,9 @@
         "oldest_modified": "Älteste nach Änderung bevorzugen"
       },
       "keep_label": "Behalten",
-      "select_group_duplicates": "Alle Duplikate auswählen",
-      "compare_group": "Vergleichen",
-      "set_keep": "Als Behalten markieren",
-      "duplicate_files_summary": "{count} doppelte Dateien ({size})"
+      "move_selected_to_trash": "Auswahl in den Papierkorb",
+      "set_keep": "Dieses behalten",
+      "duplicate_files_summary": "{count} Duplikate ({size})"
     }
   },
   "tooltip": {

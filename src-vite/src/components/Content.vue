@@ -384,23 +384,21 @@
         <div
           :class="[
             'absolute right-0 z-40 pr-1 transition-transform duration-200 ease-in-out',
-            config.settings.showStatusBar ? 'pb-8' : 'pb-1',
             rightPanelVisualVisible ? 'translate-x-0' : 'translate-x-full pointer-events-none',
           ]"
           :style="{ width: activeRightPanelWidth + 'px', top: '48px', bottom: config.settings.showStatusBar ? '32px' : '4px' }"
         >
           <DedupPane
             v-if="!selectMode && config.rightPanel.mode === 'dedup'"
+            ref="dedupPaneRef"
             :key="dedupScanKey"
             :file-list="fileList"
             :selected-file-id="fileList[selectedItemIndex]?.id"
             :dedup-scan-key="dedupScanKey"
             :dedup-query-params="dedupQueryParams"
-            :refresh-key="dedupRefreshKey"
             @close="config.rightPanel.show = false"
             @select-file="handleDedupSelectFile"
             @preview-file="handleDedupPreviewFile"
-            @compare-group="handleDedupCompareGroup"
             @trash-selected-duplicates="handleDedupTrashSelectedDuplicates"
           />
           <SelectionPanel
@@ -604,7 +602,7 @@ import { getAlbum, recountAlbum, getQueryCountAndSum, getQueryTimeLine, getQuery
          revealPath, getTagName, indexAlbum, listenIndexProgress, listenIndexFinished, setAlbumCover,
          updateFileInfo, importUrl, importFileBytes, addFileToDb, cancelIndexing as cancelIndexingApi, selectFolder, getFacesForFile, listenFaceIndexProgress,
          openFileWithApp, getAppConfig, getIndexRecoveryInfo, clearIndexRecoveryInfo, setLastSelectedItemIndex,
-         dedupGetGroup, dedupDeleteSelected, getQueryFilePosition, getFolderSearchExcluded } from '@/common/api'; 
+         dedupDeleteSelected, getQueryFilePosition, getFolderSearchExcluded } from '@/common/api';
 import { config, libConfig } from '@/common/config';
 import { getShortcutLabel, matchesShortcut, ShortcutActionId, ShortcutPlatform } from '@/common/shortcuts';
 import { getSmartTagById, SMART_TAG_SEARCH_THRESHOLD } from '@/common/smartTags';
@@ -909,6 +907,7 @@ const permanentDeleteChecked = ref(false);
 const dedupReclaimBytes = ref(0);
 const dedupTrashGroupKey = ref('');
 const dedupDeleteFileIds = ref<number[]>([]);
+const dedupPaneRef = ref<InstanceType<typeof DedupPane> | null>(null);
 const showCommentMsgbox = ref(false);
 const commentInputText = computed(() => {
   if (selectMode.value) {
@@ -1348,7 +1347,6 @@ const dedupScanKey = computed(() => {
   if (dedupSourceVersion.value <= 0) return '';
   return `query:${JSON.stringify(dedupQueryParams.value)}|version:${dedupSourceVersion.value}`;
 });
-const dedupRefreshKey = ref(0);
 
 const currentTitleIcon = computed(() => {
   switch (tempViewMode.value) {
@@ -4438,11 +4436,10 @@ const onTrashFile = async () => {
   const deletedFileIds: number[] = [];
   const affectedAlbumIds = new Set<number>();
   let failedDeleteCount = 0;
-  const shouldAdvanceDedup =
+  const shouldUpdateDedup =
     isDedupPanelOpen.value &&
     !!dedupTrashGroupKey.value;
-  const preDeleteGroups = shouldAdvanceDedup ? buildDuplicateGroups(fileList.value) : [];
-  const currentDedupGroupKey = dedupTrashGroupKey.value;
+  const currentDedupGroupId = Number(dedupTrashGroupKey.value);
   try {
     if (dedupDeleteFileIds.value.length > 0) {
       const ids = [...dedupDeleteFileIds.value];
@@ -4561,30 +4558,8 @@ const onTrashFile = async () => {
     closeTrashMsgbox();
     updateSelectedImage(selectedItemIndex.value);
 
-    if (shouldAdvanceDedup) {
-      dedupRefreshKey.value++;
-      const postDeleteGroups = buildDuplicateGroups(fileList.value);
-      if (postDeleteGroups.length > 0) {
-        const previousIndex = preDeleteGroups.findIndex(group => group.key === currentDedupGroupKey);
-        const orderedNextKeys =
-          previousIndex >= 0
-            ? [
-                ...preDeleteGroups.slice(previousIndex + 1).map(group => group.key),
-                ...preDeleteGroups.slice(0, previousIndex).map(group => group.key),
-              ]
-            : [];
-        const availableKeys = new Set(postDeleteGroups.map(group => group.key));
-        const nextKey = orderedNextKeys.find(key => availableKeys.has(key)) || postDeleteGroups[0].key;
-        const nextGroup = postDeleteGroups.find(group => group.key === nextKey);
-        const nextFileId = nextGroup?.files?.[0]?.id;
-        if (nextFileId) {
-          const index = fileList.value.findIndex(file => file.id === nextFileId);
-          if (index !== -1) {
-            selectedItemIndex.value = index;
-            updateSelectedImage(index);
-          }
-        }
-      }
+    if (shouldUpdateDedup && deletedFileIds.length > 0) {
+      dedupPaneRef.value?.applyDeletedFiles(currentDedupGroupId, deletedFileIds);
     }
   } catch (error) {
     console.error(`Failed to ${permanently ? 'permanently delete' : 'trash'} file(s):`, error);
@@ -5164,68 +5139,6 @@ const handleDedupPreviewFile = (fileId: number) => {
     selectedItemIndex.value = index;
     handleItemDblClicked(index);
   });
-};
-
-const buildPotentialDupKey = (file: any): string | null => {
-  if (!file || !file.id || !file.size) return null;
-
-  const fileType = Number(file.file_type || 0);
-  if (fileType === 1) {
-    return `img:${file.size}:${Number(file.width || 0)}x${Number(file.height || 0)}`;
-  }
-  if (fileType === 2) {
-    return `vid:${file.size}:${Math.round(Number(file.duration || 0))}`;
-  }
-  const ext = String(file.name || '').split('.').pop()?.toLowerCase() || 'unknown';
-  return `file:${file.size}:${ext}`;
-};
-
-const buildDuplicateGroups = (files: any[]) => {
-  const groups = new Map<string, any[]>();
-  for (const file of files) {
-    const key = buildPotentialDupKey(file);
-    if (!key) continue;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(file);
-  }
-
-  return Array.from(groups.entries())
-    .filter(([, grouped]) => grouped.length > 1)
-    .map(([key, grouped]) => {
-      const sorted = [...grouped].sort((a, b) =>
-        String(a?.name || '').toLowerCase().localeCompare(String(b?.name || '').toLowerCase(), undefined, { numeric: true })
-      );
-      const fileSize = Number(sorted[0]?.size || 0);
-      return {
-        key,
-        files: sorted,
-        reclaimableBytes: Math.max(0, sorted.length - 1) * fileSize,
-      };
-    })
-    .sort((a, b) => {
-      if (b.reclaimableBytes !== a.reclaimableBytes) return b.reclaimableBytes - a.reclaimableBytes;
-      return b.files.length - a.files.length;
-    });
-};
-
-const handleDedupCompareGroup = async (groupId: string, keepFileId: number) => {
-  const numericGroupId = Number(groupId);
-  if (!Number.isFinite(numericGroupId) || numericGroupId <= 0) return;
-
-  const group = await dedupGetGroup(numericGroupId);
-  const itemIds = Array.isArray(group?.items)
-    ? group.items.map((item: any) => Number(item?.file_id)).filter((id: number) => Number.isFinite(id) && id > 0)
-    : [];
-  if (itemIds.length <= 1) return;
-
-  const leftId = itemIds.includes(keepFileId) ? keepFileId : itemIds[0];
-  const rightId = itemIds.find(id => id !== leftId);
-  const leftIndex = fileList.value.findIndex(file => file.id === leftId);
-  const rightIndex = fileList.value.findIndex(file => file.id === rightId);
-  if (leftIndex < 0 || rightIndex < 0) return;
-
-  selectedItemIndex.value = leftIndex;
-  await openImageViewer(leftIndex, true, false, { rightIndex, forceSplit: true });
 };
 
 const handleDedupTrashSelectedDuplicates = (groupKey: string, fileIds: number[], reclaimableBytes: number) => {

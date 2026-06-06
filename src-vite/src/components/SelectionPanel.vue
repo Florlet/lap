@@ -59,11 +59,11 @@
           <span>{{ $t('info_panel.select_limit_hint', { count: selectionLimit }) }}</span>
         </div>
         <div v-if="selectedFiles.length > 0">
-          <div class="mx-2 flex flex-wrap gap-1.5">
+          <div class="mx-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-1.5">
             <button
               v-for="file in visibleSelectedFiles"
               :key="file.id"
-              class="group/thumb relative h-20 w-20 shrink-0 overflow-hidden rounded-box border border-base-content/5 bg-base-100/50"
+              class="group/thumb relative h-20 min-w-0 overflow-hidden rounded-box border border-base-content/5 bg-base-100/50"
               :title="file.name || file.file_path"
               @click="$emit('unselectFile', file.id)"
             >
@@ -81,7 +81,7 @@
             </button>
             <div
               v-if="hiddenSelectedCount > 0"
-              class="flex h-20 w-20 shrink-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/60"
+              class="flex h-20 min-w-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/60"
               :title="$t('toolbar.filter.select_count', { count: selectedCount.toLocaleString() })"
             >
               +{{ hiddenSelectedCount }}
