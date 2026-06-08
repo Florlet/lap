@@ -615,8 +615,9 @@ export const isValidFileName = (name: string) => {
 };
 
 // Function to select a folder
-export async function openFolderDialog() {
+export async function openFolderDialog(title?: string) {
   const selected = await openDialog({
+    title: title || 'Select a folder',
     directory: true,  // Enables folder selection
     multiple: false,  // Allows selecting only one folder
   });

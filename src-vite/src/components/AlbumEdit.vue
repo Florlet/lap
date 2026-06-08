@@ -293,7 +293,7 @@ onMounted(async () => {
     }
   });
 
-  if (!props.isNewAlbum) {
+  if (props.albumPath) {
     selectedFolder.value = props.albumPath;
 
     setTimeout(() => {

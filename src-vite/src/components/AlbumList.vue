@@ -129,7 +129,7 @@
       :albumId="isNewAlbum ? 0 : editingAlbumId"
       :inputName="isNewAlbum ? '' : editingAlbum?.name"
       :inputDescription="isNewAlbum ? '' : editingAlbum?.description"
-      :albumPath="isNewAlbum ? '' : editingAlbum?.path"
+      :albumPath="isNewAlbum ? newAlbumFolderPath : editingAlbum?.path"
       :albumCoverFileId="isNewAlbum ? undefined : editingAlbum?.cover_file_id"
       :createdAt="isNewAlbum ? '' : formatTimestamp(editingAlbum?.created_at ?? 0, $t('format.date_time'))"
       :modifiedAt="isNewAlbum ? '' : formatTimestamp(editingAlbum?.modified_at ?? 0, $t('format.date_time'))"
@@ -168,6 +168,7 @@ import {
   getThumbnailDataUrlInflight,
   isWin,
   setThumbnailDataUrlInflight,
+  openFolderDialog,
 } from '@/common/utils';
 import { getAlbumQueueIndex, getAlbumScanState, getAlbumScanIcon, shouldAnimateAlbumScanIcon } from '@/common/scanStatus';
 import { getAllAlbums, setDisplayOrder, addAlbum, editAlbum, removeAlbum, 
@@ -201,7 +202,7 @@ const props = withDefaults(defineProps<{
 });
 
 /// i18n
-const { locale, messages } = useI18n();
+const { t, locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 const uiStore = useUIStore();
 
@@ -231,6 +232,7 @@ const showRemoveAlbumMsgbox = ref(false);   // show remove album
 const albums = ref<Album[]>([]);
 const albumCovers = ref<Record<number, string>>({});
 const isNewAlbum = ref(false);
+const newAlbumFolderPath = ref('');
 const editingAlbumId = ref(0);
 const isLoading = ref(true);    // loading albums
 const isDragging = ref(false);  // dragging albums
@@ -473,6 +475,9 @@ onBeforeUnmount(() => {
 
 /// Add a new album
 const clickNewAlbum = async () => {
+  const folderPath = await openFolderDialog(t('album.edit.select_folder'));
+  if (!folderPath) return;
+  newAlbumFolderPath.value = folderPath;
   editingAlbumId.value = 0;
   showAlbumEdit.value = true;
   isNewAlbum.value = true;
