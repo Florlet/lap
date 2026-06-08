@@ -512,7 +512,7 @@
                   <span
                     v-for="(key, keyIndex) in item.keys"
                     :key="`${item.actionId}-${keyIndex}-${key}`"
-                    class="min-w-7 h-7 px-2 inline-flex items-center justify-center rounded-box border border-base-content/15 bg-base-100 text-xs font-semibold text-base-content/70 shadow-sm"
+                    class="min-w-7 h-7 px-2 inline-flex items-center justify-center rounded-box border border-base-content/10 bg-base-100/40 text-xs font-semibold text-base-content/30 shadow-sm"
                   >
                     {{ key }}
                   </span>
@@ -903,7 +903,9 @@ const shortcutDisplaySections: Array<{ key: string; items: ShortcutDisplayItem[]
       { actionId: 'view.quickPreview', labelKey: 'quick_preview' },
       { actionId: 'view.close', labelKey: 'close_viewer' },
       { actionId: 'file.openNewWindow', labelKey: 'open_new_window' },
+      { actionId: 'file.openExternalApp', labelKey: 'open_external_app' },
       { actionId: 'file.editImage', labelKey: 'edit_image' },
+      { actionId: 'file.print', labelKey: 'print' },
       { actionId: 'file.searchSimilar', labelKey: 'search_similar' },
     ],
   },
@@ -921,9 +923,10 @@ const shortcutDisplaySections: Array<{ key: string; items: ShortcutDisplayItem[]
     items: [
 
       { actionId: 'file.rename', labelKey: 'rename_file' },
-      { actionId: 'file.moveTo', labelKey: 'move_to' },
+      { actionId: 'file.moveTo', labelKey: 'move_within_library' },
+      { actionId: 'file.moveToFolder', labelKey: 'move_to_folder' },
       { actionId: 'file.copy', labelKey: 'copy_file' },
-      { actionId: 'file.refreshInfo', labelKey: 'refresh_file_info' },
+      { actionId: 'file.reveal', labelKey: 'reveal_in_file_manager' },
       { actionId: 'file.trash', labelKey: 'move_to_trash' },
       { actionId: 'file.trash', labelKey: 'delete_permanently', shortcutVariant: 'shift' },
     ],
@@ -957,12 +960,19 @@ const shortcutSections = computed(() => {
     items: section.items
       .map((item) => ({
         actionId: item.actionId,
-        label: shortcutMessages.actions[item.labelKey],
+        label: shortcutMessages.actions[getShortcutActionLabelKey(item)],
         keys: item.keys ?? getDisplayShortcutKeys(item.actionId, item.shortcutVariant),
       }))
       .filter((item) => item.keys.length > 0),
   }));
 });
+
+function getShortcutActionLabelKey(item: ShortcutDisplayItem): string {
+  if (item.actionId === 'file.reveal' && shortcutPlatform === 'mac') {
+    return 'reveal_in_finder';
+  }
+  return item.labelKey;
+}
 
 function getDisplayShortcutKeys(actionId: ShortcutActionId, shortcutVariant?: 'shift'): string[] {
   const labels = getShortcutLabels(actionId, shortcutPlatform);
@@ -1004,6 +1014,7 @@ function splitShortcutLabel(label: string): string[] {
     .split('+')
     .filter(Boolean)
     .map((key) => {
+      key = key.trim();
       if (key === 'Plus') return '+';
       if (key === 'Minus') return '-';
       if (key === 'Comma') return ',';
@@ -1013,15 +1024,13 @@ function splitShortcutLabel(label: string): string[] {
 }
 
 function splitMacShortcutLabel(label: string): string[] {
-  const modifierKeys = ['⌘', '⌥', '⇧', '⌃'];
+  const modifierKeys = new Set(['⌘', '⌥', '⇧', '⌃']);
   const keys: string[] = [];
   let remaining = label;
 
-  for (const modifierKey of modifierKeys) {
-    if (remaining.startsWith(modifierKey)) {
-      keys.push(modifierKey);
-      remaining = remaining.slice(modifierKey.length);
-    }
+  while (remaining.length > 0 && modifierKeys.has(remaining[0])) {
+    keys.push(remaining[0]);
+    remaining = remaining.slice(1);
   }
 
   if (remaining.length > 0) {

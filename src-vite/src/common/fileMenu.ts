@@ -58,6 +58,7 @@ export const useFileMenuItems = (
         hidden: !((isImage && imageAppName) || (isVideo && videoAppName)),
         disabled: !((isImage && imageAppName) || (isVideo && videoAppName)),
         icon: markRaw(IconExternal),
+        shortcut: shortcut('file.openExternalApp'),
         action: createAction('open-external-app')
       },
       {
@@ -70,6 +71,7 @@ export const useFileMenuItems = (
       {
         label: localeMsg.value.menu.file.print,
         icon: markRaw(IconPrint),
+        shortcut: shortcut('file.print'),
         disabled: !isImage,
         action: createAction('print')
       },
@@ -178,6 +180,7 @@ export const useFileMenuItems = (
       },
       {
         label: translate('menu.file.move_to'),
+        shortcut: shortcut('file.moveToFolder'),
         action: createAction('move-to-folder')
       },
       {
@@ -193,12 +196,12 @@ export const useFileMenuItems = (
       },
       {
         label: isMac ? localeMsg.value.menu.file.reveal_in_finder : localeMsg.value.menu.file.reveal_in_file_explorer,
+        shortcut: shortcut('file.reveal'),
         action: createAction('reveal')
       },
       {
         label: localeMsg.value.menu.file.refresh_file_info,
         icon: markRaw(IconRefresh),
-        shortcut: shortcut('file.refreshInfo'),
         action: createAction('refresh-file-info')
       },
       {

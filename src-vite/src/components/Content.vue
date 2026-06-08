@@ -2013,6 +2013,27 @@ function handleLocalKeyDown(event: KeyboardEvent) {
     return;
   }
 
+  if (matchesShortcut('file.openExternalApp', event, shortcutPlatform)) {
+    event.preventDefault();
+    void openSelectedFileInExternalApp();
+    return;
+  }
+
+  if (matchesShortcut('file.print', event, shortcutPlatform)) {
+    event.preventDefault();
+    const selectedFile = fileList.value[selectedItemIndex.value];
+    if (selectedFile?.file_type === 1 || selectedFile?.file_type === 3) {
+      void openPrintWindow(selectedItemIndex.value);
+    }
+    return;
+  }
+
+  if (matchesShortcut('file.reveal', event, shortcutPlatform)) {
+    event.preventDefault();
+    revealPath(fileList.value[selectedItemIndex.value].file_path);
+    return;
+  }
+
   if ((showQuickView.value || config.settings.grid.showFilmStrip) && matchesShortcut('slideshow.toggle', event, shortcutPlatform)) {
     event.preventDefault();
     toggleSlideShow();
@@ -2061,12 +2082,6 @@ function handleLocalKeyDown(event: KeyboardEvent) {
     return;
   }
 
-  if (matchesShortcut('file.refreshInfo', event, shortcutPlatform)) {
-    event.preventDefault();
-    void updateFile(fileList.value[selectedItemIndex.value], true);
-    return;
-  }
-
   if (matchesShortcut('meta.comment', event, shortcutPlatform)) {
     event.preventDefault();
     showCommentMsgbox.value = true;
@@ -2082,6 +2097,12 @@ function handleLocalKeyDown(event: KeyboardEvent) {
   if (matchesShortcut('file.moveTo', event, shortcutPlatform)) {
     event.preventDefault();
     showMoveTo.value = true;
+    return;
+  }
+
+  if (matchesShortcut('file.moveToFolder', event, shortcutPlatform)) {
+    event.preventDefault();
+    void onMoveToFolder();
     return;
   }
 
@@ -2109,26 +2130,7 @@ function handleLocalKeyDown(event: KeyboardEvent) {
 
   const handledKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', 'Space', ' '];
 
-  if (matchesShortcut('view.quickPreview', event, shortcutPlatform) && event.key === 'Enter') {
-    if (!showQuickView.value && !config.settings.grid.showFilmStrip) {
-      showQuickView.value = true;
-      quickViewZoomFit.value = true;
-    }
-  } 
-  else if (matchesShortcut('view.quickPreview', event, shortcutPlatform) && (event.key === 'Space' || event.key === ' ')) {
-    if (getActivePreviewMode() === 'quick-view') {
-      if (fileList.value[selectedItemIndex.value]?.file_type === 2) {
-        getActivePreviewMediaRef()?.togglePlay?.();
-      } else {
-        quickViewZoomFit.value = !quickViewZoomFit.value;
-      }
-    } else if (getActivePreviewMode() === 'filmstrip') {
-      filmStripZoomFit.value = !filmStripZoomFit.value;
-    } else if (!config.settings.grid.showFilmStrip) {
-      showQuickView.value = true;
-      quickViewZoomFit.value = true;
-    }
-  }
+  handleQuickPreviewShortcut(event);
 
   if (handledKeys.includes(event.key)) {
     event.preventDefault();
@@ -2151,6 +2153,39 @@ function handleLocalKeyDown(event: KeyboardEvent) {
   } else if (event.key === 'ArrowLeft' || (isFilmstrip && event.key === 'ArrowUp')) {
     requestNavigate('prev');
   }
+}
+
+function handleQuickPreviewShortcut(event: { key: string; code?: string }): boolean {
+  if (!matchesShortcut('view.quickPreview', event, shortcutPlatform)) {
+    return false;
+  }
+
+  if (event.key === 'Enter') {
+    if (!showQuickView.value && !config.settings.grid.showFilmStrip) {
+      showQuickView.value = true;
+      quickViewZoomFit.value = true;
+    }
+    return true;
+  }
+
+  if (event.key !== 'Space' && event.key !== ' ') {
+    return false;
+  }
+
+  if (getActivePreviewMode() === 'quick-view') {
+    if (fileList.value[selectedItemIndex.value]?.file_type === 2) {
+      getActivePreviewMediaRef()?.togglePlay?.();
+    } else {
+      quickViewZoomFit.value = !quickViewZoomFit.value;
+    }
+  } else if (getActivePreviewMode() === 'filmstrip') {
+    filmStripZoomFit.value = !filmStripZoomFit.value;
+  } else if (!config.settings.grid.showFilmStrip) {
+    showQuickView.value = true;
+    quickViewZoomFit.value = true;
+  }
+
+  return true;
 }
 
 function handleLocalKeyUp(event: KeyboardEvent) {
@@ -2208,17 +2243,32 @@ const handleKeyDown = (e: any) => {
     return;
   }
 
+  if (handleQuickPreviewShortcut(event)) {
+    return;
+  }
+
   if (matchesShortcut('file.openNewWindow', event, shortcutPlatform)) {
     openImageViewer(selectedItemIndex.value, true);
   } else if (matchesShortcut('file.copy', event, shortcutPlatform)) {
     clickCopyImage(fileList.value[selectedItemIndex.value].file_path);
   } else if (matchesShortcut('file.searchSimilar', event, shortcutPlatform)) {
     enterSimilarSearchMode(fileList.value[selectedItemIndex.value]);
+  } else if (matchesShortcut('file.openExternalApp', event, shortcutPlatform)) {
+    void openSelectedFileInExternalApp();
+  } else if (matchesShortcut('file.print', event, shortcutPlatform)) {
+    const file = fileList.value[selectedItemIndex.value];
+    if (file && (file.file_type === 1 || file.file_type === 3)) {
+      void openPrintWindow(selectedItemIndex.value);
+    }
+  } else if (matchesShortcut('file.reveal', event, shortcutPlatform)) {
+    revealPath(fileList.value[selectedItemIndex.value].file_path);
   } else if (matchesShortcut('file.editImage', event, shortcutPlatform)) {
     const file = fileList.value[selectedItemIndex.value];
     if (file && (file.file_type === 1 || file.file_type === 3)) {
       void openImageEditor(selectedItemIndex.value);
     }
+  } else if (matchesShortcut('file.moveToFolder', event, shortcutPlatform)) {
+    void onMoveToFolder();
   } else if (matchesShortcut('file.moveTo', event, shortcutPlatform)) {
     showMoveTo.value = true;
   } else if (matchesShortcut('file.trash', event, shortcutPlatform)) {

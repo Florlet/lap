@@ -20,6 +20,7 @@ export type ShortcutActionId =
   | 'app.preferences'
   | 'app.search'
   | 'file.openNewWindow'
+  | 'file.openExternalApp'
   | 'file.editImage'
   | 'file.print'
   | 'file.copy'
@@ -28,8 +29,9 @@ export type ShortcutActionId =
   | 'file.invertSelection'
   | 'file.rename'
   | 'file.moveTo'
+  | 'file.moveToFolder'
   | 'file.trash'
-  | 'file.refreshInfo'
+  | 'file.reveal'
   | 'file.searchSimilar'
   | 'meta.favorite'
   | 'meta.rating.clear'
@@ -144,6 +146,13 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     ],
   },
   {
+    id: 'file.openExternalApp',
+    contexts: ['content'],
+    defaultBindings: [
+      { code: 'KeyE', modifiers: ['cmdOrCtrl'], label: { mac: '⌘E', windows: 'Ctrl+E', linux: 'Ctrl+E' } },
+    ],
+  },
+  {
     id: 'file.editImage',
     contexts: ['content'],
     defaultBindings: [
@@ -152,7 +161,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
   },
   {
     id: 'file.print',
-    contexts: ['print'],
+    contexts: ['content', 'print'],
     defaultBindings: [
       { code: 'KeyP', modifiers: ['cmdOrCtrl'], label: { mac: '⌘P', windows: 'Ctrl+P', linux: 'Ctrl+P' } },
     ],
@@ -199,6 +208,11 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     defaultBindings: [{ code: 'KeyM', allowShift: true, label: 'M' }],
   },
   {
+    id: 'file.moveToFolder',
+    contexts: ['content'],
+    defaultBindings: [{ code: 'KeyM', modifiers: ['cmdOrCtrl', 'shift'], label: { mac: '⇧⌘M', windows: 'Ctrl+Shift+M', linux: 'Ctrl+Shift+M' } }],
+  },
+  {
     id: 'file.trash',
     contexts: ['content'],
     defaultBindings: [
@@ -207,9 +221,11 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     ],
   },
   {
-    id: 'file.refreshInfo',
+    id: 'file.reveal',
     contexts: ['content'],
-    defaultBindings: [{ code: 'KeyR', modifiers: ['shift'], label: { mac: '⇧R', windows: 'Shift+R', linux: 'Shift+R' } }],
+    defaultBindings: [
+      { code: 'KeyR', modifiers: ['cmdOrCtrl'], label: { mac: '⌘R', windows: 'Ctrl+R', linux: 'Ctrl+R' } },
+    ],
   },
   {
     id: 'file.searchSimilar',
