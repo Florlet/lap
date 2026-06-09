@@ -1386,22 +1386,24 @@ pub fn reveal_path(path: &str) -> Result<(), String> {
         return Err("Missing path".to_string());
     }
 
+    let is_dir = Path::new(path).is_dir();
+
     #[cfg(target_os = "macos")]
     {
-        Command::new("open")
-            .arg("-R")
-            .arg(path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut cmd = Command::new("open");
+        if !is_dir { cmd.arg("-R"); }
+        cmd.arg(path).spawn().map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer")
-            .arg("/select,")
-            .arg(path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut cmd = Command::new("explorer");
+        if is_dir {
+            cmd.arg(path);
+        } else {
+            cmd.arg("/select,").arg(path);
+        }
+        cmd.spawn().map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "linux")]
