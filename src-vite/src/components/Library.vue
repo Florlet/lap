@@ -20,10 +20,9 @@
       </div>
     </div>
 
-    <AlbumList ref="albumListRef" 
+    <AlbumList ref="albumListRef"
       :key="albumListKey"
       selectionSource="album"
-      @editDataChanged="(val) => emit('editDataChanged', val)"
     />
   </div> 
 

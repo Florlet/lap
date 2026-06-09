@@ -51,7 +51,7 @@
         <span>{{ item.label }}</span>
         <span class="text-base-content/30 text-xs">({{ (item.endIndex - item.startIndex).toLocaleString() }})</span>
       </div>
-      <div v-else class="w-full h-full flex items-center justify-center">
+      <div v-else class="w-full h-full flex items-center justify-center" draggable="true">
         <Thumbnail
           v-if="getFileItem(item) && !getFileItem(item).isPlaceholder"
           :id="'item-' + getFileIndex(item, index)"

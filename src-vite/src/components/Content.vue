@@ -602,6 +602,7 @@ import { getAlbum, getAllAlbums, recountAlbum, getQueryCountAndSum, getQueryTime
          openFileWithApp, getAppConfig, getIndexRecoveryInfo, clearIndexRecoveryInfo, setLastSelectedItemIndex,
          dedupDeleteSelected, getQueryFilePosition, getFolderSearchExcluded } from '@/common/api';
 import { config, libConfig } from '@/common/config';
+import { dragState } from '@/common/dragState';
 import { getShortcutLabel, matchesShortcut, ShortcutActionId, ShortcutPlatform } from '@/common/shortcuts';
 import { getSmartTagById, SMART_TAG_SEARCH_THRESHOLD } from '@/common/smartTags';
 import { getAlbumScanState, getAlbumScanIcon, shouldAnimateAlbumScanIcon } from '@/common/scanStatus';
@@ -1241,12 +1242,32 @@ function isInternalReorderActive() {
   return uiStore.isInputActive('ManageLibraries');
 }
 
-function markContentInternalDrag() {
+function markContentInternalDrag(event: DragEvent) {
   isContentInternalDrag.value = true;
+  const target = event.target as HTMLElement;
+  const fileItem = target.closest('[id^="item-"]');
+  if (!fileItem || !event.dataTransfer) return;
+  const selected = getActionableSelectedItems();
+  const files = selected.length > 0 ? selected : [fileList.value[selectedItemIndex.value]];
+  if (!files.length || !files[0]) return;
+  const dt = event.dataTransfer;
+
+  // Internal payload via reactive state (WebKit strips custom MIME types from DataTransfer)
+  dragState.files = files.map((f: any) => ({ id: f.id, file_path: f.file_path, folder_id: f.folder_id }));
+
+  // External payload: file:// URIs for Finder / Explorer
+  const uris = files
+    .map((f: any) => f.file_path)
+    .filter(Boolean)
+    .map((p: string) => encodeURI(`file://${p}`));
+  if (uris.length) dt.setData('text/uri-list', uris.join('\n'));
+
+  dt.effectAllowed = 'copyMove';
 }
 
 function clearContentInternalDrag() {
   isContentInternalDrag.value = false;
+  dragState.files = null;
 }
 
 const isProcessing = ref(false);  // show processing status
