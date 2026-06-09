@@ -412,12 +412,35 @@ impl FileNode {
 
 }
 
+/// True when the file name starts with `.` (Unix dotfile convention).
+/// Non-UTF-8 names are silently treated as not-hidden.
+fn is_dotfile(name: &std::ffi::OsStr) -> bool {
+    name.to_str().map(|s| s.starts_with('.')).unwrap_or(false)
+}
+
+/// True on Windows when `FILE_ATTRIBUTE_HIDDEN` is set; always false on other platforms.
+#[cfg(target_os = "windows")]
+fn has_hidden_attribute(metadata: &std::fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
+    (metadata.file_attributes() & FILE_ATTRIBUTE_HIDDEN) != 0
+}
+
+#[cfg(not(target_os = "windows"))]
+fn has_hidden_attribute(_metadata: &std::fs::Metadata) -> bool {
+    false
+}
+
 pub fn is_hidden(entry: &walkdir::DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false)
+    is_dotfile(entry.file_name())
+        || entry.metadata().ok().map_or(false, |m| has_hidden_attribute(&m))
+}
+
+/// Hidden-file check for `std::fs::DirEntry` (used by fs::read_dir callers).
+/// Note: `file_name()` returns an owned `OsString` (unlike `walkdir::DirEntry`'s `&OsStr`).
+pub fn is_fs_entry_hidden(entry: &std::fs::DirEntry) -> bool {
+    is_dotfile(&entry.file_name())
+        || entry.metadata().ok().map_or(false, |m| has_hidden_attribute(&m))
 }
 
 // file metadata struct
@@ -1663,8 +1686,7 @@ fn scan_new_child_folders(album_id: i64, folder_path: &str) -> Result<Vec<AFolde
     let mut new_folders = Vec::new();
 
     for entry in entries.flatten() {
-        let file_name = entry.file_name();
-        if file_name.to_string_lossy().starts_with('.') {
+        if is_fs_entry_hidden(&entry) {
             continue;
         }
         let Ok(file_type) = entry.file_type() else {
