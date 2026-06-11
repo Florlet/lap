@@ -904,7 +904,6 @@ const shortcutDisplaySections: Array<{ key: string; items: ShortcutDisplayItem[]
       { actionId: 'file.openNewWindow', labelKey: 'open_new_window' },
       { actionId: 'file.openExternalApp', labelKey: 'open_external_app' },
       { actionId: 'file.editImage', labelKey: 'edit_image' },
-      { actionId: 'file.print', labelKey: 'print' },
       { actionId: 'file.searchSimilar', labelKey: 'search_similar' },
     ],
   },

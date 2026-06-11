@@ -85,7 +85,7 @@ const favoriteTitle = computed(() => {
 const favoriteIconClass = computed(() => {
   if (props.disabled) return 'text-base-content/30';
   if (props.favorite === true) return 'text-error';
-  return 'text-base-content/70';
+  return 'text-base-content/70 hover:text-error/70';
 });
 
 function getRatingLabel(rating: number) {
@@ -102,7 +102,8 @@ function getRatingLabel(rating: number) {
 
 function getRatingIconClass(value: number) {
   if (props.disabled) return 'text-base-content/30';
-  if (props.rating === null) return 'text-base-content/45';
-  return Number(props.rating || 0) >= value ? 'text-warning' : props.inactiveRatingClass;
+  if (props.rating === null) return 'text-base-content/30 hover:text-warning/70';
+  if (Number(props.rating || 0) >= value) return 'text-warning';
+  return `${props.inactiveRatingClass} hover:text-warning/70`;
 }
 </script>

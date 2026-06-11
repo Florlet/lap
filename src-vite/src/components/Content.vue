@@ -2046,15 +2046,6 @@ function handleLocalKeyDown(event: KeyboardEvent) {
     return;
   }
 
-  if (matchesShortcut('file.print', event, shortcutPlatform)) {
-    event.preventDefault();
-    const selectedFile = fileList.value[selectedItemIndex.value];
-    if (selectedFile?.file_type === 1 || selectedFile?.file_type === 3) {
-      void printImage(selectedItemIndex.value);
-    }
-    return;
-  }
-
   if (matchesShortcut('file.reveal', event, shortcutPlatform)) {
     event.preventDefault();
     revealPath(fileList.value[selectedItemIndex.value].file_path);
@@ -2282,11 +2273,6 @@ const handleKeyDown = (e: any) => {
     enterSimilarSearchMode(fileList.value[selectedItemIndex.value]);
   } else if (matchesShortcut('file.openExternalApp', event, shortcutPlatform)) {
     void openSelectedFileInExternalApp();
-  } else if (matchesShortcut('file.print', event, shortcutPlatform)) {
-    const file = fileList.value[selectedItemIndex.value];
-    if (file && (file.file_type === 1 || file.file_type === 3)) {
-      void printImage(selectedItemIndex.value);
-    }
   } else if (matchesShortcut('file.reveal', event, shortcutPlatform)) {
     revealPath(fileList.value[selectedItemIndex.value].file_path);
   } else if (matchesShortcut('file.editImage', event, shortcutPlatform)) {
@@ -5742,10 +5728,13 @@ async function printImage(index: number) {
       ? getPreviewUrl(fileId, selectedFile.file_path)
       : getAssetSrc(selectedFile.file_path);
     await waitForPrintImage();
-    window.addEventListener('afterprint', () => {
-      printImageSrc.value = '';
-    }, { once: true });
-    window.print();
+    // Defer to let the context menu / UI close before the synchronous print dialog opens
+    setTimeout(() => {
+      window.addEventListener('afterprint', () => {
+        printImageSrc.value = '';
+      }, { once: true });
+      window.print();
+    }, 100);
   } catch (error) {
     printImageSrc.value = '';
     console.error('Failed to prepare image for printing:', error);

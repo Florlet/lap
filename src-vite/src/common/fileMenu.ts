@@ -71,7 +71,6 @@ export const useFileMenuItems = (
       {
         label: localeMsg.value.menu.file.print,
         icon: markRaw(IconPrint),
-        shortcut: shortcut('file.print'),
         disabled: !isImage,
         action: createAction('print')
       },

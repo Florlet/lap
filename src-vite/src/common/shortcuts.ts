@@ -5,7 +5,6 @@ export type ShortcutContext =
   | 'content'
   | 'media-viewer'
   | 'image-viewer'
-  | 'print'
   | 'settings'
   | 'album-list'
   | 'album-folder'
@@ -22,7 +21,6 @@ export type ShortcutActionId =
   | 'file.openNewWindow'
   | 'file.openExternalApp'
   | 'file.editImage'
-  | 'file.print'
   | 'file.copy'
   | 'file.selectAll'
   | 'file.selectNone'
@@ -160,13 +158,6 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     ],
   },
   {
-    id: 'file.print',
-    contexts: ['content', 'print'],
-    defaultBindings: [
-      { code: 'KeyP', modifiers: ['cmdOrCtrl'], label: { mac: '⌘P', windows: 'Ctrl+P', linux: 'Ctrl+P' } },
-    ],
-  },
-  {
     id: 'file.copy',
     contexts: ['content'],
     defaultBindings: [
@@ -301,7 +292,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
   },
   {
     id: 'view.close',
-    contexts: ['content', 'image-viewer', 'settings', 'print'],
+    contexts: ['content', 'image-viewer', 'settings'],
     defaultBindings: [{ key: 'Escape', label: 'Esc' }],
   },
   {
