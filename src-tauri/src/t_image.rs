@@ -1099,7 +1099,7 @@ fn should_generate_preview_for_file(file_path: &str, file_type: i64) -> bool {
         || t_jxl::is_jxl_path(file_path)
         || is_heic_path(file_path)
         || is_ffmpeg_backed_image_path(file_path)
-        || cfg!(target_os = "linux") && is_avif_path(file_path)
+        || is_avif_path(file_path)
 }
 
 async fn get_generated_preview_bytes(file_path: &str) -> Result<Option<Vec<u8>>, String> {
@@ -1148,7 +1148,6 @@ async fn get_generated_preview_bytes(file_path: &str) -> Result<Option<Vec<u8>>,
         return crate::t_video::get_video_thumbnail(file_path, 4096, None, None).await;
     }
 
-    #[cfg(target_os = "linux")]
     if is_avif_path(file_path) {
         return get_image_thumbnail(file_path, get_image_orientation(file_path), 4096);
     }
