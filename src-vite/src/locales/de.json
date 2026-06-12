@@ -480,8 +480,8 @@
       "add": "Hinzufügen",
       "placeholder": "Bibliotheksname",
       "max_limit_reached": "Limit erreicht",
-      "summary": "{count} Bibliotheken · {size}",
-      "summary_loading": "{count} Bibliotheken · Größe wird berechnet...",
+      "summary": "{count} Bibliotheken · {files} Dateien · {size}",
+      "summary_loading": "{count} Bibliotheken · Dateianzahl und Größe werden berechnet...",
       "created_at_lower": "erstellt am",
       "calculating_stats": "Bibliotheksgroesse wird berechnet...",
       "library_file_path": "Dateipfad",
@@ -1131,14 +1131,14 @@
       "restore_hint": "Bibliotheken aus einer ZIP-Backupdatei wiederherstellen",
       "restore_dialog_title": "Aus Backup wiederherstellen",
       "restore_select_file": "Backupdatei auswählen",
-      "restore_file_info": "Backupdatei: {path}",
+      "restore_file_info": "Backup: {path}",
       "restore_created_at": "Erstellt: {date}",
-      "restore_libraries": "Bibliotheken: {count} ({size})",
+      "restore_libraries": "{count} Bibliotheken ({size})",
       "restore_new_library": "Neue Bibliothek",
       "restore_conflict": "Bereits vorhanden → wird umbenannt",
       "restore_restoring": "Wiederherstellen...",
       "restore_success": "Wiederherstellung abgeschlossen. {count} Bibliotheken wiederhergestellt: {names}",
-      "restore_note": "Wiederhergestellte Bibliotheken werden zu den vorhandenen hinzugefügt. Vorhandene Daten werden nicht überschrieben."
+      "restore_note": "Bibliotheken mit Namenskonflikten werden umbenannt, vorhandene Daten werden nicht überschrieben."
     },
     "face_recognition": {
       "title": "Personensuche",

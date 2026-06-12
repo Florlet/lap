@@ -48,7 +48,7 @@
                   v-if="idx < titleSegments.length - 1"
                   :class="[
                     'block max-w-[16rem] truncate cursor-pointer transition-colors',
-                    tempViewMode === 'album' ? 'text-primary' : 'text-base-content/50 hover:text-primary',
+                    tempViewMode === 'album' ? 'text-primary' : 'text-base-content/70 hover:text-primary',
                   ]"
                   @mousedown.stop
                   @click.stop="handleBreadcrumbClick(idx)"

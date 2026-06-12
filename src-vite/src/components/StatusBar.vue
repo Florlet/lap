@@ -2,7 +2,7 @@
   <div :class="containerClass">
     <div
       v-if="hasData"
-      class="flex gap-4 items-center flex-1 min-w-0 overflow-hidden whitespace-nowrap"
+      class="flex gap-4 items-center flex-1 min-w-0 overflow-hidden whitespace-nowrap text-base-content/70"
     >
       <div class="flex items-center shink-0">
         <IconFileSearch class="t-icon-size-xs mr-1" />

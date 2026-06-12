@@ -480,8 +480,8 @@
       "add": "追加",
       "placeholder": "ライブラリ名",
       "max_limit_reached": "上限に達しました",
-      "summary": "{count} 個のライブラリ · {size}",
-      "summary_loading": "{count} 個のライブラリ · サイズを計算中...",
+      "summary": "{count} 個のライブラリ · {files} 個のファイル · {size}",
+      "summary_loading": "{count} 個のライブラリ · ファイル数とサイズを計算中...",
       "created_at_lower": "作成日時",
       "calculating_stats": "ライブラリサイズを計算中...",
       "library_file_path": "ファイルパス",
@@ -1131,14 +1131,14 @@
       "restore_hint": "ZIPバックアップファイルからライブラリを復元",
       "restore_dialog_title": "バックアップから復元",
       "restore_select_file": "バックアップファイルを選択",
-      "restore_file_info": "バックアップファイル：{path}",
+      "restore_file_info": "バックアップ：{path}",
       "restore_created_at": "作成日時：{date}",
-      "restore_libraries": "ライブラリ：{count} 個（{size}）",
+      "restore_libraries": "{count} 個のライブラリ（{size}）",
       "restore_new_library": "新しいライブラリ",
       "restore_conflict": "既存 → 自動的に名前変更",
       "restore_restoring": "復元中...",
       "restore_success": "復元完了。{count} 個のライブラリを復元：{names}",
-      "restore_note": "復元されたライブラリは既存のものに追加されます。既存のデータは上書きされません。"
+      "restore_note": "名前が重複するライブラリは名前が変更され、既存のデータは上書きされません。"
     },
     "face_recognition": {
       "title": "人物検索",

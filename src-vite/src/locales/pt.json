@@ -480,8 +480,8 @@
       "add": "Adicionar",
       "placeholder": "Nome da biblioteca",
       "max_limit_reached": "Limite atingido",
-      "summary": "{count} bibliotecas · {size}",
-      "summary_loading": "{count} bibliotecas · calculando tamanho...",
+      "summary": "{count} bibliotecas · {files} arquivos · {size}",
+      "summary_loading": "{count} bibliotecas · calculando arquivos e tamanho...",
       "created_at_lower": "criado em",
       "calculating_stats": "Calculando o tamanho da biblioteca...",
       "library_file_path": "Caminho do arquivo",
@@ -1131,14 +1131,14 @@
       "restore_hint": "Restaurar bibliotecas de um arquivo ZIP de backup",
       "restore_dialog_title": "Restaurar do Backup",
       "restore_select_file": "Selecionar arquivo de backup",
-      "restore_file_info": "Arquivo de backup: {path}",
+      "restore_file_info": "Backup: {path}",
       "restore_created_at": "Criado em: {date}",
-      "restore_libraries": "Bibliotecas: {count} ({size})",
+      "restore_libraries": "{count} bibliotecas ({size})",
       "restore_new_library": "Nova biblioteca",
       "restore_conflict": "Já existe → será renomeada",
       "restore_restoring": "Restaurando...",
       "restore_success": "Restauração concluída. {count} bibliotecas restauradas: {names}",
-      "restore_note": "As bibliotecas restauradas são adicionadas às existentes. Os dados existentes não são sobrescritos."
+      "restore_note": "Bibliotecas com nomes conflitantes serão renomeadas e os dados existentes não serão sobrescritos."
     },
     "face_recognition": {
       "title": "Pesquisa de pessoas",

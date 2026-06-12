@@ -480,8 +480,8 @@
       "add": "추가",
       "placeholder": "라이브러리 이름",
       "max_limit_reached": "제한 도달",
-      "summary": "라이브러리 {count}개 · {size}",
-      "summary_loading": "라이브러리 {count}개 · 크기 계산 중...",
+      "summary": "라이브러리 {count}개 · 파일 {files}개 · {size}",
+      "summary_loading": "라이브러리 {count}개 · 파일 수와 크기 계산 중...",
       "created_at_lower": "생성일",
       "calculating_stats": "라이브러리 크기 계산 중...",
       "library_file_path": "파일 경로",
@@ -1131,14 +1131,14 @@
       "restore_hint": "ZIP 백업 파일에서 라이브러리 복원",
       "restore_dialog_title": "백업에서 복원",
       "restore_select_file": "백업 파일 선택",
-      "restore_file_info": "백업 파일: {path}",
+      "restore_file_info": "백업: {path}",
       "restore_created_at": "생성일: {date}",
-      "restore_libraries": "라이브러리: {count}개 ({size})",
+      "restore_libraries": "{count}개 라이브러리 ({size})",
       "restore_new_library": "새 라이브러리",
       "restore_conflict": "이미 존재함 → 자동 이름 변경",
       "restore_restoring": "복원 중...",
       "restore_success": "복원 완료. {count}개 라이브러리 복원됨: {names}",
-      "restore_note": "복원된 라이브러리는 기존 라이브러리 옆에 추가됩니다. 기존 데이터는 덮어쓰지 않습니다."
+      "restore_note": "이름이 충돌하는 라이브러리는 이름이 변경되며 기존 데이터는 덮어쓰지 않습니다."
     },
     "face_recognition": {
       "title": "인물 검색",

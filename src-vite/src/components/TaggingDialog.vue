@@ -5,10 +5,10 @@
         <div 
           :class="[
             'grow h-8 flex items-center rounded-box transition-colors bg-base-100',
-            isSearchFocused ? 'border-2 border-primary' : 'border border-neutral-content/20 hover:border-neutral-content/50'
+            isSearchFocused ? 'border-2 border-primary' : 'border border-neutral-content/30 hover:border-neutral-content/70'
           ]"
         >
-          <IconSearch class="ml-2 w-4 h-4 text-base-content/50" />
+          <IconSearch class="ml-2 w-4 h-4 text-base-content/70" />
           <input
             ref="tagSearchInputRef"
             type="text"
@@ -19,14 +19,23 @@
             @blur="onSearchBlur"
           />
         </div>
-        <input
-          ref="newTagNameInputRef"
-          type="text"
-          v-model="newTagName"
-          :placeholder="$t('tag.enter_new_tag_name')"
-          class="input input-sm w-1/2"
-          @keydown.enter="addNewTag"
-        />
+        <div
+          :class="[
+            'w-1/2 h-8 flex items-center rounded-box transition-colors bg-base-100',
+            isNewTagFocused ? 'border-2 border-primary' : 'border border-neutral-content/30 hover:border-neutral-content/70'
+          ]"
+        >
+          <input
+            ref="newTagNameInputRef"
+            type="text"
+            v-model="newTagName"
+            :placeholder="$t('tag.enter_new_tag_name')"
+            class="w-full bg-transparent border-none focus:ring-0 px-2 text-sm placeholder-base-content/30 focus:outline-none"
+            @focus="isNewTagFocused = true"
+            @blur="isNewTagFocused = false"
+            @keydown.enter="addNewTag"
+          />
+        </div>
         <TButton 
           :icon="IconAdd"
           :tooltip="$t('tag.add_tag')"
@@ -44,7 +53,7 @@
               {
                 'badge-primary': selectedTags.has(tag.id),
                 'badge-outline border-base-content/30 bg-base-content/30': intermediateTags.has(tag.id) && !selectedTags.has(tag.id),
-                'badge-outline text-base-content/30 hover:text-base-content hover:bg-base-100': !selectedTags.has(tag.id) && !intermediateTags.has(tag.id),
+                'badge-outline text-base-content/30 hover:text-base-content/70 hover:bg-base-100': !selectedTags.has(tag.id) && !intermediateTags.has(tag.id),
                 'ring-2 ring-primary ring-offset-1 ring-offset-base-100': focusedTagIndex === index,
               }
             ]"
@@ -53,7 +62,7 @@
             <span>{{ tag.name }}</span>
           </div>
         </div>
-        <div v-else class="py-10 text-center text-base-content/35">
+        <div v-else class="py-10 text-center text-base-content/30">
           {{ $t('tag.not_found') }}
         </div>
       </div>
@@ -105,6 +114,7 @@ const newTagNameInputRef = ref<HTMLInputElement | null>(null);
 const tagSearch = ref('');
 const newTagName = ref('');
 const isSearchFocused = ref(false);
+const isNewTagFocused = ref(false);
 const focusedTagIndex = ref(-1); // -1 = no tag focused
 const isInTagList = ref(false); // true = keyboard focus is in tag list
 

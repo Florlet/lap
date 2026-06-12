@@ -480,8 +480,8 @@
       "add": "Add",
       "placeholder": "Enter library name",
       "max_limit_reached": "Library limit reached",
-      "summary": "{count} libraries · {size}",
-      "summary_loading": "{count} libraries · calculating size...",
+      "summary": "{count} libraries · {files} files · {size}",
+      "summary_loading": "{count} libraries · calculating file count and size...",
       "created_at_lower": "created at",
       "calculating_stats": "Calculating library size...",
       "library_file_path": "Library file path",
@@ -1131,14 +1131,14 @@
       "restore_hint": "Restore libraries from a backup ZIP file",
       "restore_dialog_title": "Restore from backup",
       "restore_select_file": "Select backup file",
-      "restore_file_info": "Backup file: {path}",
+      "restore_file_info": "Backup: {path}",
       "restore_created_at": "Created: {date}",
-      "restore_libraries": "Libraries: {count} ({size})",
+      "restore_libraries": "{count} libraries ({size})",
       "restore_new_library": "New library",
       "restore_conflict": "Already exists → will be renamed",
       "restore_restoring": "Restoring...",
       "restore_success": "Restore completed. {count} libraries restored: {names}",
-      "restore_note": "Restored libraries are added alongside existing ones. Existing data is not overwritten."
+      "restore_note": "Libraries with conflicting names will be renamed, and existing data will not be overwritten."
     },
     "face_recognition": {
       "title": "People search",

@@ -413,7 +413,7 @@
               </select>
             </div>
             <div v-if="isDownloadingMultilingualModel" class="px-1 pt-1 space-y-1">
-              <div class="flex items-center justify-between text-xs text-base-content/40">
+              <div class="flex items-center justify-between text-xs text-base-content/30">
                 <span>{{ $t('settings.image_search.downloading_multilingual_model') }}</span>
                 <span>{{ multilingualModelDownloadSizeText }}</span>
               </div>
@@ -424,7 +424,7 @@
                   max="100"
                 ></progress>
                 <button
-                  class="btn btn-ghost btn-xs h-6 min-h-0 w-6 p-0 text-base-content/40 hover:text-base-content"
+                  class="btn btn-ghost btn-xs h-6 min-h-0 w-6 p-0 text-base-content/30 hover:text-base-content"
                   :title="$t('msgbox.cancel')"
                   :aria-label="$t('msgbox.cancel')"
                   @click="cancelMultilingualModelDownload"

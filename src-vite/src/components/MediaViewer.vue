@@ -56,7 +56,7 @@
                 :class="[
                   fileIndex < 0 || !canSlideShow || !canInteract
                     ? 'cursor-default text-base-content/30'
-                    : 'text-base-content/45 hover:bg-base-100/30 hover:text-base-content/75'
+                    : 'text-base-content/30 hover:bg-base-100/30 hover:text-base-content/70'
                 ]"
                 :disabled="fileIndex < 0 || !canSlideShow || !canInteract"
                 :title="$t('settings.image_view.slide_show_interval', { second: getSlideShowInterval(effectiveSlideShowIntervalIndex) })"

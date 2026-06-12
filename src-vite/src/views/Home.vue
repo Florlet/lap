@@ -141,7 +141,7 @@
     </div>
 
     <!-- logo -->
-    <div class="fixed bottom-2 left-6 text-[12px] text-base-content/10">
+    <div class="fixed bottom-2 left-6 text-[12px] text-base-content/30">
       <span>{{ appName }}</span>
     </div>
 

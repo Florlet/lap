@@ -480,8 +480,8 @@
       "add": "添加",
       "placeholder": "输入库的名称",
       "max_limit_reached": "已达到库数量限制",
-      "summary": "{count} 个库 · {size}",
-      "summary_loading": "{count} 个库 · 正在计算大小...",
+      "summary": "{count} 个库 · {files} 个文件 · {size}",
+      "summary_loading": "{count} 个库 · 正在计算文件数量和大小...",
       "created_at_lower": "创建于",
       "calculating_stats": "正在计算库大小...",
       "library_file_path": "库文件路径",
@@ -1131,14 +1131,14 @@
       "restore_hint": "从ZIP备份文件恢复资料库",
       "restore_dialog_title": "从备份恢复",
       "restore_select_file": "选择备份文件",
-      "restore_file_info": "备份文件：{path}",
+      "restore_file_info": "备份：{path}",
       "restore_created_at": "创建时间：{date}",
-      "restore_libraries": "资料库：{count} 个（{size}）",
+      "restore_libraries": "{count} 个资料库（{size}）",
       "restore_new_library": "新资料库",
       "restore_conflict": "已存在 → 将自动重命名",
       "restore_restoring": "正在恢复...",
       "restore_success": "恢复完成。已恢复 {count} 个资料库：{names}",
-      "restore_note": "恢复的资料库将添加至现有资料库旁，不会覆盖现有数据。"
+      "restore_note": "名称冲突的资料库将被重命名，现有数据不会被覆盖。"
     },
     "face_recognition": {
       "title": "人物搜索",

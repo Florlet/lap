@@ -24,7 +24,7 @@
 
     <div v-if="showSpinner" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20 bg-base-200/20">
       <span class="loading loading-spinner loading-lg text-primary opacity-80"></span>
-      <div class="mt-4 text-sm font-medium text-base-content/80 drop-shadow-md">{{ $t('video.loading') }}</div>
+      <div class="mt-4 text-sm font-medium text-base-content/70 drop-shadow-md">{{ $t('video.loading') }}</div>
     </div>
 
     <div v-if="hasError && !isLoading" class="absolute inset-0 flex flex-col items-center justify-center z-10 px-6 text-center overflow-hidden bg-black/50">

@@ -480,8 +480,8 @@
       "add": "Ajouter",
       "placeholder": "Nom bibliothèque",
       "max_limit_reached": "Limite atteinte",
-      "summary": "{count} bibliothèques · {size}",
-      "summary_loading": "{count} bibliothèques · calcul de la taille...",
+      "summary": "{count} bibliothèques · {files} fichiers · {size}",
+      "summary_loading": "{count} bibliothèques · calcul du nombre de fichiers et de la taille...",
       "created_at_lower": "créé le",
       "calculating_stats": "Calcul de la taille de la bibliothèque...",
       "library_file_path": "Chemin fichier",
@@ -1131,14 +1131,14 @@
       "restore_hint": "Restaurer les bibliothèques depuis un fichier ZIP",
       "restore_dialog_title": "Restaurer depuis une sauvegarde",
       "restore_select_file": "Sélectionner le fichier de sauvegarde",
-      "restore_file_info": "Fichier de sauvegarde : {path}",
+      "restore_file_info": "Sauvegarde : {path}",
       "restore_created_at": "Créé le : {date}",
-      "restore_libraries": "Bibliothèques : {count} ({size})",
+      "restore_libraries": "{count} bibliothèques ({size})",
       "restore_new_library": "Nouvelle bibliothèque",
       "restore_conflict": "Existe déjà → sera renommée",
       "restore_restoring": "Restauration en cours...",
       "restore_success": "Restauration terminée. {count} bibliothèques restaurées : {names}",
-      "restore_note": "Les bibliothèques restaurées sont ajoutées aux bibliothèques existantes. Les données existantes ne sont pas écrasées."
+      "restore_note": "Les bibliothèques dont le nom est en conflit seront renommées et les données existantes ne seront pas écrasées."
     },
     "face_recognition": {
       "title": "Recherche de personnes",

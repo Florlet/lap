@@ -2,7 +2,7 @@
   <div class="w-full h-full rounded-box bg-base-200 flex flex-col overflow-hidden">
     <div class="flex items-center w-full shrink-0 px-2 mb-2">
       <div class="flex-1 pl-1">
-        <span class="text-[11px] font-bold uppercase tracking-[0.22em] text-base-content/35">{{ $t('info_panel.dedup.title') }}</span>
+        <span class="text-[11px] font-bold uppercase tracking-[0.22em] text-base-content/30">{{ $t('info_panel.dedup.title') }}</span>
       </div>
       <div class="mt-2 flex items-center gap-1">
         <TButton
@@ -16,16 +16,16 @@
 
     <div class="mb-2 px-2 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
       <div v-if="isDedupLoading" class="p-4 flex-1 flex items-center justify-center">
-        <div class="text-center text-base-content/40 space-y-3 max-w-[260px]">
+        <div class="text-center text-base-content/30 space-y-3 max-w-[260px]">
           <span class="loading loading-spinner text-primary w-8 h-8 mx-auto"></span>
           <p class="text-xs font-medium">{{ $t('info_panel.dedup.scanning') }}</p>
         </div>
       </div>
 
       <div v-else-if="dedupScanError" class="p-4 flex-1 flex items-center justify-center">
-        <div class="text-center text-base-content/40 space-y-3 max-w-[260px]">
+        <div class="text-center text-base-content/30 space-y-3 max-w-[260px]">
           <p class="text-xs font-medium">{{ $t('info_panel.dedup.error_title') }}</p>
-          <p class="text-xs text-base-content/40">{{ $t('info_panel.dedup.error_desc') }}</p>
+          <p class="text-xs text-base-content/30">{{ $t('info_panel.dedup.error_desc') }}</p>
           <PanelActionButton
             class="mx-auto"
             :icon="IconRefresh"
@@ -38,21 +38,21 @@
       </div>
 
       <div v-else-if="duplicateGroups.length === 0" class="p-4 flex-1 flex items-center justify-center">
-        <div class="text-center text-base-content/40 space-y-3 max-w-[260px]">
+        <div class="text-center text-base-content/30 space-y-3 max-w-[260px]">
           <IconSimilar class="w-8 h-8 mx-auto text-base-content/30" />
           <p class="text-xs font-medium">{{ $t('info_panel.dedup.empty_title') }}</p>
-          <p class="text-xs text-base-content/40">{{ $t('info_panel.dedup.empty_desc') }}</p>
+          <p class="text-xs text-base-content/30">{{ $t('info_panel.dedup.empty_desc') }}</p>
         </div>
       </div>
 
       <template v-else>
 
         <div class="border-t border-base-content/5 px-1 py-3 space-y-3">
-          <div class="flex items-center gap-2 text-base-content/70">
-            <span class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
+          <div class="flex items-center gap-2 text-base-content/30">
+            <span class="text-[10px] uppercase tracking-widest font-bold">
               {{ $t('info_panel.dedup.groups_title') }}
             </span>
-            <span class="ml-auto min-w-0 truncate text-right text-[11px] font-semibold text-base-content/60">
+            <span class="ml-auto min-w-0 truncate text-right text-[11px] font-semibold">
               {{ $t('info_panel.dedup.duplicate_files_summary', {
                 count: totalDuplicateFileCount.toLocaleString(),
                 size: formatFileSize(totalReclaimableBytes),
@@ -76,11 +76,11 @@
                 loading="lazy"
               />
               <div v-else class="h-full w-full skeleton"></div>
-              <div class="absolute left-1 top-1 rounded bg-base-300/85 px-1.5 py-0.5 text-[10px] font-semibold text-base-content/80 backdrop-blur-sm">
+              <div class="absolute left-1 top-1 rounded bg-base-300/85 px-1.5 py-0.5 text-[10px] font-semibold text-base-content/70 backdrop-blur-sm">
                 {{ group.file_count }}
               </div>
               <div
-                class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] leading-tight text-white/90 opacity-0 transition-opacity group-hover/thumb:opacity-100"
+                class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] leading-tight text-white/90 opacity-0 transition-opacity group-hover/thumb:opacity-100"
                 :class="{ 'opacity-100': selectedGroupId === group.id }"
               >
                 <div>{{ formatFileSize(group.file_size) }}</div>
@@ -91,7 +91,7 @@
             </button>
             <div
               v-if="hiddenDuplicateGroupCount > 0"
-              class="flex h-20 min-w-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/60"
+              class="flex h-20 min-w-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/70"
             >
               +{{ hiddenDuplicateGroupCount }}
             </div>
@@ -99,14 +99,11 @@
         </div>
 
         <div v-if="activeGroup" class="border-t border-base-content/5 px-1 py-4 space-y-3">
-          <div class="flex items-center gap-2 text-base-content/70">
-            <span class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
+          <div class="flex items-center gap-2 text-base-content/30">
+            <span class="text-[10px] uppercase tracking-widest font-bold">
               {{ $t('info_panel.dedup.actions_title') }}
             </span>
-            <span
-              class="ml-auto min-w-0 truncate text-right text-[11px] font-semibold"
-              :class="selectedDeleteCount > 0 ? 'text-base-content/60' : 'text-base-content/35'"
-            >
+            <span class="ml-auto min-w-0 truncate text-right text-[11px] font-semibold">
               <template v-if="selectedDeleteCount > 0">
                 {{ $t('toolbar.filter.select_count', { count: selectedDeleteCount.toLocaleString() }) }}
                 ({{ formatFileSize(selectedDeleteBytes) }})
@@ -153,14 +150,14 @@
                   <div v-else class="w-full h-full skeleton"></div>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="text-xs font-semibold text-base-content/75 truncate">{{ activeGroup.keepItem.file.name }}</div>
+                  <div class="text-xs font-semibold text-base-content/70 truncate">{{ activeGroup.keepItem.file.name }}</div>
                   <div
-                    class="text-[11px] text-base-content/50 truncate"
+                    class="text-[11px] text-base-content/70 truncate"
                     :title="formatDedupFolderPath(activeGroup.keepItem.file)"
                   >
                     {{ formatDedupFolderPath(activeGroup.keepItem.file) }}
                   </div>
-                  <div v-if="activeGroup.keepItem.file?.modified_at" class="text-[11px] text-base-content/45">
+                  <div v-if="activeGroup.keepItem.file?.modified_at" class="text-[11px] text-base-content/30">
                     {{ $t('file_info.modified_at') }}: {{ formatTimestamp(activeGroup.keepItem.file.modified_at, $t('format.date_time')) }}
                   </div>
                 </div>
@@ -202,14 +199,14 @@
                   <div v-else class="w-full h-full skeleton"></div>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="text-xs font-semibold text-base-content/75 truncate">{{ item.file?.name }}</div>
+                  <div class="text-xs font-semibold text-base-content/70 truncate">{{ item.file?.name }}</div>
                   <div
-                    class="text-[11px] text-base-content/50 truncate"
+                    class="text-[11px] text-base-content/30 truncate"
                     :title="formatDedupFolderPath(item.file)"
                   >
                     {{ formatDedupFolderPath(item.file) }}
                   </div>
-                  <div v-if="item.file?.modified_at" class="text-[11px] text-base-content/45">
+                  <div v-if="item.file?.modified_at" class="text-[11px] text-base-content/30">
                     {{ $t('file_info.modified_at') }}: {{ formatTimestamp(item.file.modified_at, $t('format.date_time')) }}
                   </div>
                 </div>

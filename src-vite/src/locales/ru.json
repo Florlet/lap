@@ -480,8 +480,8 @@
       "add": "Добавить",
       "placeholder": "Имя библиотеки",
       "max_limit_reached": "Лимит достигнут",
-      "summary": "Библиотек: {count} · {size}",
-      "summary_loading": "Библиотек: {count} · вычисляется размер...",
+      "summary": "Библиотек: {count} · файлов: {files} · {size}",
+      "summary_loading": "Библиотек: {count} · вычисляются количество файлов и размер...",
       "created_at_lower": "создано",
       "calculating_stats": "Вычисляется размер библиотеки...",
       "library_file_path": "Путь к файлу",
@@ -1131,14 +1131,14 @@
       "restore_hint": "Восстановить библиотеки из ZIP-файла резервной копии",
       "restore_dialog_title": "Восстановить из резервной копии",
       "restore_select_file": "Выбрать файл резервной копии",
-      "restore_file_info": "Файл резервной копии: {path}",
+      "restore_file_info": "Резервная копия: {path}",
       "restore_created_at": "Создан: {date}",
-      "restore_libraries": "Библиотеки: {count} ({size})",
+      "restore_libraries": "{count} библиотек ({size})",
       "restore_new_library": "Новая библиотека",
       "restore_conflict": "Уже существует → будет переименована",
       "restore_restoring": "Восстановление...",
       "restore_success": "Восстановление завершено. {count} библиотек восстановлено: {names}",
-      "restore_note": "Восстановленные библиотеки добавляются к существующим. Существующие данные не перезаписываются."
+      "restore_note": "Библиотеки с конфликтующими именами будут переименованы, существующие данные не будут перезаписаны."
     },
     "face_recognition": {
       "title": "Поиск людей",

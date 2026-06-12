@@ -52,7 +52,7 @@
         </div>
         <div
           v-if="showSelectionLimitHint"
-          class="mx-2 flex items-center gap-1.5 rounded-box bg-base-100/40 px-2 py-1.5 text-[11px] font-medium leading-snug text-base-content/50"
+          class="flex items-center gap-1.5 rounded-box px-2  text-[11px] font-medium leading-snug text-base-content/30"
         >
           <IconInformation class="h-3.5 w-3.5 shrink-0 text-base-content/30" />
           <span>{{ $t('info_panel.select_limit_hint', { count: selectionLimit }) }}</span>
@@ -80,7 +80,7 @@
             </button>
             <div
               v-if="hiddenSelectedCount > 0"
-              class="flex h-20 min-w-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/60"
+              class="flex h-20 min-w-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/70"
               :title="$t('toolbar.filter.select_count', { count: selectedCount.toLocaleString() })"
             >
               +{{ hiddenSelectedCount }}
