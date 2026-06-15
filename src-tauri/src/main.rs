@@ -264,6 +264,7 @@ async fn main() {
             t_cmds::import_file,
             t_cmds::import_url,
             t_cmds::import_from_drag,
+            t_cmds::get_drag_payload,
             t_cmds::import_file_bytes,
             t_cmds::has_importable_clipboard,
             t_cmds::import_clipboard,

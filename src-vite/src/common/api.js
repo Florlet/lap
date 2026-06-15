@@ -962,6 +962,15 @@ export async function importFromDrag(folderId, folderPath) {
   }
 }
 
+export async function getDragPayload() {
+  try {
+    return await invoke('get_drag_payload');
+  } catch (error) {
+    console.error('getDragPayload error:', error);
+    return { filePaths: [], url: null };
+  }
+}
+
 export async function addFileToDb(folderId, filePath) {
   try {
     const result = await invoke('add_file_to_db', { folderId, filePath });

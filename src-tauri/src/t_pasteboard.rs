@@ -14,17 +14,27 @@ mod imp {
 
     unsafe extern "C" {
         fn lap_get_drag_image_url() -> *const c_char;
+        fn lap_get_drag_file_paths() -> *const c_char;
         fn lap_free_string(ptr: *const c_char);
     }
 
-    pub fn get_drag_image_url() -> Option<String> {
-        let ptr = unsafe { lap_get_drag_image_url() };
+    fn read_string(ptr: *const c_char) -> Option<String> {
         if ptr.is_null() {
             return None;
         }
         let url = unsafe { CStr::from_ptr(ptr) }.to_string_lossy().to_string();
         unsafe { lap_free_string(ptr) };
         Some(url)
+    }
+
+    pub fn get_drag_image_url() -> Option<String> {
+        read_string(unsafe { lap_get_drag_image_url() })
+    }
+
+    pub fn get_drag_file_paths() -> Vec<String> {
+        read_string(unsafe { lap_get_drag_file_paths() })
+            .and_then(|value| serde_json::from_str(&value).ok())
+            .unwrap_or_default()
     }
 }
 
@@ -42,10 +52,18 @@ mod imp {
             None
         }
     }
+
+    pub fn get_drag_file_paths() -> Vec<String> {
+        Vec::new()
+    }
 }
 
 pub fn get_drag_image_url() -> Option<String> {
     imp::get_drag_image_url()
+}
+
+pub fn get_drag_file_paths() -> Vec<String> {
+    imp::get_drag_file_paths()
 }
 
 #[cfg(target_os = "macos")]

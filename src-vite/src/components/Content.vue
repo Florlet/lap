@@ -613,7 +613,7 @@ import { getAlbum, getAllAlbums, recountAlbum, getQueryCountAndSum, getQueryTime
          copyImages, renameFile, moveFile, moveFileOutsideLibrary, copyFile, deleteFile, deleteFilePermanently, batchDeleteFiles, editFileComment, getFileThumb, getFileThumbs, getFileInfo,
          setFileRotate, setFileFavorite, setFileRating, batchUpdateFileMetadata, getTagsForFile, searchSimilarImages, generateEmbedding,
          revealPath, getTagName, indexAlbum, listenIndexProgress, listenIndexFinished, setAlbumCover,
-         updateFileInfo, importUrl, importFileBytes, importClipboard, addFileToDb, checkFileExists, cancelIndexing as cancelIndexingApi, selectFolder, getFacesForFile, listenFaceIndexProgress,
+         updateFileInfo, importFile, importUrl, importFileBytes, getDragPayload, importClipboard, addFileToDb, checkFileExists, cancelIndexing as cancelIndexingApi, selectFolder, getFacesForFile, listenFaceIndexProgress,
          openFileWithApp, getAppConfig, getIndexRecoveryInfo, clearIndexRecoveryInfo, setLastSelectedItemIndex,
          dedupDeleteSelected, getQueryFilePosition, getFolderSearchExcluded } from '@/common/api';
 import { config, libConfig } from '@/common/config';
@@ -1312,14 +1312,46 @@ let pointerDragFiles: Array<{
 let dragGhostHotspotX = 0;
 let dragGhostHotspotY = 0;
 
-function getExternalDropUrl(dt: DataTransfer | null) {
-  const url = (dt?.getData('text/uri-list') || dt?.getData('text/plain') || '').trim();
-  return url.startsWith('http://') || url.startsWith('https://') ? url : '';
+function getExternalDropUris(dt: DataTransfer | null) {
+  const value = dt?.getData('text/uri-list')
+    || dt?.getData('text/x-moz-url')
+    || dt?.getData('text/plain')
+    || '';
+  return value
+    .split(/\r?\n/)
+    .map(uri => uri.trim())
+    .filter(uri => uri.length > 0 && !uri.startsWith('#'));
+}
+
+function getExternalHttpDropUrls(uris: string[]) {
+  return uris
+    .filter(uri => uri.startsWith('http://') || uri.startsWith('https://'));
+}
+
+function fileUrlToPath(uri: string) {
+  if (!uri.startsWith('file://')) return null;
+  try {
+    const url = new URL(uri);
+    let path = decodeURIComponent(url.pathname);
+    if (/^\/[A-Za-z]:\//.test(path)) {
+      path = path.slice(1);
+    } else if (url.hostname && url.hostname !== 'localhost') {
+      path = `//${url.hostname}${path}`;
+    }
+    return path || null;
+  } catch {
+    return null;
+  }
+}
+
+function getExternalFileDropPaths(uris: string[]) {
+  return uris
+    .map(fileUrlToPath)
+    .filter((path): path is string => !!path);
 }
 
 function hasExternalDomDrop(event: DragEvent) {
-  const dt = event.dataTransfer;
-  return !isContentInternalDrag.value && !!dt && (dt.files.length > 0 || !!getExternalDropUrl(dt));
+  return hasExternalDragIntent(event);
 }
 
 function hasExternalDragIntent(event: DragEvent) {
@@ -1330,6 +1362,7 @@ function hasExternalDragIntent(event: DragEvent) {
   return dt.files.length > 0
     || types.includes('Files')
     || types.includes('text/uri-list')
+    || types.includes('text/x-moz-url')
     || types.includes('text/plain');
 }
 
@@ -3239,26 +3272,45 @@ onMounted( async() => {
     }
     const dt = e.dataTransfer;
     if (!dt) return;
+    const droppedFiles = Array.from(dt.files);
+    const droppedUris = getExternalDropUris(dt);
+    const nativeDragPayloadPromise = isMac
+      ? getDragPayload() as Promise<{ filePaths?: string[]; url?: string | null }>
+      : Promise.resolve(null);
     const destination = await resolveCurrentAlbumImportDestination();
     if (!destination) return;
+    const nativeDragPayload = await nativeDragPayloadPromise;
     const { albumId, folderId, folderPath } = destination;
-    if (dt.files.length > 0) {
+
+    let imported = 0;
+    const filePaths = [
+      ...getExternalFileDropPaths(droppedUris),
+      ...(nativeDragPayload?.filePaths || []),
+    ];
+    for (const filePath of [...new Set(filePaths)]) {
+      const file = await importFile(filePath, folderId, folderPath);
+      if (file) imported++;
+    }
+    if (imported > 0) {
+      await refreshImportedFiles(albumId);
+      toast.success(t('msgbox.drop_import.success', { count: imported }));
+      return;
+    }
+
+    if (droppedFiles.length > 0) {
       const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
       const extRE = /\.(\w+)$/i;
-      let imported = 0;
-      let skipped = 0;
-      for (const file of dt.files) {
-        if (!extRE.test(file.name)) { skipped++; continue; }
-        if (file.size > MAX_FILE_SIZE) { skipped++; continue; }
+      imported = 0;
+      for (const file of droppedFiles) {
+        if (!extRE.test(file.name) || file.size <= 0 || file.size > MAX_FILE_SIZE) continue;
         try {
           const buf = await file.arrayBuffer();
+          if (buf.byteLength === 0) continue;
           const bytes = Array.from(new Uint8Array(buf));
           const result = await importFileBytes(bytes, file.name, folderId, folderPath);
           if (result) imported++;
-          else skipped++;
         } catch (err) {
           console.error('Failed to import file via bytes:', file.name, err);
-          skipped++;
         }
       }
       if (imported > 0) {
@@ -3269,9 +3321,13 @@ onMounted( async() => {
       // Fall through to URL handling — some browsers provide both
       // file-like items and text/uri-list.
     }
-    const url = getExternalDropUrl(dt);
-    if (url) {
-      handleDropUrls([url], destination);
+
+    const urls = [
+      ...getExternalHttpDropUrls(droppedUris),
+      ...(nativeDragPayload?.url ? [nativeDragPayload.url] : []),
+    ];
+    if (urls.length > 0) {
+      void handleDropUrls([...new Set(urls)], destination);
       return;
     }
     toast.warning(t('msgbox.drop_import.no_files'));

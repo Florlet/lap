@@ -782,6 +782,21 @@ pub async fn import_from_drag(folder_id: i64, folder_path: String) -> Result<Opt
     import_url_inner(&url, folder_id, folder_path).await
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DragPayload {
+    pub file_paths: Vec<String>,
+    pub url: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_drag_payload() -> DragPayload {
+    DragPayload {
+        file_paths: crate::t_pasteboard::get_drag_file_paths(),
+        url: crate::t_pasteboard::get_drag_image_url(),
+    }
+}
+
 async fn import_url_inner(url: &str, folder_id: i64, folder_path: String) -> Result<Option<AFile>, String> {
     let response = reqwest::get(url).await
         .map_err(|e| format!("Failed to download image: {}", e))?;
@@ -904,6 +919,9 @@ pub async fn import_file_bytes(
     folder_id: i64,
     folder_path: String,
 ) -> Result<Option<AFile>, String> {
+    if bytes.is_empty() {
+        return Err("Dropped file is empty".to_string());
+    }
     let dest_folder = folder_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let new_path = t_utils::save_bytes_with_name(&bytes, &name, &dest_folder)
