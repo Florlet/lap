@@ -244,6 +244,7 @@
     "empty_title": "현재 목록이 비어 있습니다",
     "empty_desc": "파일을 추가하거나 현재 필터를 업데이트해 여기에 항목을 표시하세요.",
     "select_hint": "선택한 파일이 없습니다",
+    "deselect": "선택 해제",
     "select_mode_entered": "다중 선택 모드가 켜졌습니다",
     "selection_load_failed": "선택할 모든 파일을 불러오지 못했습니다. 다시 시도하세요.",
     "large_batch": {
@@ -265,7 +266,7 @@
     "unfavorite_all": "즐겨찾기 해제",
     "action": "작업",
     "file_actions": "파일 작업",
-    "labels_and_display": "태그 및 표시",
+    "organize": "정리",
     "tag_all": "태그",
     "dedup": {
       "title": "중복",

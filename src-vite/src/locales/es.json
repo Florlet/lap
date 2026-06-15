@@ -244,6 +244,7 @@
     "empty_title": "Esta lista está vacía",
     "empty_desc": "Agrega archivos o actualiza el filtro actual para mostrar elementos aquí.",
     "select_hint": "No hay archivos seleccionados",
+    "deselect": "Desmarcar",
     "select_mode_entered": "El modo de selección múltiple está activado",
     "selection_load_failed": "No se pudieron cargar todos los archivos para seleccionarlos. Inténtalo de nuevo.",
     "large_batch": {
@@ -265,7 +266,7 @@
     "unfavorite_all": "Quitar",
     "action": "Acción",
     "file_actions": "Acciones de archivo",
-    "labels_and_display": "Etiquetas y visualización",
+    "organize": "Organizar",
     "tag_all": "Etiqueta",
     "dedup": {
       "title": "Duplicados",

@@ -14,7 +14,7 @@
       class="h-10 shrink-0 flex items-center justify-center px-20 select-none"
       data-tauri-drag-region
     >
-      <div class="min-w-0 max-w-full text-center text-sm font-medium text-base-content/70 truncate">
+      <div class="min-w-0 max-w-full text-center text-sm font-medium text-base-content/70 truncate" data-tauri-drag-region>
         {{ $t('msgbox.image_editor.title') }} - {{ shortenFilename(fileInfo?.name || '', 32) }}
       </div>
     </div>

@@ -244,6 +244,7 @@
     "empty_title": "Diese Liste ist leer",
     "empty_desc": "Fügen Sie Dateien hinzu oder aktualisieren Sie den aktuellen Filter, damit hier Inhalte angezeigt werden.",
     "select_hint": "Keine Dateien ausgewählt",
+    "deselect": "Abwählen",
     "select_mode_entered": "Mehrfachauswahl ist aktiviert",
     "selection_load_failed": "Nicht alle Dateien konnten für die Auswahl geladen werden. Versuchen Sie es erneut.",
     "large_batch": {
@@ -265,7 +266,7 @@
     "unfavorite_all": "Entfernen",
     "action": "Aktion",
     "file_actions": "Dateiaktionen",
-    "labels_and_display": "Markierungen & Anzeige",
+    "organize": "Organisieren",
     "tag_all": "Tag",
     "dedup": {
       "title": "Duplikate",

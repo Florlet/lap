@@ -135,11 +135,7 @@
               v-if="activeGroup.keepItem?.file"
               :key="`keep-${activeGroup.keepItem.file_id}`"
               class="w-full rounded-box p-2.5 border text-left transition-colors cursor-pointer"
-              :class="[
-                selectedFileId === activeGroup.keepItem.file_id
-                  ? 'border-primary/50 bg-primary/8'
-                  : 'border-base-content/5 bg-base-100/30 hover:border-base-content/10 hover:bg-base-100/50'
-              ]"
+              :class="getDedupItemClass(activeGroup.keepItem.file_id)"
               @click="emit('select-file', activeGroup.keepItem.file_id)"
               @dblclick="emit('preview-file', activeGroup.keepItem.file_id)"
             >
@@ -170,15 +166,10 @@
               v-for="item in activeGroup.duplicateItems"
               :key="item.file_id"
               class="w-full rounded-box p-2.5 border text-left transition-colors cursor-pointer"
-              :class="[
-                isDupSelected(activeGroup.id, item.file_id)
-                  ? selectedFileId === item.file_id
-                    ? 'border-error/30 bg-error/10 hover:border-error/30 hover:bg-error/10'
-                    : 'border-error/30 bg-base-100/30 hover:border-error/30 hover:bg-error/10'
-                  : selectedFileId === item.file_id
-                    ? 'border-primary/50 bg-primary/8'
-                    : 'border-base-content/5 bg-base-100/30 hover:border-base-content/10 hover:bg-base-100/50',
-              ]"
+              :class="getDedupItemClass(
+                item.file_id,
+                isDupSelected(activeGroup.id, item.file_id),
+              )"
               @click="handleDuplicateSelection(item.file_id)"
               @dblclick="handleDuplicateSelection(item.file_id, true)"
             >
@@ -212,7 +203,7 @@
                     {{ $t('file_info.modified_at') }}: {{ formatTimestamp(item.file.modified_at, $t('format.date_time')) }}
                   </div>
                 </div>
-                <PanelActionButton class="shrink-0" @click.stop="setKeep(activeGroup.id, item.file_id)">
+                <PanelActionButton class="shrink-0" primary @click.stop="setKeep(activeGroup.id, item.file_id)">
                   {{ $t('info_panel.dedup.set_keep') }}
                 </PanelActionButton>
               </div>
@@ -321,6 +312,18 @@ function isDupSelected(groupId: number, fileId: number) {
   return getDupSelectedSet(groupId).has(fileId);
 }
 
+function getDedupItemClass(fileId: number, isDuplicateSelected = false) {
+  const isActive = Number(props.selectedFileId) === Number(fileId);
+  if (isDuplicateSelected) {
+    return isActive
+      ? 'border-error/70 bg-error/10'
+      : 'border-error/30 hover:border-error/30 hover:bg-error/10';
+  }
+  return isActive
+    ? 'border-primary/70 bg-primary/10'
+    : 'border-base-content/10 hover:border-primary/30 hover:bg-primary/10';
+}
+
 function toggleDupSelected(groupId: number, fileId: number) {
   const set = getDupSelectedSet(groupId);
   if (set.has(fileId)) set.delete(fileId);
@@ -340,7 +343,6 @@ async function setKeep(groupId: number, fileId: number) {
   if (groupIndex < 0) return;
 
   const group = rawGroups.value[groupIndex];
-  const oldKeepId = Number((group.items || []).find((item: any) => item.is_keep === 1)?.file_id || 0);
   const items = (group.items || []).map((item: any) => ({
     ...item,
     is_keep: Number(item.file_id) === fileId ? 1 : 0,
@@ -349,9 +351,6 @@ async function setKeep(groupId: number, fileId: number) {
 
   const selectedIds = getDupSelectedSet(groupId);
   selectedIds.delete(fileId);
-  if (oldKeepId > 0 && oldKeepId !== fileId) {
-    selectedIds.add(oldKeepId);
-  }
   emit('select-file', fileId);
 }
 

@@ -52,10 +52,10 @@
         </div>
         <div v-if="selectedFiles.length > 0">
           <div class="mx-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-1.5">
-            <button
+            <div
               v-for="file in visibleSelectedFiles"
               :key="file.id"
-              class="group/thumb relative h-20 min-w-0 overflow-hidden rounded-box border border-base-content/5 bg-base-100/50"
+              class="group/thumb relative h-20 min-w-0 overflow-hidden rounded-box border border-base-content/5 cursor-pointer"
               :title="file.name || file.file_path"
               @click="$emit('unselectFile', file.id)"
             >
@@ -67,10 +67,10 @@
                 loading="lazy"
               />
               <div v-else class="h-full w-full skeleton"></div>
-              <div class="absolute inset-0 flex items-center justify-center bg-base-content/55 text-base-100 opacity-0 transition-opacity group-hover/thumb:opacity-100">
-                <IconClose class="h-4 w-4" />
+              <div class="absolute inset-0 flex items-center justify-center bg-base-content/5 opacity-0 transition-opacity group-hover/thumb:opacity-100">
+                <span class="badge badge-sm badge-primary">{{ $t('info_panel.deselect') }}</span>
               </div>
-            </button>
+            </div>
             <div
               v-if="hiddenSelectedCount > 0"
               class="flex h-20 min-w-0 items-center justify-center rounded-box border border-dashed border-base-content/20 bg-base-100/50 text-xs font-semibold text-base-content/70"
@@ -83,85 +83,82 @@
 
       </div>
 
+      <!-- Organize -->
       <div class="border-t border-base-content/5 px-1 py-4 space-y-3">
-        <!-- <div class="text-base-content/70">
-          <span class="font-bold uppercase text-xs tracking-wide">{{ $t('info_panel.action') }}</span>
-        </div> -->
-        <div class="space-y-2">
-          <div class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
-            {{ $t('info_panel.file_actions') }}
-          </div>
-          <div class="flex flex-wrap items-center gap-1">
-            <PanelActionButton
-              :icon="IconMove"
-              :disabled="selectedCount === 0"
-              @click="$emit('moveWithinLibrary')"
-            >
-              {{ $t('menu.file.move_within_library') }}
-            </PanelActionButton>
-            <PanelActionButton
-              :disabled="selectedCount === 0"
-              @click="$emit('moveToFolder')"
-            >
-              {{ $t('menu.file.move_to_folder') }}
-            </PanelActionButton>
-            <PanelActionButton
-              :disabled="selectedCount === 0"
-              @click="$emit('copyToFolder')"
-            >
-              {{ $t('menu.file.copy_to_folder') }}
-            </PanelActionButton>
-            <PanelActionButton
-              :icon="IconTrash"
-              :disabled="selectedCount === 0"
-              danger
-              @click="$emit('trash')"
-            >
-              {{ $t('menu.file.move_to_trash') }}
-            </PanelActionButton>
-          </div>
+        <div class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
+          {{ $t('info_panel.organize') }}
         </div>
-        <div class="space-y-2">
-          <div class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
-            {{ $t('info_panel.labels_and_display') }}
-          </div>
-          <div class="rounded-box border border-base-content/5 bg-base-100/30 px-2 py-1.5">
-            <FavoriteRatingControl
-              :favorite="multiSelectFavorite"
-              :rating="multiSelectRating"
-              :disabled="selectedCount === 0"
-              :favorite-label="$t('info_panel.favorite_all')"
-              :unfavorite-label="$t('info_panel.unfavorite_all')"
-              label-class="text-base-content/30"
-              inactive-rating-class="text-base-content/70"
-              @favorite="(favorite) => $emit(favorite ? 'favoriteAll' : 'unfavoriteAll')"
-              @rating="(rating) => $emit('setRatingAll', rating)"
-            />
-          </div>
-          <div class="flex flex-wrap items-center gap-1">
-            <PanelActionButton
-              :icon="IconTag"
-              :disabled="selectedCount === 0"
-              @click="$emit('tagAll')"
-            >
-              {{ $t('menu.meta.tag') }}
-            </PanelActionButton>
-            <PanelActionButton
-              :icon="IconComment"
-              :disabled="selectedCount === 0"
-              @click="$emit('commentAll')"
-            >
-              {{ $t('menu.meta.comment') }}
-            </PanelActionButton>
-            <PanelActionButton
-              :icon="IconRotate"
-              :disabled="selectedCount === 0"
-              @click="$emit('rotateAll')"
-            >
-              {{ rotateDisplayLabel }}
-            </PanelActionButton>
-          </div>
+        <FavoriteRatingControl
+          :favorite="multiSelectFavorite"
+          :rating="multiSelectRating"
+          :disabled="selectedCount === 0"
+          :favorite-label="$t('info_panel.favorite_all')"
+          :unfavorite-label="$t('info_panel.unfavorite_all')"
+          label-class="text-base-content/30"
+          inactive-rating-class="text-base-content/70"
+          @favorite="(favorite) => $emit(favorite ? 'favoriteAll' : 'unfavoriteAll')"
+          @rating="(rating) => $emit('setRatingAll', rating)"
+        />
+        <div class="flex flex-wrap items-center gap-1">
+          <PanelActionButton
+            :icon="IconTag"
+            :disabled="selectedCount === 0"
+            @click="$emit('tagAll')"
+          >
+            {{ $t('menu.meta.tag') }}
+          </PanelActionButton>
+          <PanelActionButton
+            :icon="IconComment"
+            :disabled="selectedCount === 0"
+            @click="$emit('commentAll')"
+          >
+            {{ $t('menu.meta.comment') }}
+          </PanelActionButton>
+          <PanelActionButton
+            :icon="IconRotate"
+            :disabled="selectedCount === 0"
+            @click="$emit('rotateAll')"
+          >
+            {{ rotateDisplayLabel }}
+          </PanelActionButton>
         </div>
+      </div>
+
+      <!-- file actions -->
+      <div class="border-t border-base-content/5 px-1 py-4 space-y-3">
+        <div class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
+          {{ $t('info_panel.file_actions') }}
+        </div>
+        <div class="flex flex-wrap items-center gap-1">
+          <PanelActionButton
+            :icon="IconMove"
+            :disabled="selectedCount === 0"
+            @click="$emit('moveWithinLibrary')"
+          >
+            {{ $t('menu.file.move_within_library') }}
+          </PanelActionButton>
+          <PanelActionButton
+            :disabled="selectedCount === 0"
+            @click="$emit('moveToFolder')"
+          >
+            {{ $t('menu.file.move_to_folder') }}
+          </PanelActionButton>
+          <PanelActionButton
+            :disabled="selectedCount === 0"
+            @click="$emit('copyToFolder')"
+          >
+            {{ $t('menu.file.copy_to_folder') }}
+          </PanelActionButton>
+          <PanelActionButton
+            :icon="IconTrash"
+            :disabled="selectedCount === 0"
+            danger
+            @click="$emit('trash')"
+          >
+            {{ $t('menu.file.move_to_trash') }}
+          </PanelActionButton>
+        </div>
+
       </div>
     </div>
   </div>

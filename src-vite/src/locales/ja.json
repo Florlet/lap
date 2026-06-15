@@ -244,6 +244,7 @@
     "empty_title": "このリストは空です",
     "empty_desc": "ファイルを追加するか、現在の絞り込み条件を更新してここに項目を表示してください。",
     "select_hint": "ファイルが選択されていません",
+    "deselect": "選択解除",
     "select_mode_entered": "複数選択モードがオンになりました",
     "selection_load_failed": "選択するすべてのファイルを読み込めませんでした。再試行してください。",
     "large_batch": {
@@ -265,7 +266,7 @@
     "unfavorite_all": "お気に入り解除",
     "action": "操作",
     "file_actions": "ファイル操作",
-    "labels_and_display": "ラベルと表示",
+    "organize": "整理",
     "tag_all": "タグ",
     "dedup": {
       "title": "重複",
