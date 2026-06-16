@@ -1988,9 +1988,6 @@ function handleItemClicked(
 
       selectedItemIndex.value = index;
       lastSelectedIndex.value = index;
-      if (!wasSelectMode) {
-        toast.info(localeMsg.value.info_panel.select_mode_entered);
-      }
     });
     return;
   }
@@ -1998,7 +1995,7 @@ function handleItemClicked(
   if (!selectMode.value && toggleSelection && selectedItemIndex.value >= 0) {
     checkUnsavedChanges(() => {
       const anchorIndex = selectedItemIndex.value;
-      handleSelectMode(true, { notify: true });
+      handleSelectMode(true);
       setItemSelected(anchorIndex, true);
 
       selectedItemIndex.value = index;
@@ -2097,7 +2094,7 @@ function toggleKeyboardSelection(direction: 'prev' | 'next') {
     }
 
     if (!selectMode.value) {
-      handleSelectMode(true, { notify: true });
+      handleSelectMode(true);
     }
 
     const start = Math.min(keyboardSelectionAnchorIndex.value, nextIndex);
@@ -5873,9 +5870,8 @@ const invertSelectionInCurrentList = async () => {
   selectMode.value = true;
 };
 
-const handleSelectMode = (value: any, options: { notify?: boolean } = {}) => {
+const handleSelectMode = (value: any) => {
   if (isScanStreamingMode.value) return;
-  const wasSelectMode = selectMode.value;
   selectMode.value = value;
   if(!selectMode.value) {
     for (let i = 0; i < fileList.value.length; i++) {
@@ -5899,9 +5895,6 @@ const handleSelectMode = (value: any, options: { notify?: boolean } = {}) => {
     showQuickView.value = false;
     stopSlideShow();
     config.rightPanel.show = false;
-    if (options.notify && !wasSelectMode) {
-      toast.info(localeMsg.value.info_panel.select_mode_entered, { placement: 'bottom-right' });
-    }
   }
 };
 

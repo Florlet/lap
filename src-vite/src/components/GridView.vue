@@ -54,7 +54,7 @@
       </div>
       <div
         v-else
-        class="w-full h-full flex items-center justify-center"
+        class="w-full h-full flex items-center justify-center overflow-hidden"
         @pointerdown="onItemPointerDown($event, getFileIndex(item, index))"
       >
         <Thumbnail
@@ -69,7 +69,7 @@
           @select-toggled="(shiftKey) => $emit('item-select-toggled', getFileIndex(item, index), shiftKey)"
           @action="(actionName) => $emit('item-action', { action: actionName, index: getFileIndex(item, index) })"
         />
-        <div v-else class="w-full h-full bg-base-200/50 rounded animate-pulse"></div>
+        <div v-else class="w-full h-full bg-base-200/70"></div>
       </div>
     </VirtualScroll>
     <!-- Empty State / Loading -->

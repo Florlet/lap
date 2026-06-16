@@ -13,15 +13,16 @@
     @dblclick="(event: MouseEvent) => $emit('dblclicked', { shiftKey: event.shiftKey, metaKey: event.metaKey, ctrlKey: event.ctrlKey })"
     @contextmenu="handleContextMenu"
   >
-    <div v-if="file.thumbnail" 
+    <div
       ref="containerRef"
-      class="rounded-box relative flex items-center justify-center overflow-hidden"
+      class="rounded-box relative flex items-center justify-center overflow-hidden bg-base-200/70"
       :style="layoutStyle"
       @pointerenter="startVideoPreview"
       @pointerleave="stopVideoPreview"
     >
       <!-- image -->
       <img
+        v-if="thumbnailSrc"
         :src="thumbnailSrc"
         draggable="false"
         :class="{
@@ -31,9 +32,12 @@
           'object-cover': isGeometryGridStyle || config.settings.grid.scaling === 1,
           'object-fill': !isGeometryGridStyle && config.settings.grid.scaling === 2,
           'transition-all': !isTransitionDisabled && normalizedRotate === 0,
+          'opacity-0': !isThumbnailLoaded,
+          'opacity-100': isThumbnailLoaded,
         }"
         :style="imgStyle"
         loading="lazy"
+        @load="handleThumbnailLoad"
         @error="retryThumbnail"
       />
       <video
@@ -124,15 +128,6 @@
         />
       </div>
     </div>
-    
-    <!-- skeleton for loading thumbnail -->
-    <div v-else 
-      :class="[
-        'relative flex items-center justify-center overflow-hidden skeleton', 
-        config.settings.grid.style === 0 ? 'rounded-box' : '',
-      ]"
-      :style="layoutStyle"
-    ></div>
 
     <!-- label -->
     <div 
@@ -222,12 +217,18 @@ const isVideoFile = computed(() => props.file?.file_type === 2);
 const isGeometryGridStyle = computed(() => config.settings.grid.style === 2 || config.settings.grid.style === 3);
 const shouldScaleThumbnail = computed(() => config.settings.grid.style === 1 || isGeometryGridStyle.value);
 const thumbnailSrc = ref(props.file.thumbnail || '');
+const isThumbnailLoaded = ref(false);
 let thumbnailRetryCount = 0;
 
-watch(() => props.file.thumbnail, (src) => {
-  thumbnailSrc.value = src || '';
+watch(() => props.file.thumbnail, (src = '') => {
+  thumbnailSrc.value = src;
+  isThumbnailLoaded.value = false;
   thumbnailRetryCount = 0;
 });
+
+function handleThumbnailLoad() {
+  isThumbnailLoaded.value = true;
+}
 
 function retryThumbnail() {
   const isThumbnailProtocol = thumbnailSrc.value.startsWith('thumb://localhost')
@@ -237,6 +238,7 @@ function retryThumbnail() {
     return;
   }
   thumbnailRetryCount++;
+  isThumbnailLoaded.value = false;
   thumbnailSrc.value = getThumbUrl(props.file.id, true, config.settings.thumbnailSize);
 }
 
