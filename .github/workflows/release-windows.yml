@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           ALL='[
-            {"arch":"x64","runner":"windows-latest","target":"x86_64-pc-windows-msvc","msvc_arch":"x64","platform_key":"windows-x86_64","artifact_name":"windows-x86_64","msi_glob":"*_x64_*.msi"},
+            {"arch":"x64","runner":"windows-2022","target":"x86_64-pc-windows-msvc","msvc_arch":"x64","platform_key":"windows-x86_64","artifact_name":"windows-x86_64","msi_glob":"*_x64_*.msi"},
             {"arch":"arm64","runner":"windows-11-arm","target":"aarch64-pc-windows-msvc","msvc_arch":"arm64","platform_key":"windows-aarch64","artifact_name":"windows-aarch64","msi_glob":"*_arm64_*.msi"}
           ]'
 

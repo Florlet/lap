@@ -201,7 +201,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: windows-latest
+            runner: windows-2022
             target: x86_64-pc-windows-msvc
             msvc_arch: x64
           - arch: arm64
