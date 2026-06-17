@@ -252,10 +252,9 @@ jobs:
             ~\.cargo\registry\index\
             ~\.cargo\registry\cache\
             ~\.cargo\git\db\
-            src-tauri\target\
-          key: windows-${{ matrix.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: windows-${{ matrix.arch }}-cargo-pr-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            windows-${{ matrix.arch }}-cargo-
+            windows-${{ matrix.arch }}-cargo-pr-
 
       - name: Install frontend dependencies
         working-directory: src-vite

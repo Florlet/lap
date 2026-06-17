@@ -99,7 +99,6 @@ jobs:
             ~\.cargo\registry\index\
             ~\.cargo\registry\cache\
             ~\.cargo\git\db\
-            src-tauri\target\
           key: windows-${{ matrix.arch }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             windows-${{ matrix.arch }}-cargo-release-
