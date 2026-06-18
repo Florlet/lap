@@ -175,24 +175,34 @@ async fn main() {
             }
 
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // Prevent the window from closing immediately
+                // Prevent the default close so we can decide what to do per platform.
                 api.prevent_close();
 
-                let app_handle = window.app_handle();
-
-                // Get all open windows
-                let windows = app_handle.webview_windows();
-                for (_, other_window) in windows {
-                    // Skip the main window (we'll close it last)
-                    if other_window.label() != "main" {
-                        // Close each window
-                        if let Err(err) = other_window.close() {
-                            eprintln!("Failed to close window: {}", err);
-                        }
-                    }
+                // macOS convention: closing the window hides it; the app stays
+                // alive and can be reopened via the Dock icon (handled by
+                // RunEvent::Reopen). Real quit keeps using the native Quit menu.
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = window.hide();
                 }
 
-                app_handle.exit(0);
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let app_handle = window.app_handle();
+
+                    // Close every other window first (image viewer, settings, ...),
+                    // then exit the process.
+                    let windows = app_handle.webview_windows();
+                    for (_, other_window) in windows {
+                        if other_window.label() != "main" {
+                            if let Err(err) = other_window.close() {
+                                eprintln!("Failed to close window: {}", err);
+                            }
+                        }
+                    }
+
+                    app_handle.exit(0);
+                }
             }
         })
         .on_menu_event(|app, event| {
@@ -366,6 +376,16 @@ async fn main() {
                         let _ = app_handle.track_event("app_exited", None);
                     }
                     app_handle.flush_events_blocking();
+                }
+
+                // macOS: clicking the Dock icon of a running app reopens it.
+                // When the main window is hidden (closed-to-hide), show it again.
+                #[cfg(target_os = "macos")]
+                tauri::RunEvent::Reopen { .. } => {
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
                 }
                 _ => {}
             });

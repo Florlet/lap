@@ -54,25 +54,39 @@ onMounted(async () => {
       unlistenMainCloseRequested = await win.onCloseRequested(async (event) => {
         if (isHandlingMainClose) return;
         isHandlingMainClose = true;
-        event.preventDefault();
 
         try {
-          if (libConfig._initialized) {
-            // Mark scanning as paused so it won't auto-resume on restart
-            if (libConfig.index.status === 1) {
-              libConfig.index.status = 2;
+          event.preventDefault();
+
+          if (isMac) {
+            // macOS convention: close hides the window; the app stays alive and
+            // can be reopened from the Dock. Quitting still uses the native menu.
+            await win.hide();
+            return;
+          }
+
+          try {
+            if (libConfig._initialized) {
+              // Mark scanning as paused so it won't auto-resume on restart
+              if (libConfig.index.status === 1) {
+                libConfig.index.status = 2;
+              }
+              // Normal close → clear recovery trace (crash leaves it intact)
+              await clearIndexRecoveryInfo();
+              await libConfig.save();
             }
-            // Normal close → clear recovery trace (crash leaves it intact)
-            await clearIndexRecoveryInfo();
-            await libConfig.save();
+          } finally {
+            await win.close();
           }
         } finally {
-          await win.close();
+          isHandlingMainClose = false;
         }
       });
     } else {
       unlistenMainCloseRequested = await win.listen('tauri://close-requested', async () => {
-        if (libConfig._initialized) {
+        if (isMac) {
+          await win.hide();
+        } else if (libConfig._initialized) {
           // Mark scanning as paused so it won't auto-resume on restart
           if (libConfig.index.status === 1) {
             libConfig.index.status = 2;
