@@ -91,7 +91,6 @@ export const useConfigStore = defineStore('configStore', {
       lightTheme: 0,              // light theme color index
       darkTheme: 0,               // dark theme color index
       scale: 1,                   // root font-size scale
-      showButtonText: true,       // show button text
       showToolTip: true,          // show button tooltip
       showStatusBar: true,        // show status bar
       autoCheckUpdates: true,      // automatically check for updates
@@ -184,9 +183,6 @@ export const useConfigStore = defineStore('configStore', {
     },
     setLanguage(language) {
       this.settings.language = language;
-    },
-    setShowButtonText(showButtonText) {
-      this.settings.showButtonText = showButtonText;
     },
     setShowToolTip(showToolTip) {
       this.settings.showToolTip = showToolTip;

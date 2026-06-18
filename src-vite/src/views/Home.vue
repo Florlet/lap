@@ -37,18 +37,16 @@
 
           <!-- side bar -->
           <div 
-            :class="[
-              'fixed top-14 min-w-16 bottom-10 z-10 flex flex-col items-center',
-              config.settings.showButtonText ? 'space-y-3' : 'space-y-1' 
-            ]" 
+            class="fixed top-14 min-w-16 bottom-10 z-10 flex flex-col items-center space-y-1" 
             data-tauri-drag-region
           >
             <div v-for="item in visibleButtons" :key="item.index">
               <TButton
                 :buttonSize="'large'"
                 :icon="item.icon"
-                :text="item.text"
-                :tooltip="(item as any).tooltip || ''"
+                text=""
+                :tooltip="(item as any).tooltip || item.text"
+                tooltipPlacement="right"
                 :selected="config.main.sidebarIndex === item.index"
                 :disabled="item.disabled"
                 @click="clickSidebar(item.index)"
@@ -62,7 +60,9 @@
               :class="showDebugBadge ? 'text-warning': ''"
               :buttonSize="'large'" 
               :icon="IconSettings" 
-              :text="$t('sidebar.settings')" 
+              text=""
+              :tooltip="$t('sidebar.settings')"
+              tooltipPlacement="right"
               @click="clickSettings"
             />
           </div>
@@ -177,6 +177,7 @@ import { getAppConfig, switchLibrary, cancelIndexing, cancelFaceIndex } from '@/
 
 // vue components
 import Library from '@/components/Library.vue';
+import SmartAlbumList from '@/components/SmartAlbumList.vue';
 import ImageSearch from '@/components/ImageSearch.vue';
 import Favorite from '@/components/Favorite.vue';
 import Tag from '@/components/Tag.vue';
@@ -206,6 +207,7 @@ import {
   IconCalendarDay,
   IconFolders,
   IconMapDefault,
+  IconBolt,
 } from '@/common/icons';
 
 const isSwitchingLibrary = ref(false);
@@ -334,6 +336,7 @@ const {
 // buttons
 const buttons = computed(() =>  [
   { icon: IconFolders, component: Library, text: localeMsg.value.sidebar.album },
+  { icon: IconBolt, component: SmartAlbumList, text: localeMsg.value.album.smart_album_list },
   { icon: IconHeart, component: Favorite, text: localeMsg.value.sidebar.favorite },
   { icon: IconSearch, component: ImageSearch, text: localeMsg.value.sidebar.search },
   { icon: IconCalendarDay, component: Calendar, text: localeMsg.value.sidebar.calendar },
@@ -345,7 +348,7 @@ const buttons = computed(() =>  [
 ]);
 
 // dedicated full-area heatmap view, shown instead of Content
-const MAP_SIDEBAR_INDEX = 8;
+const MAP_SIDEBAR_INDEX = 9;
 
 const visibleButtons = computed(() =>
   buttons.value
@@ -354,7 +357,7 @@ const visibleButtons = computed(() =>
 );
 
 watch(() => config.settings.face.enabled, (enabled) => {
-  if (!enabled && config.main.sidebarIndex === 5) {
+  if (!enabled && config.main.sidebarIndex === 6) {
     config.main.sidebarIndex = 0;
   }
 });
@@ -483,10 +486,10 @@ function handleHomeKeyDown(event: KeyboardEvent) {
     event.preventDefault();
     event.stopPropagation();
     if (!libraryEmpty.value) {
-      if (config.main.sidebarIndex === 2 && showPanel.value) {
+      if (config.main.sidebarIndex === 3 && showPanel.value) {
         nextTick(() => (panelRef.value as any)?.focusSearchInput?.());
       } else {
-        config.main.sidebarIndex = 2;
+        config.main.sidebarIndex = 3;
         showPanel.value = true;
       }
     }

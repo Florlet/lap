@@ -15,6 +15,12 @@
   "album": {
     "all_files": "所有文件",
     "album_list": "相册",
+    "smart_album_list": "智能相册",
+    "add_smart_album": "添加智能相册",
+    "smart_items": {
+      "recently_added": "最近添加",
+      "on_this_day": "历史上的今天"
+    },
     "folder_unavailable": {
       "title": "无法访问文件夹",
       "description": "请重新连接存储设备，或检查文件夹位置。"
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "还没有相册",
       "description": "添加包含图片或视频的文件夹以开始使用"
+    },
+    "no_smart_albums": {
+      "description": "通过自定义查询条件创建智能相册。"
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "历史上的今天",
     "title": "日历",
     "monthly_view": "月视图",
     "daily_view": "日视图",
@@ -399,7 +407,6 @@
       "open_video_in_app": "在 {app} 中打开视频...",
       "find_similar_images": "查找相似图片",
       "find_person_images": "查找人物图片",
-      "on_this_day": "历史上的今天",
       "print": "打印图片...",
       "rename": "重命名",
       "move_to": "移动到...",
@@ -912,7 +919,6 @@
         "大",
         "更大"
       ],
-      "show_button_text": "显示侧边栏标签",
       "show_tool_tip": "显示按钮提示",
       "show_status_bar": "显示状态栏",
       "auto_check_updates": "自动检查更新",

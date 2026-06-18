@@ -14,11 +14,12 @@
             'btn-xs hover:bg-base-100/30': buttonSize === 'small',
             'btn-sm hover:bg-base-100/30': buttonSize === 'medium',
             'btn-lg hover:bg-base-100/30': buttonSize === 'large',
+            'bg-base-100/30': selected,
             'btn-disabled': disabled,
           }
         ]"
         :disabled="disabled"
-        @click="$emit('click', $event)"
+        @click="emit('click', $event)"
       >
         <component v-if="icon"
           :is="icon"
@@ -34,7 +35,7 @@
           :style="iconStyle"
         />
         <span 
-          v-if="config.settings.showButtonText && text.length > 0"
+          v-if="text.length > 0"
           class='text-xs/2 whitespace-nowrap'
           :class="[
             textClasses,
@@ -50,7 +51,7 @@
     <Teleport to="body">
       <transition name="fade">
         <div
-          v-if="isHovered && tooltipText && config.settings.showToolTip"
+          v-if="isHovered && hasTooltip"
           ref="tooltipRef"
           class="fixed z-1000 px-2 py-1 text-xs leading-tight max-w-xs whitespace-normal text-center rounded-box bg-neutral text-neutral-content shadow-lg pointer-events-none"
           :style="tooltipStyle"
@@ -63,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onBeforeUnmount, nextTick, watch, type CSSProperties } from 'vue';
+import { computed, ref, onBeforeUnmount, nextTick, type CSSProperties } from 'vue';
 import { config } from '@/common/config';
 import type { Component } from 'vue';
 
@@ -112,17 +113,22 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  tooltipClasses: {
+  tooltipPlacement: {
     type: String,
-    default: 'tooltip-bottom'
+    default: 'bottom'
   }
 });
 
 const emit = defineEmits(['click']);
+const TOOLTIP_GAP = 2;
+const TOOLTIP_PADDING = 8;
+const TOOLTIP_AUTO_HIDE_MS = 3000;
+
 const tooltipText = computed(() => {
   if (!props.shortcut) return props.tooltip;
   return props.tooltip ? `${props.tooltip} (${props.shortcut})` : props.shortcut;
 });
+const hasTooltip = computed(() => Boolean(tooltipText.value && config.settings.showToolTip));
 
 const isHovered = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
@@ -155,16 +161,22 @@ const updateTooltipPosition = async () => {
 
   const triggerRect = triggerRef.value.getBoundingClientRect();
   const tooltipRect = tooltipRef.value.getBoundingClientRect();
-  const gap = 6;
-  const padding = 8;
 
   let left = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
-  left = Math.max(padding, Math.min(left, window.innerWidth - tooltipRect.width - padding));
+  let top = triggerRect.bottom + TOOLTIP_GAP;
 
-  let top = triggerRect.bottom + gap;
-  if (top + tooltipRect.height > window.innerHeight - padding) {
-    top = triggerRect.top - tooltipRect.height - gap;
+  if (props.tooltipPlacement === 'right') {
+    left = triggerRect.right + TOOLTIP_GAP;
+    top = triggerRect.top + (triggerRect.height - tooltipRect.height) / 2;
+    if (left + tooltipRect.width > window.innerWidth - TOOLTIP_PADDING) {
+      left = triggerRect.left - tooltipRect.width - TOOLTIP_GAP;
+    }
+  } else if (top + tooltipRect.height > window.innerHeight - TOOLTIP_PADDING) {
+    top = triggerRect.top - tooltipRect.height - TOOLTIP_GAP;
   }
+
+  left = Math.max(TOOLTIP_PADDING, Math.min(left, window.innerWidth - tooltipRect.width - TOOLTIP_PADDING));
+  top = Math.max(TOOLTIP_PADDING, Math.min(top, window.innerHeight - tooltipRect.height - TOOLTIP_PADDING));
 
   tooltipStyle.value = {
     left: `${Math.round(left)}px`,
@@ -188,7 +200,7 @@ const attachPositionListeners = () => {
 };
 
 const showTooltip = () => {
-  if (!tooltipText.value || !config.settings.showToolTip) return;
+  if (!hasTooltip.value) return;
 
   clearTooltipTimer();
   isHovered.value = true;
@@ -199,7 +211,7 @@ const showTooltip = () => {
     isHovered.value = false;
     removePositionListeners();
     tooltipTimer = null;
-  }, 3000);
+  }, TOOLTIP_AUTO_HIDE_MS);
 };
 
 const hideTooltip = () => {
@@ -207,11 +219,6 @@ const hideTooltip = () => {
   isHovered.value = false;
   removePositionListeners();
 };
-
-watch(isHovered, (visible) => {
-  if (!visible) return;
-  void updateTooltipPosition();
-});
 
 onBeforeUnmount(() => {
   clearTooltipTimer();

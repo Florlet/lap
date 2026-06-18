@@ -132,12 +132,6 @@
             </div>
             <div class="flex items-center justify-between p-1 rounded-box hover:bg-base-100/10 transition-colors duration-200">
               <div class="flex flex-col gap-0.5 text-sm leading-5">
-                <div>{{ $t('settings.general.show_button_text') }}</div>
-              </div>
-              <input type="checkbox" class="toggle toggle-primary toggle-sm" v-model="config.settings.showButtonText" />
-            </div>
-            <div class="flex items-center justify-between p-1 rounded-box hover:bg-base-100/10 transition-colors duration-200">
-              <div class="flex flex-col gap-0.5 text-sm leading-5">
                 <div>{{ $t('settings.general.show_tool_tip') }}</div>
               </div>
               <input type="checkbox" class="toggle toggle-primary toggle-sm" v-model="config.settings.showToolTip" />
@@ -1216,9 +1210,6 @@ watch(() => config.settings.externalVideoAppName, (newValue) => {
 watch(() => config.settings.language, (newValue) => {
   locale.value = newValue;
   emit('settings-language-changed', newValue);
-});
-watch(() => config.settings.showButtonText, (newValue) => {
-  emit('settings-showButtonText-changed', newValue);
 });
 watch(() => config.settings.showToolTip, (newValue) => {
   emit('settings-showToolTip-changed', newValue);

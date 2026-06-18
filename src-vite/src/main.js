@@ -86,9 +86,6 @@ listen('settings-externalVideoAppName-changed', (event) => {
 listen('settings-language-changed', (event) => {
   config.setLanguage(event.payload)
 })
-listen('settings-showButtonText-changed', (event) => {
-  config.setShowButtonText(event.payload)
-})
 listen('settings-showToolTip-changed', (event) => {
   config.setShowToolTip(event.payload)
 })

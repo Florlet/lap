@@ -653,6 +653,8 @@ import {
   IconFolder,
   IconTag,
   IconSmartTag,
+  IconBolt,
+  IconHistory,
   IconLocation,
   IconCameraAperture,
   IconLeft,
@@ -731,7 +733,7 @@ function handleBreadcrumbClick(segmentIndex: number) {
   const sidebarIndex = config.main.sidebarIndex;
 
   // Location: clicking parent segment navigates to admin1 only
-  if (sidebarIndex === 6) {
+  if (sidebarIndex === 7) {
     if (segmentIndex === 0) {
       libConfig.location.name = null;
     }
@@ -739,7 +741,7 @@ function handleBreadcrumbClick(segmentIndex: number) {
   }
 
   // Camera: clicking parent segment navigates to make only
-  if (sidebarIndex === 7) {
+  if (sidebarIndex === 8) {
     if (segmentIndex === 0) {
       if ((libConfig.camera as any).tab === 'lens') {
         (libConfig.camera as any).lensModel = null;
@@ -750,8 +752,8 @@ function handleBreadcrumbClick(segmentIndex: number) {
     return;
   }
 
-  // Album folders (index 0) or Favorite folders (index 1): navigate to parent folder
-  if (sidebarIndex === 0 || sidebarIndex === 1) {
+  // Album folders (index 0) or Favorite folders (index 2): navigate to parent folder
+  if (sidebarIndex === 0 || sidebarIndex === 2) {
     const segments = titleSegments.value;
     // The first segment is the album/folder root name.
     // Remaining segments are relative path components.
@@ -1862,17 +1864,25 @@ const currentTitleIcon = computed(() => {
               default: return libConfig.album.selected ? IconFolders : IconFolder;
             }
           case 1:
+            if (libConfig.smartAlbum.type === 'system') {
+              switch (libConfig.smartAlbum.id) {
+                case 'recently-added': return IconHistory;
+                case 'on-this-day': return IconCalendarDay;
+              }
+            }
+            return IconBolt;
+          case 2:
             switch (libConfig.favorite.folderId) {
               case 0: return IconHeart;
               case 1: return IconFolderFavorite;
               default: return IconFolderFavorite;
             }
-          case 2: return IconPhotoSearch;
-          case 3: return config.calendar.isMonthly ? IconCalendarMonth : IconCalendarDay;
-          case 4: return (libConfig.tag as any).tab === 'smart' ? IconSmartTag : IconTag;
-          case 5: return IconPersonSearch;
-          case 6: return IconLocation;
-          case 7: return IconCameraAperture;
+          case 3: return IconPhotoSearch;
+          case 4: return config.calendar.isMonthly ? IconCalendarMonth : IconCalendarDay;
+          case 5: return (libConfig.tag as any).tab === 'smart' ? IconSmartTag : IconTag;
+          case 6: return IconPersonSearch;
+          case 7: return IconLocation;
+          case 8: return IconCameraAperture;
           default: return IconFiles;
         }
       }
@@ -3550,8 +3560,8 @@ onMounted( async() => {
 
   // Face Indexing listeners
   unlistenFaceIndexProgress = await listenFaceIndexProgress((event: any) => {
-    // Clear file list if in Person view (sidebarIndex === 5) and file list is not empty
-    if (config.main.sidebarIndex === 5 && fileList.value.length > 0) {
+    // Clear file list if in Person view (sidebarIndex === 6) and file list is not empty
+    if (config.main.sidebarIndex === 6 && fileList.value.length > 0) {
       fileList.value = [];
       totalFileCount.value = 0;
       totalFileSize.value = 0;
@@ -3663,7 +3673,7 @@ watch(
   () => {
     scheduleContentRefresh(() => {
       // Only update content if we are currently in the Image Search view
-      if (config.main.sidebarIndex === 2) {
+      if (config.main.sidebarIndex === 3) {
         refreshContentFromSelectionChange();
       }
     });
@@ -3675,6 +3685,7 @@ watch(
   () => [
     config.main.sidebarIndex,      // toolbar index
     libConfig.album.id, libConfig.album.folderId, libConfig.album.folderPath, libConfig.album.selected, // album
+    libConfig.smartAlbum.type, libConfig.smartAlbum.id,                         // smart album
     (libConfig.favorite as any).tab, libConfig.favorite.albumId, libConfig.favorite.folderId, libConfig.favorite.folderPath, libConfig.favorite.rating, // favorite files and rating
     libConfig.search.fileName, config.search.fileType, config.search.sortType, config.search.sortOrder, // search and sort 
     config.settings.showSubfolderFiles,                                            // album folder view
@@ -4319,7 +4330,21 @@ async function updateContent(force = false) {
       });
     }
   }
-  else if(newIndex === 1) {   // favorite
+  else if(newIndex === 1) {   // smart album
+    const smartAlbumType = libConfig.smartAlbum.type;
+    const smartAlbumId = libConfig.smartAlbum.id;
+    if (smartAlbumType === 'system' && smartAlbumId === 'recently-added') {
+      contentTitle.value = localeMsg.value.album.smart_items.recently_added;
+      getFileList({ sortType: 1, sortOrder: 1 }, requestId);
+    } else if (smartAlbumType === 'system' && smartAlbumId === 'on-this-day') {
+      contentTitle.value = localeMsg.value.album.smart_items.on_this_day;
+      getFileList({ startDate: -1, endDate: -1 }, requestId);
+    } else {
+      contentTitle.value = "";
+      showEmptyContent(requestId);
+    }
+  }
+  else if(newIndex === 2) {   // favorite
     if(libConfig.favorite.folderId === null) {
       contentTitle.value = "";
     } else {
@@ -4354,7 +4379,7 @@ async function updateContent(force = false) {
       }
     }
   }
-  else if(newIndex === 2) {   // image search
+  else if(newIndex === 3) {   // image search
     if(libConfig.search.searchType === 0) {   // search
       if (libConfig.search.searchText) {
         contentTitle.value = localeMsg.value.search.search_images + ' - ' + libConfig.search.searchText;
@@ -4383,13 +4408,10 @@ async function updateContent(force = false) {
       }
     }
   }
-  else if(newIndex === 3) {   // calendar
+  else if(newIndex === 4) {   // calendar
     if(libConfig.calendar.year === null) {
       contentTitle.value = "";
       showEmptyContent(requestId);
-    } else if (libConfig.calendar.year === -1) {  // on this day
-      contentTitle.value = localeMsg.value.calendar.on_this_day;
-      getFileList({ startDate: -1, endDate: -1 }, requestId);
     } else {
       if (libConfig.calendar.month === -1) {          // yearly
         contentTitle.value = formatDate(libConfig.calendar.year!, 1, 1, localeMsg.value.format.year);
@@ -4402,7 +4424,7 @@ async function updateContent(force = false) {
       getFileList({ startDate, endDate }, requestId);
     }
   } 
-  else if(newIndex === 4) {   // tag
+  else if(newIndex === 5) {   // tag
     const tagTab = (libConfig.tag as any).tab === 'smart' ? 'smart' : 'custom';
     if (tagTab === 'smart') {
       const smartId = libConfig.tag.smartId;
@@ -4438,7 +4460,7 @@ async function updateContent(force = false) {
       }
     }
   }
-  else if(newIndex === 5) {   // person
+  else if(newIndex === 6) {   // person
     if (libConfig.person.id === null) {
       contentTitle.value = "";
       showEmptyContent(requestId);
@@ -4447,7 +4469,7 @@ async function updateContent(force = false) {
       getFileList({ personId: libConfig.person.id }, requestId);
     }
   }
-  else if(newIndex === 6) {   // location
+  else if(newIndex === 7) {   // location
     if(libConfig.location.admin1 === null) {
       contentTitle.value = "";
       showEmptyContent(requestId);
@@ -4461,7 +4483,7 @@ async function updateContent(force = false) {
       } 
     }
   }
-  else if(newIndex === 7) {   // camera
+  else if(newIndex === 8) {   // camera
     if ((libConfig.camera as any).tab === 'lens') {
       const lensMake = (libConfig.camera as any).lensMake;
       const lensModel = (libConfig.camera as any).lensModel;
@@ -4733,11 +4755,11 @@ function exitTempViewMode() {
 function handleTitleClick() {
   switch (tempViewMode.value) {
     case 'similar':
-      config.main.sidebarIndex = 2;   // search tab
+      config.main.sidebarIndex = 3;   // search tab
       libConfig.search.searchType = 1;   // similar image 
       break;
     case 'person':
-      config.main.sidebarIndex = 5;   // person tab
+      config.main.sidebarIndex = 6;   // person tab
       break;
     case 'album':
       config.main.sidebarIndex = 0;   // album tab
@@ -6057,8 +6079,8 @@ const sortExtendOptions = computed(() => {
 });
 
 const isSearchLikeView = computed(() => {
-  return config.main.sidebarIndex === 2 || (
-    config.main.sidebarIndex === 4 && (libConfig.tag as any).tab === 'smart'
+  return config.main.sidebarIndex === 3 || (
+    config.main.sidebarIndex === 5 && (libConfig.tag as any).tab === 'smart'
   );
 });
 

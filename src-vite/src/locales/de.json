@@ -15,6 +15,12 @@
   "album": {
     "all_files": "Alle Dateien",
     "album_list": "Alben",
+    "smart_album_list": "Intelligente Alben",
+    "add_smart_album": "Intelligentes Album hinzufügen",
+    "smart_items": {
+      "recently_added": "Kürzlich hinzugefügt",
+      "on_this_day": "An diesem Tag"
+    },
     "folder_unavailable": {
       "title": "Ordner nicht verfügbar",
       "description": "Verbinden Sie das Speichergerät erneut oder prüfen Sie den Ordnerpfad."
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "Keine Alben",
       "description": "Fügen Sie ein Album hinzu, um zu beginnen"
+    },
+    "no_smart_albums": {
+      "description": "Erstellen Sie intelligente Alben aus benutzerdefinierten Abfrageregeln."
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "An diesem Tag",
     "title": "Kalender",
     "monthly_view": "Monatsansicht",
     "daily_view": "Tagesansicht",
@@ -399,7 +407,6 @@
       "open_video_in_app": "Video in {app} öffnen...",
       "find_similar_images": "Ähnliche finden",
       "find_person_images": "Personenbilder finden",
-      "on_this_day": "An diesem Tag",
       "print": "Bild drucken...",
       "rename": "Umbenennen",
       "move_to": "Verschieben nach...",
@@ -912,7 +919,6 @@
         "Groß",
         "Größer"
       ],
-      "show_button_text": "Seitenleisten-Beschriftungen anzeigen",
       "show_tool_tip": "Button-Hinweise",
       "show_status_bar": "Statusleiste",
       "auto_check_updates": "Automatisch nach Updates suchen",

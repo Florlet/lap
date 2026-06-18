@@ -15,6 +15,12 @@
   "album": {
     "all_files": "すべてのファイル",
     "album_list": "アルバム",
+    "smart_album_list": "スマートアルバム",
+    "add_smart_album": "スマートアルバムを追加",
+    "smart_items": {
+      "recently_added": "最近追加",
+      "on_this_day": "この日"
+    },
     "folder_unavailable": {
       "title": "フォルダーを利用できません",
       "description": "ストレージデバイスを再接続するか、フォルダーの場所を確認してください。"
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "アルバムがありません",
       "description": "画像や動画を含むフォルダーを追加して始めましょう"
+    },
+    "no_smart_albums": {
+      "description": "カスタムクエリ条件からスマートアルバムを作成できます。"
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "この日",
     "title": "カレンダー",
     "monthly_view": "月表示",
     "daily_view": "日表示",
@@ -399,7 +407,6 @@
       "open_video_in_app": "{app} で動画を開く...",
       "find_similar_images": "類似画像を検索",
       "find_person_images": "この人の画像を検索",
-      "on_this_day": "この日",
       "print": "画像を印刷...",
       "rename": "名前を変更",
       "move_to": "移動...",
@@ -912,7 +919,6 @@
         "大",
         "大きめ"
       ],
-      "show_button_text": "サイドバーのラベルを表示",
       "show_tool_tip": "ボタンのヒント",
       "show_status_bar": "ステータスバー",
       "auto_check_updates": "更新を自動確認",

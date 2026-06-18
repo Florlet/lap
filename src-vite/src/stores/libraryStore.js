@@ -21,6 +21,12 @@ export const useLibraryStore = defineStore('libraryStore', {
       activateTick: 0,        // increments on each album/folder click (even same target)
     },
 
+    /** @type {{ type: 'system' | 'custom', id: string | number | null }} */
+    smartAlbum: {
+      type: 'system',         // selected smart album type
+      id: null,               // selected smart album id
+    },
+
     /** @type {{ tab: 'favorite' | 'rating', albumId: number | null, folderId: number, folderPath: string, rating: number | null }} */
     favorite: {
       tab: 'favorite',
@@ -158,6 +164,7 @@ export const useLibraryStore = defineStore('libraryStore', {
         try {
           const stateToSave = {
             album: this.album,
+            smartAlbum: this.smartAlbum,
             favorite: this.favorite,
             tag: this.tag,
             calendar: this.calendar,

@@ -6,6 +6,7 @@
  * date:    2026-01-15
  */
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -39,6 +40,18 @@ pub struct AlbumState {
     #[serde(alias = "folder_path")]
     pub folder_path: String,
     pub selected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartAlbumState {
+    #[serde(default = "default_smart_album_type")]
+    pub r#type: String,
+    pub id: Option<Value>,
+}
+
+fn default_smart_album_type() -> String {
+    "system".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -209,6 +222,8 @@ pub struct PersonState {
 #[serde(rename_all = "camelCase")]
 pub struct LibraryState {
     pub album: AlbumState,
+    #[serde(default)]
+    pub smart_album: SmartAlbumState,
     pub favorite: FavoriteState,
     pub tag: TagState,
     pub calendar: CalendarState,

@@ -15,6 +15,12 @@
   "album": {
     "all_files": "All files",
     "album_list": "Albums",
+    "smart_album_list": "Smart albums",
+    "add_smart_album": "Add smart album",
+    "smart_items": {
+      "recently_added": "Recently Added",
+      "on_this_day": "On this day"
+    },
     "folder_unavailable": {
       "title": "Folder unavailable",
       "description": "Reconnect the storage device or check the folder location."
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "No albums added yet",
       "description": "Add an album containing images or videos to get started"
+    },
+    "no_smart_albums": {
+      "description": "Create smart albums from custom query rules."
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "On this day",
     "title": "Calendar",
     "monthly_view": "Monthly view",
     "daily_view": "Daily view",
@@ -399,7 +407,6 @@
       "open_video_in_app": "Open video in {app}...",
       "find_similar_images": "Find similar images",
       "find_person_images": "Find person images",
-      "on_this_day": "On this day",
       "print": "Print image...",
       "rename": "Rename",
       "move_to": "Move to...",
@@ -912,7 +919,6 @@
         "Large",
         "Larger"
       ],
-      "show_button_text": "Show sidebar labels",
       "show_tool_tip": "Show button tips",
       "show_status_bar": "Show status bar",
       "auto_check_updates": "Auto-check for updates",

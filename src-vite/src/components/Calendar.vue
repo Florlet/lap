@@ -1,20 +1,6 @@
 <template>
 
   <div class="sidebar-panel overflow-hidden">
-    <!-- on this day -->
-    <div 
-      :class="[ 
-        'sidebar-item',
-        libConfig.calendar.year === -1 ? 'sidebar-item-selected' : 'sidebar-item-hover',
-      ]"
-      @click="libConfig.calendar.year = -1"
-    >
-      <IconHistory class="mx-1 w-5 h-5 shrink-0" />
-      <div class="sidebar-item-label">
-        {{ $t('calendar.on_this_day') }}
-      </div>
-    </div>
-
     <!-- calendar tabs -->
     <div class="sidebar-panel-header">
       <div role="tablist" class="sidebar-header-tabs">
@@ -81,7 +67,6 @@ import { useI18n } from 'vue-i18n';
 import { config, libConfig } from '@/common/config';
 import { getTakenDates } from '@/common/api';
 
-import { IconHistory } from '@/common/icons';
 import CalendarMonthly from '@/components/CalendarMonthly.vue';
 import CalendarDaily from '@/components/CalendarDaily.vue';
 

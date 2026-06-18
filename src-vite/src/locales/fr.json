@@ -15,6 +15,12 @@
   "album": {
     "all_files": "Tous les fichiers",
     "album_list": "Albums",
+    "smart_album_list": "Albums intelligents",
+    "add_smart_album": "Ajouter un album intelligent",
+    "smart_items": {
+      "recently_added": "Ajoutés récemment",
+      "on_this_day": "Ce jour-là"
+    },
     "folder_unavailable": {
       "title": "Dossier indisponible",
       "description": "Reconnectez le périphérique de stockage ou vérifiez l’emplacement du dossier."
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "Aucun album",
       "description": "Ajoutez un album pour commencer"
+    },
+    "no_smart_albums": {
+      "description": "Créez des albums intelligents avec des règles de requête personnalisées."
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "Ce jour-là",
     "title": "Calendrier",
     "monthly_view": "Vue mensuelle",
     "daily_view": "Vue journalière",
@@ -399,7 +407,6 @@
       "open_video_in_app": "Ouvrir la vidéo dans {app}...",
       "find_similar_images": "Trouver similaires",
       "find_person_images": "Trouver photos personne",
-      "on_this_day": "Ce jour-là",
       "print": "Imprimer l'image...",
       "rename": "Renommer",
       "move_to": "Déplacer vers...",
@@ -912,7 +919,6 @@
         "Grand",
         "Plus grand"
       ],
-      "show_button_text": "Afficher les libellés de la barre latérale",
       "show_tool_tip": "Conseils des boutons",
       "show_status_bar": "Barre d'état",
       "auto_check_updates": "Rechercher automatiquement les mises à jour",

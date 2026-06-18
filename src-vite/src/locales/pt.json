@@ -15,6 +15,12 @@
   "album": {
     "all_files": "Todos os arquivos",
     "album_list": "Álbuns",
+    "smart_album_list": "Álbuns inteligentes",
+    "add_smart_album": "Adicionar álbum inteligente",
+    "smart_items": {
+      "recently_added": "Adicionados recentemente",
+      "on_this_day": "Neste dia"
+    },
     "folder_unavailable": {
       "title": "Pasta indisponível",
       "description": "Reconecte o dispositivo de armazenamento ou verifique a localização da pasta."
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "Sem álbuns",
       "description": "Adicione um álbum para começar"
+    },
+    "no_smart_albums": {
+      "description": "Crie álbuns inteligentes com regras de consulta personalizadas."
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "Neste dia",
     "title": "Calendário",
     "monthly_view": "Visão mensal",
     "daily_view": "Visão diária",
@@ -399,7 +407,6 @@
       "open_video_in_app": "Abrir vídeo em {app}...",
       "find_similar_images": "Encontrar semelhantes",
       "find_person_images": "Encontrar fotos de pessoa",
-      "on_this_day": "Neste dia",
       "print": "Imprimir imagem...",
       "rename": "Renomear",
       "move_to": "Mover para...",
@@ -912,7 +919,6 @@
         "Grande",
         "Maior"
       ],
-      "show_button_text": "Mostrar rótulos da barra lateral",
       "show_tool_tip": "Dicas dos botões",
       "show_status_bar": "Barra de status",
       "auto_check_updates": "Verificar atualizações automaticamente",

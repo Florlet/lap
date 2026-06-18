@@ -15,6 +15,12 @@
   "album": {
     "all_files": "Todos los archivos",
     "album_list": "Álbumes",
+    "smart_album_list": "Álbumes inteligentes",
+    "add_smart_album": "Añadir álbum inteligente",
+    "smart_items": {
+      "recently_added": "Añadido recientemente",
+      "on_this_day": "Un día como hoy"
+    },
     "folder_unavailable": {
       "title": "Carpeta no disponible",
       "description": "Vuelve a conectar el dispositivo de almacenamiento o comprueba la ubicación de la carpeta."
@@ -40,6 +46,9 @@
     "no_albums": {
       "title": "Aún no hay álbumes",
       "description": "Añade un álbum con imágenes o vídeos para empezar"
+    },
+    "no_smart_albums": {
+      "description": "Crea álbumes inteligentes con reglas de consulta personalizadas."
     }
   },
   "welcome": {
@@ -134,7 +143,6 @@
     }
   },
   "calendar": {
-    "on_this_day": "Un día como hoy",
     "title": "Calendario",
     "monthly_view": "Vista mensual",
     "daily_view": "Vista diaria",
@@ -399,7 +407,6 @@
       "open_video_in_app": "Abrir video en {app}...",
       "find_similar_images": "Buscar similares",
       "find_person_images": "Buscar fotos de persona",
-      "on_this_day": "Un día como hoy",
       "print": "Imprimir imagen...",
       "rename": "Renombrar",
       "move_to": "Mover a...",
@@ -912,7 +919,6 @@
         "Grande",
         "Más grande"
       ],
-      "show_button_text": "Mostrar etiquetas de la barra lateral",
       "show_tool_tip": "Mostrar sugerencias de botones",
       "show_status_bar": "Mostrar barra estado",
       "auto_check_updates": "Buscar actualizaciones automáticamente",
