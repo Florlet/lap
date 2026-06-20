@@ -42,34 +42,17 @@
 
         <div class="pt-2 text-[10px] uppercase tracking-widest font-bold text-base-content/70">{{ $t('album.smart_edit.rules') }}</div>
         <div class="space-y-2">
-          <VueDraggable
-            v-model="rules"
-            handle=".smart-rule-drag-handle"
-            draggable=".smart-rule-row"
-            :animation="150"
-            :forceFallback="true"
-            :fallbackOnBody="true"
-            :fallbackTolerance="3"
-            ghostClass="smart-rule-ghost"
-            chosenClass="smart-rule-chosen"
-            fallbackClass="smart-rule-fallback"
+          <div
             :class="[
               'space-y-1.5 pr-1',
               rules.length > 6 ? 'max-h-[252px] overflow-y-auto' : ''
             ]"
-            @dragenter.stop
-            @dragover.stop
-            @dragleave.stop
-            @drop.stop
           >
             <div
               v-for="(rule, index) in rules"
               :key="rule.id"
-              class="smart-rule-row grid grid-cols-[28px_minmax(0,1fr)_88px_minmax(0,1.45fr)_28px] gap-2 items-center rounded-box px-1 py-1 transition-colors hover:bg-base-content/5"
+              class="grid grid-cols-[minmax(0,1fr)_88px_minmax(0,1.45fr)_28px] gap-2 items-center rounded-box px-1 py-1 transition-colors hover:bg-base-content/5"
             >
-              <div class="smart-rule-drag-handle cursor-move text-base-content/40 hover:text-base-content/70">
-                <IconDragHandle class="w-4 h-4 mx-auto" />
-              </div>
               <select v-model="rule.field" class="select select-sm text-xs w-full" @change="resetRule(rule)">
                 <option v-for="field in fieldOptions" :key="field.value" :value="field.value">{{ field.label }}</option>
               </select>
@@ -85,7 +68,6 @@
                 :location-options="locationOptions"
                 :file-type-options="fileTypeOptions"
                 :extension-options="extensionOptions"
-                :date-field-options="dateFieldOptions"
               />
               <TButton
                 :icon="IconRemove"
@@ -95,7 +77,7 @@
                 @click="removeRule(index)"
               />
             </div>
-          </VueDraggable>
+          </div>
           <button class="btn btn-sm rounded-box" :disabled="rules.length >= maxRules" @click="addRule">
             <IconAdd class="w-4 h-4" />
             {{ $t('album.smart_edit.add_rule') }}
@@ -114,11 +96,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, Teleport, watch } from 'vue';
+import { computed, defineComponent, h, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { VueDraggable } from 'vue-draggable-plus';
 import { getAllTags, getCameraInfo, getLensInfo, getLocationInfo, getPersons, getSupportedFormatExtensions } from '@/common/api';
-import { IconAdd, IconDragHandle, IconEdit, IconRemove } from '@/common/icons';
+import { IconAdd, IconEdit, IconRemove } from '@/common/icons';
+import { useUIStore } from '@/stores/uiStore';
 import ModalDialog from '@/components/ModalDialog.vue';
 import TButton from '@/components/TButton.vue';
 
@@ -131,6 +113,7 @@ const props = defineProps({
 
 const emit = defineEmits(['ok', 'cancel']);
 const { t, locale, messages } = useI18n();
+const uiStore = useUIStore();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 const inputNameRef = ref<HTMLInputElement | null>(null);
 const descriptionRef = ref<HTMLTextAreaElement | null>(null);
@@ -148,9 +131,6 @@ const cameraOptions = ref<any[]>([]);
 const lensOptions = ref<any[]>([]);
 const locationOptions = ref<any[]>([]);
 const extensionOptions = ref<any[]>([]);
-const imageExtensionValues = ref<Set<string>>(new Set());
-const rawExtensionValues = ref<Set<string>>(new Set());
-const videoExtensionValues = ref<Set<string>>(new Set());
 const rules = ref<any[]>([]);
 
 const fileTypeOptions = computed(() => [
@@ -160,26 +140,25 @@ const fileTypeOptions = computed(() => [
 ]);
 
 const fieldOptions = computed(() => [
-  { value: 'file_type', label: t('album.smart_edit.fields.file_type') },
+  { value: 'name', label: t('album.smart_edit.fields.name') },
+  { value: 'date_taken', label: t('album.smart_edit.fields.date_taken') },
+  { value: 'date_created', label: t('album.smart_edit.fields.date_created') },
+  { value: 'date_modified', label: t('album.smart_edit.fields.date_modified') },
   { value: 'favorite', label: t('album.smart_edit.fields.favorite') },
   { value: 'rating', label: t('album.smart_edit.fields.rating') },
-  { value: 'date', label: t('album.smart_edit.fields.date') },
-  { value: 'size', label: t('album.smart_edit.fields.size') },
+  { value: 'tag', label: t('album.smart_edit.fields.tag') },
+  { value: 'person', label: t('album.smart_edit.fields.person') },
+  { value: 'file_type', label: t('album.smart_edit.fields.file_type') },
+  { value: 'extension', label: t('album.smart_edit.fields.extension') },
+  { value: 'orientation', label: t('album.smart_edit.fields.orientation') },
   { value: 'width', label: t('album.smart_edit.fields.width') },
   { value: 'height', label: t('album.smart_edit.fields.height') },
   { value: 'duration', label: t('album.smart_edit.fields.duration') },
-  { value: 'has_gps', label: t('album.smart_edit.fields.has_gps') },
-  { value: 'tag', label: t('album.smart_edit.fields.tag') },
-  { value: 'person', label: t('album.smart_edit.fields.person') },
+  { value: 'size', label: t('album.smart_edit.fields.size') },
   { value: 'camera', label: t('album.smart_edit.fields.camera') },
   { value: 'lens', label: t('album.smart_edit.fields.lens') },
   { value: 'location', label: t('album.smart_edit.fields.location') },
-]);
-
-const dateFieldOptions = computed(() => [
-  { value: 'taken', label: t('album.smart_edit.date_fields.taken') },
-  { value: 'added', label: t('album.smart_edit.date_fields.added') },
-  { value: 'modified', label: t('album.smart_edit.date_fields.modified') },
+  { value: 'has_gps', label: t('album.smart_edit.fields.has_gps') },
 ]);
 
 const validationMessage = computed(() => {
@@ -189,7 +168,7 @@ const validationMessage = computed(() => {
 });
 const canSave = computed(() => name.value.trim().length > 0 && validationMessage.value.length === 0);
 
-function makeRule(field = 'file_type') {
+function makeRule(field = 'date_taken') {
   const rule = {
     id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
     field,
@@ -209,7 +188,7 @@ function cloneRules(source: any[] | undefined) {
 
 function normalizeRuleForEdit(rule: any) {
   const sourceField = rule.field || 'file_type';
-  const field = sourceField === 'extension' ? 'file_type' : sourceField;
+  const field = normalizeRuleFieldForEdit(rule);
   return {
     id: rule.id || crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
     field,
@@ -220,12 +199,14 @@ function normalizeRuleForEdit(rule: any) {
 
 function getOperatorOptions(field: string) {
   const op = (key: string) => ({ value: key, label: t(`album.smart_edit.operators.${key}`) });
+  if (field === 'name') return [op('contains'), op('not_contains')];
   if (['file_type', 'extension', 'camera', 'lens', 'location'].includes(field)) return [op('is'), op('is_not')];
   if (field === 'favorite' || field === 'has_gps') return [op('is')];
+  if (field === 'orientation') return [op('is')];
   if (field === 'rating') return [op('is'), op('is_not'), op('gt'), op('gte'), op('lt'), op('lte'), op('between'), op('empty'), op('not_empty')];
-  if (field === 'date') return [op('before'), op('after'), op('between'), op('empty'), op('not_empty')];
+  if (isDateRuleField(field)) return [op('is'), op('before'), op('after'), op('between'), op('in_last'), op('older_than')];
   if (['size', 'width', 'height', 'duration'].includes(field)) return [op('gt'), op('gte'), op('lt'), op('lte'), op('between'), op('empty'), op('not_empty')];
-  if (field === 'tag' || field === 'person') return [op('has'), op('not_has')];
+  if (field === 'tag' || field === 'person') return [op('has'), op('not_has'), op('empty'), op('not_empty')];
   return [op('is')];
 }
 
@@ -239,13 +220,18 @@ function resetRuleValue(rule: any) {
 }
 
 function setDefaultRuleValue(rule: any) {
-  if (rule.field === 'file_type') rule.value = { fileType: 1, extension: '' };
-  else if (rule.field === 'extension') rule.value = { fileType: 1, extension: 'jpg' };
+  if (rule.field === 'name') rule.value = '';
+  else if (rule.field === 'file_type') rule.value = 1;
+  else if (rule.field === 'extension') rule.value = extensionOptions.value[0]?.value || 'jpg';
   else if (rule.field === 'favorite' || rule.field === 'has_gps') rule.value = true;
+  else if (rule.field === 'orientation') rule.value = 'landscape';
   else if (rule.field === 'rating') rule.value = rule.operator === 'between' ? { min: 1, max: 5 } : 1;
-  else if (rule.field === 'date') rule.value = rule.operator === 'between'
-    ? { field: 'taken', start: dateToUnix(new Date()), end: dateToUnix(addDays(new Date(), 1)) }
-    : { field: 'taken', value: dateToUnix(new Date()) };
+  else if (isDateRuleField(rule.field)) {
+    if (rule.operator === 'between') rule.value = { start: dateToUnix(new Date()), end: dateToUnix(addDays(new Date(), 1)) };
+    else if (isRelativeDateOperator(rule.operator)) rule.value = { amount: 7, unit: 'day' };
+    else if (rule.operator === 'is') rule.value = 'this_month';
+    else rule.value = { value: dateToUnix(new Date()) };
+  }
   else if (rule.field === 'size') rule.value = rule.operator === 'between' ? { min: 1, max: 10 } : 1;
   else if (rule.field === 'duration') rule.value = rule.operator === 'between' ? { min: 60, max: 600 } : 60;
   else if (rule.field === 'width' || rule.field === 'height') rule.value = rule.operator === 'between' ? { min: 1000, max: 4000 } : 1000;
@@ -265,8 +251,11 @@ function isRuleValid(rule: any) {
       || (rule.value && rule.value.start && rule.value.end)
     );
   }
+  if (isDateRuleField(rule.field) && isRelativeDateOperator(rule.operator)) return isRelativeDateValueValid(rule.value);
+  if (isDateRuleField(rule.field) && rule.operator === 'is') return isDatePeriodValueValid(rule.value);
+  if (rule.field === 'orientation') return isOrientationValueValid(rule.value);
   if (rule.field === 'file_type') return Boolean(getFileTypeValue(rule.value));
-  if (rule.field === 'date') return Boolean(rule.value?.field && rule.value?.value);
+  if (isDateRuleField(rule.field)) return Boolean(rule.value?.value);
   return rule.value !== null && rule.value !== undefined && rule.value !== '';
 }
 
@@ -288,6 +277,26 @@ async function showDescriptionInput() {
 
 function clickCancel() {
   emit('cancel');
+}
+
+function handleKeyDown(event: KeyboardEvent) {
+  if (!uiStore.isInputActive('SmartAlbumEdit')) return;
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (closeActiveDateDropdown()) return;
+    clickCancel();
+  }
+}
+
+function closeActiveDateDropdown() {
+  for (const popover of document.querySelectorAll<HTMLElement>('[id^="smart-date-"]')) {
+    if (popover.matches(':popover-open')) {
+      popover.hidePopover?.();
+      return true;
+    }
+  }
+  return false;
 }
 
 function clickOk() {
@@ -315,13 +324,10 @@ function clickOk() {
 }
 
 function normalizeRuleValue(rule: any) {
-  if (rule.field === 'file_type') {
-    const fileType = getFileTypeValue(rule.value);
-    const extension = getExtensionValue(rule.value);
-    return extension ? { fileType, extension } : { fileType };
-  }
+  if (rule.field === 'file_type') return getFileTypeValue(rule.value);
+  if (rule.field === 'extension') return getExtensionValue(rule.value);
   if (rule.field === 'size') return normalizeNumericValue(rule.value, 1_000_000);
-  if (rule.field === 'date') return rule.value;
+  if (isDateRuleField(rule.field)) return normalizeDateValue(rule.value);
   return normalizeNumericValue(rule.value, 1);
 }
 
@@ -332,18 +338,12 @@ function cloneValue(value: any) {
 
 function normalizeRuleValueForEdit(field: string, value: any) {
   if (field === 'file_type') {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return {
-        fileType: getFileTypeValue(value),
-        extension: getExtensionValue(value),
-      };
-    }
-    return { fileType: getFileTypeValue(value), extension: '' };
+    return getFileTypeValue(value);
   }
   if (field === 'extension') {
-    const extension = Array.isArray(value) ? String(value[0] || '') : String(value || '');
-    return { fileType: inferFileTypeFromExtension(extension), extension };
+    return getExtensionValue(value);
   }
+  if (isDateRuleField(field)) return normalizeDateValue(value);
   if (field !== 'size') return value;
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const next: any = { ...value };
@@ -354,6 +354,36 @@ function normalizeRuleValueForEdit(field: string, value: any) {
   return typeof value === 'number' ? value / 1_000_000 : value;
 }
 
+function normalizeRuleFieldForEdit(rule: any) {
+  const field = rule.field || 'file_type';
+  return field;
+}
+
+function isDateRuleField(field: string) {
+  return ['date_taken', 'date_created', 'date_modified'].includes(field);
+}
+
+function isRelativeDateOperator(operator: string) {
+  return ['in_last', 'older_than'].includes(operator);
+}
+
+function isRelativeDateValueValid(value: any) {
+  const amount = Number(value?.amount);
+  return Number.isFinite(amount) && amount > 0 && ['day', 'month', 'year'].includes(value?.unit);
+}
+
+function isDatePeriodValueValid(value: any) {
+  return ['this_week', 'this_month', 'this_year'].includes(value);
+}
+
+function isOrientationValueValid(value: any) {
+  return ['landscape', 'portrait', 'square'].includes(value);
+}
+
+function normalizeDateValue(value: any) {
+  return value;
+}
+
 function getFileTypeValue(value: any) {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return Number(value.fileType ?? value.file_type ?? 1);
@@ -362,27 +392,10 @@ function getFileTypeValue(value: any) {
 }
 
 function getExtensionValue(value: any) {
+  if (Array.isArray(value)) return String(value[0] || '').trim().replace(/^\./, '').toLowerCase();
+  if (typeof value === 'string') return value.trim().replace(/^\./, '').toLowerCase();
   if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
   return String(value.extension || '').trim().replace(/^\./, '').toLowerCase();
-}
-
-function inferFileTypeFromExtension(extension: string) {
-  const value = String(extension || '').trim().replace(/^\./, '').toLowerCase();
-  if (rawExtensionValues.value.has(value)) return 4;
-  if (videoExtensionValues.value.has(value)) return 2;
-  return 1;
-}
-
-function getExtensionOptionsForFileType(fileType: number) {
-  const valueSet = fileType === 4
-    ? rawExtensionValues.value
-    : fileType === 2
-      ? videoExtensionValues.value
-      : imageExtensionValues.value;
-  return [
-    { value: '', label: 'All' },
-    ...extensionOptions.value.filter(option => valueSet.has(option.value)),
-  ];
 }
 
 function normalizeNumericValue(value: any, multiplier: number) {
@@ -466,9 +479,6 @@ async function loadSupportedFormatOptions() {
     }))
     .filter((option: any) => option.value)
     .sort((a: any, b: any) => a.value.localeCompare(b.value));
-  imageExtensionValues.value = new Set((formats.image || []).map((value: string) => String(value).toLowerCase()));
-  rawExtensionValues.value = new Set((formats.raw || []).map((value: string) => String(value).toLowerCase()));
-  videoExtensionValues.value = new Set((formats.video || []).map((value: string) => String(value).toLowerCase()));
   rules.value = cloneRules(props.smartAlbum?.query?.rules);
 }
 
@@ -497,10 +507,17 @@ function flattenLocationOptions(items: any[]) {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', handleKeyDown);
+  uiStore.pushInputHandler('SmartAlbumEdit');
   await loadSupportedFormatOptions();
   await loadOptions();
   await nextTick();
   inputNameRef.value?.focus();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+  uiStore.removeInputHandler('SmartAlbumEdit');
 });
 
 watch([tagOptions, personOptions, cameraOptions, lensOptions, locationOptions], () => {
@@ -519,23 +536,12 @@ const RuleValueControl = defineComponent({
     locationOptions: { type: Array, default: () => [] },
     fileTypeOptions: { type: Array, default: () => [] },
     extensionOptions: { type: Array, default: () => [] },
-    dateFieldOptions: { type: Array, default: () => [] },
   },
   setup(props: any) {
     const suppressDatePopoverUntil = ref(0);
-    const extensionMenuOpen = ref(false);
-    const extensionTriggerRef = ref<HTMLElement | null>(null);
-    const extensionMenuRef = ref<HTMLElement | null>(null);
-    const extensionMenuStyle = ref<Record<string, string>>({
-      left: '0px',
-      top: '0px',
-      minWidth: '0px',
-    });
-    const extensionMenuPlacement = ref<'top' | 'bottom'>('bottom');
-    let removeExtensionMenuListeners: (() => void) | null = null;
     const inputClass = 'input input-sm text-xs w-full';
     const selectClass = 'select select-sm text-xs w-full';
-    const numberInput = (value: any, onInput: any) => h('input', { class: inputClass, type: 'number', value, onInput });
+    const numberInput = (value: any, onInput: any, attrs: Record<string, any> = {}) => h('input', { class: inputClass, type: 'number', value, onInput, ...attrs });
     const inputWithUnit = (inputNode: any, unit: string) => {
       if (!unit) return inputNode;
       return h('label', { class: 'input input-sm w-full flex items-center gap-1 px-0 overflow-hidden' }, [
@@ -545,12 +551,13 @@ const RuleValueControl = defineComponent({
         h('span', { class: 'pr-2 text-[10px] uppercase text-base-content/40 shrink-0' }, unit),
       ]);
     };
-    const unitNumberInput = (value: any, unit: string, onInput: any) => inputWithUnit(
+    const unitNumberInput = (value: any, unit: string, onInput: any, attrs: Record<string, any> = {}) => inputWithUnit(
       h('input', {
         class: 'w-full min-w-0 bg-transparent px-2 text-xs outline-none',
         type: 'number',
         value,
         onInput,
+        ...attrs,
       }),
       unit,
     );
@@ -632,7 +639,10 @@ const RuleValueControl = defineComponent({
               closeDateDropdownAfterSelect();
             },
             onKeydown: (event: KeyboardEvent) => {
-              if (event.key === 'Escape') closeDateDropdown(popoverId);
+              if (event.key === 'Escape') {
+                event.stopPropagation();
+                closeDateDropdown(popoverId);
+              }
             },
           }, [
             calendarIcon('Previous', 'M15.75 19.5 8.25 12l7.5-7.5', 'previous'),
@@ -654,176 +664,86 @@ const RuleValueControl = defineComponent({
       onChange: (event: any) => { props.rule.value = coerceOptionValue(event.target.value, options); },
     }, options.map(option => h('option', { value: option.value }, option.label)));
 
-    const removeExtensionPositionListeners = () => {
-      if (removeExtensionMenuListeners) {
-        removeExtensionMenuListeners();
-        removeExtensionMenuListeners = null;
-      }
-    };
-    const closeExtensionMenu = () => {
-      extensionMenuOpen.value = false;
-      removeExtensionPositionListeners();
-    };
-    const updateExtensionMenuPosition = async () => {
-      await nextTick();
-      if (!extensionTriggerRef.value || !extensionMenuRef.value) return;
-
-      const padding = 8;
-      const gap = 4;
-      const triggerRect = extensionTriggerRef.value.getBoundingClientRect();
-      const menuRect = extensionMenuRef.value.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const maxWidth = Math.min(420, viewportWidth - padding * 2);
-      const menuWidth = Math.min(maxWidth, Math.max(triggerRect.width, menuRect.width));
-      const spaceBelow = viewportHeight - triggerRect.bottom - gap - padding;
-      const spaceAbove = triggerRect.top - gap - padding;
-      const showAbove = spaceBelow < Math.min(menuRect.height, 256) && spaceAbove > spaceBelow;
-      const maxHeight = Math.max(96, Math.min(256, showAbove ? spaceAbove : spaceBelow));
-      let left = triggerRect.left;
-      let top = showAbove ? triggerRect.top - Math.min(menuRect.height, maxHeight) - gap : triggerRect.bottom + gap;
-
-      left = Math.max(padding, Math.min(left, viewportWidth - menuWidth - padding));
-      top = Math.max(padding, Math.min(top, viewportHeight - maxHeight - padding));
-
-      extensionMenuPlacement.value = showAbove ? 'top' : 'bottom';
-      extensionMenuStyle.value = {
-        position: 'fixed',
-        left: `${left}px`,
-        top: `${top}px`,
-        minWidth: `${triggerRect.width}px`,
-        width: `${menuWidth}px`,
-        maxWidth: `${maxWidth}px`,
-        maxHeight: `${maxHeight}px`,
-      };
-    };
-    const addExtensionPositionListeners = () => {
-      removeExtensionPositionListeners();
-      const onPointerDown = (event: PointerEvent) => {
-        const target = event.target as Node | null;
-        if (
-          target
-          && (extensionTriggerRef.value?.contains(target) || extensionMenuRef.value?.contains(target))
-        ) {
-          return;
-        }
-        closeExtensionMenu();
-      };
-      const onPositionChange = () => {
-        if (extensionMenuOpen.value) void updateExtensionMenuPosition();
-      };
-      document.addEventListener('pointerdown', onPointerDown, true);
-      window.addEventListener('resize', onPositionChange);
-      window.addEventListener('scroll', onPositionChange, true);
-      removeExtensionMenuListeners = () => {
-        document.removeEventListener('pointerdown', onPointerDown, true);
-        window.removeEventListener('resize', onPositionChange);
-        window.removeEventListener('scroll', onPositionChange, true);
-      };
-    };
-    const toggleExtensionMenu = async () => {
-      if (extensionMenuOpen.value) {
-        closeExtensionMenu();
-        return;
-      }
-      extensionMenuOpen.value = true;
-      await updateExtensionMenuPosition();
-      addExtensionPositionListeners();
-    };
-    onBeforeUnmount(() => {
-      removeExtensionPositionListeners();
-    });
     const extensionSelect = (options: any[], extension: string, onSelect: (value: string) => void) => {
-      const selectedText = extension ? extension.toUpperCase() : 'All';
-      return h('div', { class: 'w-full' }, [
-        h('button', {
-          ref: extensionTriggerRef,
-          type: 'button',
-          class: 'select select-sm text-xs w-full cursor-pointer flex items-center text-left',
-          onClick: toggleExtensionMenu,
-        }, selectedText),
-        h(Teleport, { to: 'body' }, [
-          extensionMenuOpen.value ? h('ul', {
-            ref: extensionMenuRef,
-            class: [
-              'smart-extension-menu menu bg-base-100 rounded-box shadow-lg z-[10000] p-1 overflow-y-auto',
-              extensionMenuPlacement.value === 'top' ? 'origin-bottom' : 'origin-top',
-            ],
-            style: extensionMenuStyle.value,
-          }, options.map((option: any) => h('li', { key: option.value }, [
-            h('button', {
-              type: 'button',
-              class: 'smart-extension-option text-xs text-left leading-4',
-              onClick: () => {
-                onSelect(option.value);
-                closeExtensionMenu();
-              },
-            }, option.label),
-          ]))) : null,
-        ]),
-      ]);
+      return h('select', {
+        class: selectClass,
+        value: extension,
+        onChange: (event: any) => { onSelect(event.target.value); },
+      }, options.map((option: any) => h('option', { value: option.value }, option.label)));
     };
-    const fileTypeInput = () => {
-      const value = props.rule.value && typeof props.rule.value === 'object'
-        ? props.rule.value
-        : { fileType: getFileTypeValue(props.rule.value), extension: '' };
-      const fileType = getFileTypeValue(value);
-      const extension = getExtensionValue(value);
-      const extensionOptions = getExtensionOptionsForFileType(fileType);
-      const options = !extension || extensionOptions.some((option: any) => option.value === extension)
-        ? extensionOptions
+    const fileTypeInput = () => h('select', {
+      class: selectClass,
+      value: getFileTypeValue(props.rule.value),
+      onChange: (event: any) => { props.rule.value = Number(event.target.value); },
+    }, props.fileTypeOptions.map((option: any) => h('option', { value: option.value }, option.label)));
+    const extensionInput = () => {
+      const extension = getExtensionValue(props.rule.value);
+      const options = !extension || props.extensionOptions.some((option: any) => option.value === extension)
+        ? props.extensionOptions
         : [
-          ...extensionOptions,
+          ...props.extensionOptions,
           { value: extension, label: `${extension.toUpperCase()} (Custom Extension)` },
         ];
-      return h('div', { class: 'grid grid-cols-[0.75fr_1.25fr] gap-1' }, [
-        h('select', {
-          class: selectClass,
-          value: fileType,
-          onChange: (event: any) => {
-            props.rule.value = { fileType: Number(event.target.value), extension: '' };
-          },
-        }, props.fileTypeOptions.map((option: any) => h('option', { value: option.value }, option.label))),
-        extensionSelect(options, extension, (nextExtension: string) => {
-          props.rule.value = { fileType, extension: nextExtension };
-        }),
-      ]);
+      return extensionSelect(options, extension, (nextExtension: string) => {
+        props.rule.value = nextExtension;
+      });
     };
     const boolSelect = () => selectInput([
       { value: 'true', label: t('album.smart_edit.boolean.yes') },
       { value: 'false', label: t('album.smart_edit.boolean.no') },
     ]);
-    const rangeInput = (unit = '', scale = 1) => h('div', { class: 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1' }, [
+    const rangeInput = (unit = '', scale = 1, attrs: Record<string, any> = {}) => h('div', { class: 'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1' }, [
       unitNumberInput(scaleValue(props.rule.value?.min, scale), unit, (event: any) => {
         props.rule.value = { ...(props.rule.value || {}), min: Number(event.target.value) };
-      }),
+      }, attrs),
       h('span', { class: 'text-base-content/40 select-none' }, '-'),
       unitNumberInput(scaleValue(props.rule.value?.max, scale), unit, (event: any) => {
         props.rule.value = { ...(props.rule.value || {}), max: Number(event.target.value) };
-      }),
+      }, attrs),
     ]);
     const dateControl = () => {
-      const value = props.rule.value || { field: 'taken' };
-      if (['empty', 'not_empty'].includes(props.rule.operator)) {
-        return selectDateField(value);
+      const value = props.rule.value || {};
+      if (props.rule.operator === 'is') {
+        return h('select', {
+          class: selectClass,
+          value: isDatePeriodValueValid(props.rule.value) ? props.rule.value : 'this_week',
+          onChange: (event: any) => { props.rule.value = event.target.value; },
+        }, ['this_week', 'this_month', 'this_year'].map(period => h('option', { value: period }, t(`album.smart_edit.date_periods.${period}`))));
+      }
+      if (isRelativeDateOperator(props.rule.operator)) {
+        return h('div', { class: 'grid grid-cols-[minmax(0,1fr)_110px] gap-1' }, [
+          h('input', {
+            class: inputClass,
+            type: 'number',
+            min: 1,
+            step: 1,
+            value: value.amount ?? 7,
+            onInput: (event: any) => {
+              props.rule.value = { amount: Number(event.target.value), unit: value.unit || 'day' };
+            },
+          }),
+          h('select', {
+            class: selectClass,
+            value: value.unit || 'day',
+            onChange: (event: any) => {
+              props.rule.value = { amount: Number(value.amount || 7), unit: event.target.value };
+            },
+          }, ['day', 'month', 'year'].map(unit => h('option', { value: unit }, t(`album.smart_edit.date_units.${unit}`)))),
+        ]);
       }
       if (props.rule.operator === 'between') {
-        return h('div', { class: 'grid grid-cols-[0.8fr_1fr_1fr] gap-1' }, [
-          selectDateField(value),
+        return h('div', { class: 'grid grid-cols-[1fr_1fr] gap-1' }, [
           dateInput(unixToDateInput(value.start), (nextValue: string) => { props.rule.value = { ...value, start: dateInputToUnix(nextValue) }; }, 'start'),
           dateInput(unixToDateInputInclusiveEnd(value.end), (nextValue: string) => { props.rule.value = { ...value, end: dateInputToUnixExclusiveEnd(nextValue) }; }, 'end'),
         ]);
       }
-      return h('div', { class: 'grid grid-cols-[0.8fr_1fr] gap-1' }, [
-        selectDateField(value),
-        dateInput(unixToDateInput(value.value), (nextValue: string) => { props.rule.value = { ...value, value: dateInputToUnix(nextValue) }; }, 'value'),
-      ]);
+      return dateInput(unixToDateInput(value.value), (nextValue: string) => { props.rule.value = { ...value, value: dateInputToUnix(nextValue) }; }, 'value');
     };
-    const selectDateField = (value: any) => h('select', {
+    const orientationSelect = () => h('select', {
       class: selectClass,
-      value: value.field || 'taken',
-      onChange: (event: any) => { props.rule.value = { ...value, field: event.target.value }; },
-    }, props.dateFieldOptions.map((option: any) => h('option', { value: option.value }, option.label)));
+      value: isOrientationValueValid(props.rule.value) ? props.rule.value : 'landscape',
+      onChange: (event: any) => { props.rule.value = event.target.value; },
+    }, ['landscape', 'portrait', 'square'].map(orientation => h('option', { value: orientation }, t(`album.smart_edit.orientation_values.${orientation}`))));
     const valueUnit = () => {
       if (props.rule.field === 'size') return 'MB';
       if (props.rule.field === 'width' || props.rule.field === 'height') return 'px';
@@ -831,12 +751,13 @@ const RuleValueControl = defineComponent({
       return '';
     };
     return () => {
-      if (['empty', 'not_empty'].includes(props.rule.operator) && props.rule.field !== 'date') return h('span', { class: 'text-xs text-base-content/30' }, '-');
+      if (['empty', 'not_empty'].includes(props.rule.operator) && !isDateRuleField(props.rule.field)) return h('span', { class: 'text-xs text-base-content/30' }, '-');
       if (props.rule.field === 'file_type') return fileTypeInput();
-      if (props.rule.field === 'extension') return fileTypeInput();
+      if (props.rule.field === 'extension') return extensionInput();
       if (props.rule.field === 'favorite' || props.rule.field === 'has_gps') return boolSelect();
-      if (props.rule.field === 'rating') return props.rule.operator === 'between' ? rangeInput() : numberInput(props.rule.value, (event: any) => { props.rule.value = Number(event.target.value); });
-      if (props.rule.field === 'date') return dateControl();
+      if (props.rule.field === 'orientation') return orientationSelect();
+      if (props.rule.field === 'rating') return props.rule.operator === 'between' ? rangeInput('', 1, { min: 0, max: 5, step: 1 }) : numberInput(props.rule.value, (event: any) => { props.rule.value = Number(event.target.value); }, { min: 0, max: 5, step: 1 });
+      if (isDateRuleField(props.rule.field)) return dateControl();
       if (props.rule.field === 'size') return props.rule.operator === 'between' ? rangeInput(valueUnit()) : unitNumberInput(props.rule.value, valueUnit(), (event: any) => { props.rule.value = Number(event.target.value); });
       if (['width', 'height', 'duration'].includes(props.rule.field)) return props.rule.operator === 'between' ? rangeInput(valueUnit()) : unitNumberInput(props.rule.value, valueUnit(), (event: any) => { props.rule.value = Number(event.target.value); });
       if (props.rule.field === 'tag') return selectInput(props.tagOptions);
@@ -858,31 +779,3 @@ function coerceOptionValue(value: string, options: any[]) {
   return option ? option.value : value;
 }
 </script>
-
-<style>
-.smart-rule-ghost {
-  opacity: 0.35;
-  background: color-mix(in oklab, var(--color-base-content) 8%, transparent);
-}
-
-.smart-rule-chosen {
-  cursor: grabbing;
-}
-
-.smart-rule-fallback {
-  z-index: 10000;
-  pointer-events: none;
-  opacity: 0.92;
-  background: var(--color-base-100);
-  box-shadow: 0 8px 24px color-mix(in oklab, var(--color-base-content) 18%, transparent);
-}
-
-.smart-extension-menu {
-  position: fixed;
-}
-
-.smart-extension-option {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-</style>

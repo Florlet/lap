@@ -67,15 +67,20 @@
       "validation_name": "Gib einen Namen für das Smart-Album ein.",
       "validation_rule": "Füge mindestens eine vollständige Regel hinzu.",
       "fields": {
+        "name": "Name",
         "file_type": "Dateityp",
         "extension": "Erweiterung",
         "favorite": "Favorit",
         "rating": "Bewertung",
         "date": "Datum",
+        "date_taken": "Aufnahmedatum",
+        "date_created": "Erstellungsdatum",
+        "date_modified": "Änderungsdatum",
         "size": "Größe",
         "width": "Breite",
         "height": "Höhe",
         "duration": "Dauer",
+        "orientation": "Ausrichtung",
         "has_gps": "GPS",
         "tag": "Tag",
         "person": "Person",
@@ -95,6 +100,10 @@
         "not_empty": "nicht leer",
         "before": "vor",
         "after": "nach",
+        "in_last": "in den letzten",
+        "older_than": "älter als",
+        "contains": "enthält",
+        "not_contains": "enthält nicht",
         "has": "enthält",
         "not_has": "enthält nicht"
       },
@@ -106,6 +115,21 @@
         "taken": "Aufgenommen",
         "added": "Hinzugefügt",
         "modified": "Geändert"
+      },
+      "date_units": {
+        "day": "Tage",
+        "month": "Monate",
+        "year": "Jahre"
+      },
+      "date_periods": {
+        "this_week": "Diese Woche",
+        "this_month": "Dieser Monat",
+        "this_year": "Dieses Jahr"
+      },
+      "orientation_values": {
+        "landscape": "Querformat",
+        "portrait": "Hochformat",
+        "square": "Quadratisch"
       }
     }
   },

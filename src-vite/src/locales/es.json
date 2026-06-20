@@ -67,15 +67,20 @@
       "validation_name": "Introduce un nombre para el álbum inteligente.",
       "validation_rule": "Añade al menos una regla completa.",
       "fields": {
+        "name": "Nombre",
         "file_type": "Tipo de archivo",
         "extension": "Extensión",
         "favorite": "Favorito",
         "rating": "Valoración",
         "date": "Fecha",
+        "date_taken": "Fecha de captura",
+        "date_created": "Fecha de creación",
+        "date_modified": "Fecha de modificación",
         "size": "Tamaño",
         "width": "Anchura",
         "height": "Altura",
         "duration": "Duración",
+        "orientation": "Orientación",
         "has_gps": "GPS",
         "tag": "Etiqueta",
         "person": "Persona",
@@ -95,6 +100,10 @@
         "not_empty": "no vacío",
         "before": "antes",
         "after": "después",
+        "in_last": "en los últimos",
+        "older_than": "anterior a",
+        "contains": "contiene",
+        "not_contains": "no contiene",
         "has": "tiene",
         "not_has": "no tiene"
       },
@@ -106,6 +115,21 @@
         "taken": "Tomada",
         "added": "Añadida",
         "modified": "Modificada"
+      },
+      "date_units": {
+        "day": "días",
+        "month": "meses",
+        "year": "años"
+      },
+      "date_periods": {
+        "this_week": "Esta semana",
+        "this_month": "Este mes",
+        "this_year": "Este año"
+      },
+      "orientation_values": {
+        "landscape": "Horizontal",
+        "portrait": "Vertical",
+        "square": "Cuadrada"
       }
     }
   },

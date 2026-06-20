@@ -67,15 +67,20 @@
       "validation_name": "Enter a smart album name.",
       "validation_rule": "Add at least one complete rule.",
       "fields": {
+        "name": "Name",
         "file_type": "File type",
         "extension": "Extension",
         "favorite": "Favorite",
         "rating": "Rating",
         "date": "Date",
+        "date_taken": "Taken date",
+        "date_created": "Created date",
+        "date_modified": "Modified date",
         "size": "Size",
         "width": "Width",
         "height": "Height",
         "duration": "Duration",
+        "orientation": "Orientation",
         "has_gps": "GPS",
         "tag": "Tag",
         "person": "Person",
@@ -95,6 +100,10 @@
         "not_empty": "not empty",
         "before": "before",
         "after": "after",
+        "in_last": "in last",
+        "older_than": "older than",
+        "contains": "contains",
+        "not_contains": "does not contain",
         "has": "has",
         "not_has": "not has"
       },
@@ -106,6 +115,21 @@
         "taken": "Taken",
         "added": "Added",
         "modified": "Modified"
+      },
+      "date_units": {
+        "day": "days",
+        "month": "months",
+        "year": "years"
+      },
+      "date_periods": {
+        "this_week": "This week",
+        "this_month": "This month",
+        "this_year": "This year"
+      },
+      "orientation_values": {
+        "landscape": "Landscape",
+        "portrait": "Portrait",
+        "square": "Square"
       }
     }
   },

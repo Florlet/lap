@@ -67,15 +67,20 @@
       "validation_name": "スマートアルバム名を入力してください。",
       "validation_rule": "完全なルールを少なくとも 1 つ追加してください。",
       "fields": {
+        "name": "名前",
         "file_type": "ファイルタイプ",
         "extension": "拡張子",
         "favorite": "お気に入り",
         "rating": "評価",
         "date": "日付",
+        "date_taken": "撮影日",
+        "date_created": "作成日",
+        "date_modified": "変更日",
         "size": "サイズ",
         "width": "幅",
         "height": "高さ",
         "duration": "長さ",
+        "orientation": "向き",
         "has_gps": "GPS",
         "tag": "タグ",
         "person": "人物",
@@ -95,6 +100,10 @@
         "not_empty": "空ではない",
         "before": "以前",
         "after": "以後",
+        "in_last": "過去",
+        "older_than": "より前",
+        "contains": "含む",
+        "not_contains": "含まない",
         "has": "含む",
         "not_has": "含まない"
       },
@@ -106,6 +115,21 @@
         "taken": "撮影日",
         "added": "追加日",
         "modified": "変更日"
+      },
+      "date_units": {
+        "day": "日",
+        "month": "か月",
+        "year": "年"
+      },
+      "date_periods": {
+        "this_week": "今週",
+        "this_month": "今月",
+        "this_year": "今年"
+      },
+      "orientation_values": {
+        "landscape": "横向き",
+        "portrait": "縦向き",
+        "square": "正方形"
       }
     }
   },

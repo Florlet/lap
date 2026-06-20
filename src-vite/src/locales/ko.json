@@ -67,15 +67,20 @@
       "validation_name": "스마트 앨범 이름을 입력하세요.",
       "validation_rule": "완성된 규칙을 하나 이상 추가하세요.",
       "fields": {
+        "name": "이름",
         "file_type": "파일 유형",
         "extension": "확장자",
         "favorite": "즐겨찾기",
         "rating": "평점",
         "date": "날짜",
+        "date_taken": "촬영일",
+        "date_created": "생성일",
+        "date_modified": "수정일",
         "size": "크기",
         "width": "너비",
         "height": "높이",
         "duration": "길이",
+        "orientation": "방향",
         "has_gps": "GPS",
         "tag": "태그",
         "person": "인물",
@@ -95,6 +100,10 @@
         "not_empty": "비어 있지 않음",
         "before": "이전",
         "after": "이후",
+        "in_last": "지난",
+        "older_than": "보다 오래됨",
+        "contains": "포함",
+        "not_contains": "포함하지 않음",
         "has": "포함",
         "not_has": "포함하지 않음"
       },
@@ -106,6 +115,21 @@
         "taken": "촬영일",
         "added": "추가일",
         "modified": "수정일"
+      },
+      "date_units": {
+        "day": "일",
+        "month": "개월",
+        "year": "년"
+      },
+      "date_periods": {
+        "this_week": "이번 주",
+        "this_month": "이번 달",
+        "this_year": "올해"
+      },
+      "orientation_values": {
+        "landscape": "가로",
+        "portrait": "세로",
+        "square": "정사각형"
       }
     }
   },

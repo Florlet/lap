@@ -13,6 +13,7 @@ use crate::t_storage;
 use crate::t_utils;
 use crate::t_video;
 use base64::{Engine, engine::general_purpose};
+use chrono::{Datelike, TimeZone};
 use exif::{In, Tag, Value};
 use image::{GenericImageView, ImageFormat};
 use rusqlite::{Connection, OptionalExtension, Result, ToSql, params, params_from_iter};
@@ -2484,21 +2485,97 @@ impl AFile {
         Ok(format!("({})", parts.join(" OR ")))
     }
 
-    fn smart_rule_date_field(value: &JsonValue) -> Result<&'static str, String> {
-        let field = value
-            .get("field")
-            .and_then(JsonValue::as_str)
-            .unwrap_or("taken");
+    fn build_smart_name_condition(
+        operator: &str,
+        value: &JsonValue,
+        sql_params: &mut Vec<Box<dyn ToSql>>,
+    ) -> Result<String, String> {
+        let name = Self::smart_rule_string(value).ok_or_else(|| "Name value required".to_string())?;
+        match operator {
+            "contains" | "has" => {
+                sql_params.push(Box::new(format!("%{}%", name)));
+                Ok("a.name LIKE ? COLLATE NOCASE".to_string())
+            }
+            "not_contains" | "not_has" => {
+                sql_params.push(Box::new(format!("%{}%", name)));
+                Ok("a.name NOT LIKE ? COLLATE NOCASE".to_string())
+            }
+            _ => Err(format!("Unsupported name operator: {}", operator)),
+        }
+    }
+
+    fn smart_rule_date_column(field: &str) -> Result<&'static str, String> {
         match field {
-            "taken" | "date_taken" => Ok("a.taken_date"),
-            "added" | "created" | "date_added" => Ok("a.created_at"),
-            "modified" | "date_modified" => Ok("a.modified_at"),
+            "date_taken" => Ok("a.taken_date"),
+            "date_created" => Ok("a.created_at"),
+            "date_modified" => Ok("a.modified_at"),
             _ => Err(format!("Unsupported date field: {}", field)),
         }
     }
 
     fn smart_rule_date_value(value: &JsonValue, key: &str) -> Option<i64> {
         value.get(key).and_then(Self::smart_rule_i64)
+    }
+
+    fn smart_rule_relative_date_cutoff(value: &JsonValue) -> Result<i64, String> {
+        let amount = value
+            .get("amount")
+            .and_then(Self::smart_rule_i64)
+            .filter(|v| *v > 0)
+            .ok_or_else(|| "Relative date amount required".to_string())?;
+        let unit = value
+            .get("unit")
+            .and_then(JsonValue::as_str)
+            .unwrap_or("day");
+        let days = match unit {
+            "day" | "days" => amount,
+            "month" | "months" => amount * 30,
+            "year" | "years" => amount * 365,
+            _ => return Err(format!("Unsupported relative date unit: {}", unit)),
+        };
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_secs() as i64;
+        Ok(now - days * 86_400)
+    }
+
+    fn smart_rule_date_period_range(value: &JsonValue) -> Result<(i64, i64), String> {
+        let period = value
+            .as_str()
+            .ok_or_else(|| "Date period value required".to_string())?;
+        let today = chrono::Local::now().date_naive();
+        let start_date = match period {
+            "this_week" => today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64),
+            "this_month" => chrono::NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
+                .ok_or_else(|| "Invalid month date".to_string())?,
+            "this_year" => chrono::NaiveDate::from_ymd_opt(today.year(), 1, 1)
+                .ok_or_else(|| "Invalid year date".to_string())?,
+            _ => return Err(format!("Unsupported date period: {}", period)),
+        };
+        let end_date = today + chrono::Duration::days(1);
+        let start = chrono::Local
+            .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).ok_or_else(|| "Invalid date period start".to_string())?)
+            .earliest()
+            .ok_or_else(|| "Invalid local date period start".to_string())?
+            .timestamp();
+        let end = chrono::Local
+            .from_local_datetime(&end_date.and_hms_opt(0, 0, 0).ok_or_else(|| "Invalid date period end".to_string())?)
+            .earliest()
+            .ok_or_else(|| "Invalid local date period end".to_string())?
+            .timestamp();
+        Ok((start, end))
+    }
+
+    fn build_smart_orientation_condition(value: &JsonValue) -> Result<String, String> {
+        let orientation = Self::smart_rule_string(value)
+            .ok_or_else(|| "Orientation value required".to_string())?;
+        match orientation.as_str() {
+            "landscape" => Ok("(a.width > a.height)".to_string()),
+            "portrait" => Ok("(a.height > a.width)".to_string()),
+            "square" => Ok("(a.width = a.height)".to_string()),
+            _ => Err(format!("Unsupported orientation value: {}", orientation)),
+        }
     }
 
     fn push_numeric_rule(
@@ -2566,23 +2643,10 @@ impl AFile {
         let value = &rule.value;
 
         match field {
+            "name" => Self::build_smart_name_condition(operator, value, sql_params),
             "file_type" => {
-                let mask_value = value
-                    .get("fileType")
-                    .or_else(|| value.get("file_type"))
-                    .unwrap_or(value);
-                let mask = Self::smart_rule_i64(mask_value).ok_or_else(|| "File type value required".to_string())?;
+                let mask = Self::smart_rule_i64(value).ok_or_else(|| "File type value required".to_string())?;
                 let condition = Self::build_file_type_condition(mask).unwrap_or_else(|| "1 = 1".to_string());
-                let condition = if let Some(extension_value) = value.get("extension") {
-                    if Self::smart_rule_string(extension_value).is_some() {
-                        let extension_condition = Self::build_smart_extension_condition(extension_value, sql_params)?;
-                        format!("({} AND {})", condition, extension_condition)
-                    } else {
-                        condition
-                    }
-                } else {
-                    condition
-                };
                 Ok(if matches!(operator, "is_not" | "neq" | "not_in") {
                     format!("NOT {}", condition)
                 } else {
@@ -2612,9 +2676,15 @@ impl AFile {
                 Self::push_numeric_rule(&mut conditions, sql_params, "a.rating", operator, value)?;
                 Ok(conditions.pop().unwrap_or_else(|| "1 = 1".to_string()))
             }
-            "date" => {
-                let date_col = Self::smart_rule_date_field(value)?;
+            "date_taken" | "date_created" | "date_modified" => {
+                let date_col = Self::smart_rule_date_column(field)?;
                 match operator {
+                    "is" | "eq" => {
+                        let (start, end) = Self::smart_rule_date_period_range(value)?;
+                        sql_params.push(Box::new(start));
+                        sql_params.push(Box::new(end));
+                        Ok(format!("{} >= ? AND {} < ?", date_col, date_col))
+                    }
                     "before" | "lt" => {
                         let v = Self::smart_rule_date_value(value, "value")
                             .ok_or_else(|| "Date value required".to_string())?;
@@ -2636,8 +2706,16 @@ impl AFile {
                         sql_params.push(Box::new(end));
                         Ok(format!("{} >= ? AND {} < ?", date_col, date_col))
                     }
-                    "empty" => Ok(format!("({} IS NULL OR {} < 86400)", date_col, date_col)),
-                    "not_empty" => Ok(format!("({} IS NOT NULL AND {} >= 86400)", date_col, date_col)),
+                    "in_last" => {
+                        let cutoff = Self::smart_rule_relative_date_cutoff(value)?;
+                        sql_params.push(Box::new(cutoff));
+                        Ok(format!("{} >= ?", date_col))
+                    }
+                    "older_than" => {
+                        let cutoff = Self::smart_rule_relative_date_cutoff(value)?;
+                        sql_params.push(Box::new(cutoff));
+                        Ok(format!("{} < ?", date_col))
+                    }
                     _ => Err(format!("Unsupported date operator: {}", operator)),
                 }
             }
@@ -2671,7 +2749,19 @@ impl AFile {
                     "(a.gps_latitude IS NULL OR a.gps_longitude IS NULL)".to_string()
                 })
             }
+            "orientation" => {
+                if operator != "is" && operator != "eq" {
+                    return Err(format!("Unsupported orientation operator: {}", operator));
+                }
+                Self::build_smart_orientation_condition(value)
+            }
             "tag" => {
+                if operator == "empty" {
+                    return Ok("NOT EXISTS (SELECT 1 FROM afile_tags at2 WHERE at2.file_id = a.id)".to_string());
+                }
+                if operator == "not_empty" {
+                    return Ok("EXISTS (SELECT 1 FROM afile_tags at2 WHERE at2.file_id = a.id)".to_string());
+                }
                 let id = Self::smart_rule_i64(value).ok_or_else(|| "Tag id required".to_string())?;
                 if matches!(operator, "has" | "is" | "eq") {
                     sql_params.push(Box::new(id));
@@ -2684,6 +2774,12 @@ impl AFile {
                 }
             }
             "person" => {
+                if operator == "empty" {
+                    return Ok("NOT EXISTS (SELECT 1 FROM faces f2 WHERE f2.file_id = a.id AND f2.person_id IS NOT NULL)".to_string());
+                }
+                if operator == "not_empty" {
+                    return Ok("EXISTS (SELECT 1 FROM faces f2 WHERE f2.file_id = a.id AND f2.person_id IS NOT NULL)".to_string());
+                }
                 let id = Self::smart_rule_i64(value).ok_or_else(|| "Person id required".to_string())?;
                 if matches!(operator, "has" | "is" | "eq") {
                     sql_params.push(Box::new(id));
