@@ -49,6 +49,88 @@
     },
     "no_smart_albums": {
       "description": "Créez des albums intelligents avec des règles de requête personnalisées."
+    },
+    "smart_edit": {
+      "title_add": "Ajouter un album intelligent",
+      "title_edit": "Modifier l’album intelligent",
+      "name": "Nom",
+      "description": "Description",
+      "match": "Correspondance",
+      "match_all": "Toutes les règles",
+      "match_any": "Une règle",
+      "rules": "Règles",
+      "add_rule": "Ajouter une règle",
+      "remove_rule": "Supprimer la règle",
+      "sort": "Tri",
+      "delete": "Supprimer",
+      "delete_message": "L’album intelligent « {name} » sera supprimé.",
+      "validation_name": "Saisissez un nom d’album intelligent.",
+      "validation_rule": "Ajoutez au moins une règle complète.",
+      "fields": {
+        "name": "Nom",
+        "file_type": "Type de fichier",
+        "extension": "Extension",
+        "favorite": "Favori",
+        "rating": "Note",
+        "date": "Date",
+        "date_taken": "Date de prise",
+        "date_created": "Date de création",
+        "date_modified": "Date de modification",
+        "size": "Taille",
+        "width": "Largeur",
+        "height": "Hauteur",
+        "duration": "Durée",
+        "orientation": "Orientation",
+        "has_gps": "GPS",
+        "tag": "Tag",
+        "person": "Personne",
+        "camera": "Appareil",
+        "lens": "Objectif",
+        "location": "Lieu"
+      },
+      "operators": {
+        "is": "=",
+        "is_not": "≠",
+        "gt": ">",
+        "gte": "≥",
+        "lt": "<",
+        "lte": "≤",
+        "between": "entre",
+        "empty": "vide",
+        "not_empty": "non vide",
+        "before": "avant",
+        "after": "après",
+        "in_last": "dans les derniers",
+        "older_than": "plus ancien que",
+        "contains": "contient",
+        "not_contains": "ne contient pas",
+        "has": "contient",
+        "not_has": "ne contient pas"
+      },
+      "boolean": {
+        "yes": "Oui",
+        "no": "Non"
+      },
+      "date_fields": {
+        "taken": "Prise",
+        "added": "Ajoutée",
+        "modified": "Modifiée"
+      },
+      "date_units": {
+        "day": "jours",
+        "month": "mois",
+        "year": "ans"
+      },
+      "date_periods": {
+        "this_week": "Cette semaine",
+        "this_month": "Ce mois",
+        "this_year": "Cette année"
+      },
+      "orientation_values": {
+        "landscape": "Paysage",
+        "portrait": "Portrait",
+        "square": "Carré"
+      }
     }
   },
   "welcome": {
