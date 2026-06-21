@@ -112,13 +112,30 @@
             </div>
 
             <!-- Component panel (flex-1 to fill remaining space) -->
-            <div class="flex-1 overflow-hidden">
+            <div
+              class="min-h-0 flex-1 overflow-hidden"
+              :class="libConfig.activePane === 'collection' ? 'sidebar-pane-inactive' : ''"
+              @mousedown.capture="activateMainPanel"
+            >
               <component ref="panelRef" 
                 :key="libraryVersion"
                 :is="buttons[config.main.sidebarIndex].component" 
                 :titlebar="buttons[config.main.sidebarIndex].text"
               />
             </div>
+            <div
+              v-if="!libraryEmpty && config.collectionTray.expanded"
+              class="h-1 shrink-0 cursor-row-resize transition-colors hover:bg-primary"
+              @mousedown="startDraggingCollectionSplitter"
+            ></div>
+            <CollectionTray
+              v-if="!libraryEmpty"
+              class="shrink-0 border-t border-base-content/5"
+              :class="config.collectionTray.expanded ? '' : 'h-10'"
+              :style="collectionTrayStyle"
+              :expanded="config.collectionTray.expanded"
+              @toggle-expanded="toggleCollectionTray"
+            />
           </div>
         </div>
       
@@ -190,6 +207,7 @@ import TitleBar from '@/components/TitleBar.vue';
 import TButton from '@/components/TButton.vue';
 import Content from '@/components/Content.vue';
 import ContextMenu from '@/components/ContextMenu.vue';
+import CollectionTray from '@/components/CollectionTray.vue';
 import ManageLibraries from '@/components/ManageLibraries.vue';
 import iconLogo from '@/assets/images/icon.png';
 
@@ -311,6 +329,7 @@ const showDesktopTitleBar = isWin || isLinux;
 
 /// Splitter for resizing the left pane
 const isDraggingSplitter = ref(false);
+const isDraggingCollectionSplitter = ref(false);
 
 const appName = ref('');
 const showDebugBadge = import.meta.env.DEV;
@@ -448,6 +467,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   clearLeftPanelAnimationTimer();
   window.removeEventListener('keydown', handleHomeKeyDown);
+  document.removeEventListener('mousemove', handleCollectionMouseMove);
+  document.removeEventListener('mouseup', stopDraggingCollectionSplitter);
   unlistenOpenPreferences?.();
   unlistenOpenPreferences = null;
   unlistenOpenAbout?.();
@@ -569,6 +590,7 @@ const onManageLibrariesUpdated = async () => {
 
 // click sidebar
 function clickSidebar(index: number) {
+  activateMainPanel();
   if (libraryEmpty.value && index !== 0) return;
   if (index === MAP_SIDEBAR_INDEX) {
     // map view has no filter panel - give it the full content area
@@ -582,6 +604,10 @@ function clickSidebar(index: number) {
     showPanel.value = true;
     config.main.sidebarIndex = index;
   }
+}
+
+function activateMainPanel() {
+  libConfig.activePane = 'main';
 }
 
 // Dragging the splitter
@@ -607,6 +633,40 @@ function handleMouseMove(event: MouseEvent) {
     const maxLeftPaneWidth = window.innerWidth / 2;
     config.leftPanel.width = Math.max(160, Math.min(pointerX - 6, maxLeftPaneWidth)); // -2: border width(2px)
   }
+}
+
+const collectionTrayStyle = computed(() => {
+  if (!config.collectionTray.expanded) return {};
+  return { height: `${config.collectionTray.height}px` };
+});
+
+function toggleCollectionTray() {
+  config.collectionTray.expanded = !config.collectionTray.expanded;
+}
+
+function startDraggingCollectionSplitter(event: MouseEvent) {
+  if (!config.collectionTray.expanded) return;
+  event.preventDefault();
+  isDraggingCollectionSplitter.value = true;
+  document.addEventListener('mousemove', handleCollectionMouseMove);
+  document.addEventListener('mouseup', stopDraggingCollectionSplitter);
+}
+
+function stopDraggingCollectionSplitter() {
+  isDraggingCollectionSplitter.value = false;
+  document.removeEventListener('mousemove', handleCollectionMouseMove);
+  document.removeEventListener('mouseup', stopDraggingCollectionSplitter);
+}
+
+function handleCollectionMouseMove(event: MouseEvent) {
+  if (!isDraggingCollectionSplitter.value || !leftPanelRootRef.value) return;
+  const rect = leftPanelRootRef.value.getBoundingClientRect();
+  const headerHeight = 52;
+  const minMainPanelHeight = 160;
+  const minTrayHeight = 120;
+  const maxTrayHeight = Math.max(minTrayHeight, rect.height - headerHeight - minMainPanelHeight);
+  const nextHeight = rect.bottom - event.clientY - 2;
+  config.collectionTray.height = Math.max(minTrayHeight, Math.min(nextHeight, maxTrayHeight));
 }
 
 /// click settings icon

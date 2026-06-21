@@ -12,6 +12,16 @@
     "map": "マップ",
     "settings": "設定"
   },
+  "collection": {
+    "title": "コレクション",
+    "add": "コレクションを追加",
+    "expand": "展開",
+    "collapse": "折りたたむ",
+    "rename": "名前を変更",
+    "delete": "削除",
+    "drop_action": "追加",
+    "drop_title_hint": "ドロップして追加"
+  },
   "album": {
     "all_files": "すべてのファイル",
     "album_list": "アルバム",

@@ -12,6 +12,16 @@
     "map": "지도",
     "settings": "설정"
   },
+  "collection": {
+    "title": "컬렉션",
+    "add": "컬렉션 추가",
+    "expand": "펼치기",
+    "collapse": "접기",
+    "rename": "이름 변경",
+    "delete": "삭제",
+    "drop_action": "추가",
+    "drop_title_hint": "드롭하여 추가"
+  },
   "album": {
     "all_files": "모든 파일",
     "album_list": "앨범",

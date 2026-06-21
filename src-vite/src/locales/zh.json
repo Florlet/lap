@@ -12,6 +12,16 @@
     "map": "地图",
     "settings": "设置"
   },
+  "collection": {
+    "title": "合集",
+    "add": "添加合集",
+    "expand": "展开",
+    "collapse": "折叠",
+    "rename": "重命名",
+    "delete": "删除",
+    "drop_action": "添加",
+    "drop_title_hint": "拖入即可添加"
+  },
   "album": {
     "all_files": "所有文件",
     "album_list": "相册",

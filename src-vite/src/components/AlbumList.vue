@@ -46,7 +46,7 @@
             :class="[
               'mx-1 p-1 h-12 flex items-center rounded-box whitespace-nowrap cursor-pointer group border-2 border-transparent transition-all duration-200 ease-in-out album-drag-handle',
               selection.albumId.value === album.id
-                ? (selection.selected.value ? 'text-primary bg-base-100 hover:bg-base-100' : 'text-base-content')
+                ? (selection.selected.value ? `${isMainSourceActive ? 'text-primary' : 'text-base-content/70'} bg-base-100 hover:bg-base-100` : 'text-base-content')
                 : 'hover:text-base-content hover:bg-base-100/30',
             ]"
             @click.stop="clickAlbum(album)"
@@ -278,6 +278,7 @@ let unlistenAlbumsRefreshed: (() => void) | undefined;
 
 // Computed to check if we're in main album pane
 const isMainPane = computed(() => props.selectionSource === 'album');
+const isMainSourceActive = computed(() => libConfig.activePane !== 'collection');
 const albumListRootRef = ref<HTMLElement | null>(null);
 
 // message boxes

@@ -18,6 +18,7 @@ export function useAlbumSelectionProvider(
 ) {
     const markAlbumActivated = () => {
         if (source !== 'album') return;
+        libConfig.activePane = 'main';
         libConfig.album.activateTick = Number(libConfig.album.activateTick || 0) + 1;
     };
 

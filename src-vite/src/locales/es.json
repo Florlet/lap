@@ -12,6 +12,16 @@
     "map": "Mapa",
     "settings": "Ajustes"
   },
+  "collection": {
+    "title": "Colección",
+    "add": "Añadir colección",
+    "expand": "Expandir",
+    "collapse": "Contraer",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "drop_action": "Añadir",
+    "drop_title_hint": "Suelta para añadir"
+  },
   "album": {
     "all_files": "Todos los archivos",
     "album_list": "Álbumes",

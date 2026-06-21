@@ -121,6 +121,11 @@ html, body {
   @apply text-primary bg-base-100 hover:bg-base-100;
 }
 
+.sidebar-pane-inactive .sidebar-item-selected,
+.sidebar-pane-inactive .selected-item {
+  @apply text-base-content/70 bg-base-100/40 hover:bg-base-100/40;
+}
+
 @utility sidebar-item-compact {
   @apply h-8 mr-1;
 }

@@ -1460,20 +1460,31 @@ function isCopyDragModifier(event: Pick<MouseEvent, 'altKey' | 'ctrlKey'>) {
 function updateDragGhostAction(event: Pick<MouseEvent, 'altKey' | 'ctrlKey'>) {
   if (!dragGhostAction) return;
   const copy = isCopyDragModifier(event);
+  const showLabel = !!pointerDropTarget;
+  const isCollectionDropTarget = !!pointerDropTarget?.dataset.collectionDropId;
   const icon = dragGhostAction.firstElementChild as HTMLElement | null;
   const label = dragGhostAction.lastElementChild as HTMLElement | null;
   if (icon) {
-    render(createVNode(copy ? IconAdd : IconPrev, {
+    render(createVNode(isCollectionDropTarget || (showLabel && copy) ? IconAdd : IconPrev, {
       class: 'w-4 h-4',
     }), icon);
   }
-  if (label) label.textContent = copy
-    ? t('info_panel.drag_action.copy')
-    : t('info_panel.drag_action.move');
-  dragGhostAction.style.background = copy
+  if (label) {
+    label.textContent = showLabel
+      ? (isCollectionDropTarget
+        ? t('collection.drop_action')
+        : copy
+        ? t('info_panel.drag_action.copy')
+        : t('info_panel.drag_action.move'))
+      : '';
+    label.style.display = showLabel ? 'inline' : 'none';
+  }
+  dragGhostAction.style.padding = showLabel ? '0 9px 0 6px' : '0 5px';
+  dragGhostAction.style.gap = showLabel ? '5px' : '0';
+  dragGhostAction.style.background = showLabel && (copy || isCollectionDropTarget)
     ? 'var(--color-success)'
     : 'color-mix(in oklab, var(--color-base-300) 94%, transparent)';
-  dragGhostAction.style.color = copy
+  dragGhostAction.style.color = showLabel && (copy || isCollectionDropTarget)
     ? 'var(--color-success-content)'
     : 'var(--color-base-content)';
 }
@@ -1640,11 +1651,14 @@ function createDragGhost(
 function updateContentDragPosition(event: PointerEvent) {
   if (!dragGhost || (event.clientX === 0 && event.clientY === 0)) return;
   dragGhost.style.transform = `translate3d(${Math.round(event.clientX - dragGhostHotspotX)}px, ${Math.round(event.clientY - dragGhostHotspotY)}px, 0)`;
-  updateDragGhostAction(event);
-  const target = document
-    .elementFromPoint(event.clientX, event.clientY)
-    ?.closest('[data-file-drop-path][data-file-drop-album-id]') as HTMLElement | null;
+  const elementAtPointer = document.elementFromPoint(event.clientX, event.clientY);
+  if (elementAtPointer?.closest('[data-collection-tray-root]') && !config.collectionTray.expanded) {
+    config.collectionTray.expanded = true;
+  }
+  const target = elementAtPointer
+    ?.closest('[data-file-drop-path][data-file-drop-album-id], [data-collection-drop-id]') as HTMLElement | null;
   setPointerDropTarget(target);
+  updateDragGhostAction(event);
 }
 
 function markContentInternalDrag({
@@ -1679,6 +1693,7 @@ function markContentInternalDrag({
     pointerDragUsesSelection ? selectedCount.value : files.length,
     { xRatio: hotspotXRatio, yRatio: hotspotYRatio },
   );
+  void tauriEmit('content-items-drag-state', { dragging: true });
   updateContentDragPosition(event);
   document.addEventListener('pointermove', updateContentDragPosition);
   document.addEventListener('keydown', updateDragGhostModifier);
@@ -1695,6 +1710,7 @@ async function clearContentInternalDrag(event?: PointerEvent) {
   pointerDragUsesSelection = false;
   pointerDragFiles = null;
   removeDragGhost();
+  void tauriEmit('content-items-drag-state', { dragging: false });
 
   if (shouldDrop && event && target && files?.length) {
     if (usesSelection) {
@@ -1707,6 +1723,17 @@ async function clearContentInternalDrag(event?: PointerEvent) {
         album_id: file.album_id,
       }));
     }
+
+    const collectionId = target.dataset.collectionDropId;
+    if (collectionId) {
+      await tauriEmit('collection-files-dropped', {
+        collectionId,
+        count: files.length,
+        fileIds: files.map((file: any) => file.id),
+      });
+      return;
+    }
+
     if (!await confirmLargeBatch(files.length)) return;
 
     const destPath = String(target.dataset.fileDropPath || '');

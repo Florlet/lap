@@ -19,7 +19,7 @@
           }
         ]"
         :disabled="disabled"
-        @click="emit('click', $event)"
+        @click="handleClick"
       >
         <component v-if="icon"
           :is="icon"
@@ -218,6 +218,11 @@ const hideTooltip = () => {
   clearTooltipTimer();
   isHovered.value = false;
   removePositionListeners();
+};
+
+const handleClick = (event: MouseEvent) => {
+  hideTooltip();
+  emit('click', event);
 };
 
 onBeforeUnmount(() => {

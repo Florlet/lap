@@ -12,6 +12,9 @@ export const useLibraryStore = defineStore('libraryStore', {
     _initialized: false,
 
     // Per-library state
+    /** @type {'main' | 'collection'} */
+    activePane: 'main',
+
     /** @type {{ id: number, folderId: number | null, folderPath: string, selected: boolean, activateTick: number }} */
     album: {
       id: 0,                  // current album id (0: show all files)
@@ -29,6 +32,11 @@ export const useLibraryStore = defineStore('libraryStore', {
 
     /** @type {Array<{ id: string, name: string, description: string, source: 'rules', query: { version: number, match: 'all' | 'any', rules: Array<{ id: string, field: string, operator: string, value: any }> }, sort: { type: number, order: number }, createdAt: number, updatedAt: number }>} */
     smartAlbums: [],          // custom smart albums
+
+    /** @type {{ selectedId: string | null }} */
+    collection: {
+      selectedId: 'default',      // selected collection id
+    },
 
     /** @type {{ tab: 'favorite' | 'rating', albumId: number | null, folderId: number, folderPath: string, rating: number | null }} */
     favorite: {
@@ -169,6 +177,7 @@ export const useLibraryStore = defineStore('libraryStore', {
             album: this.album,
             smartAlbum: this.smartAlbum,
             smartAlbums: this.smartAlbums,
+            collection: this.collection,
             favorite: this.favorite,
             tag: this.tag,
             calendar: this.calendar,
