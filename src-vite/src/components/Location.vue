@@ -2,11 +2,7 @@
 
   <div class="sidebar-panel">
     <div class="sidebar-panel-header">
-      <div role="tablist" class="sidebar-header-tabs">
-        <button role="tab" class="sidebar-header-tab tab-active">
-          {{ localeMsg.sidebar.location }}
-        </button>
-      </div>
+      <span class="sidebar-panel-header-title flex-1">{{ titlebar }}</span>
     </div>
 
     <!-- list view -->

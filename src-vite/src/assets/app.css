@@ -81,7 +81,7 @@ html, body {
 
 /* sidebar panel header */
 @utility sidebar-panel-header {
-  @apply px-2 h-12 flex items-center justify-between gap-1 whitespace-nowrap shrink-0 border-t border-base-content/5;
+  @apply px-2 h-10 flex items-center justify-between gap-1 whitespace-nowrap shrink-0 text-base-content/30;
 }
 
 @utility sidebar-panel-header-title {

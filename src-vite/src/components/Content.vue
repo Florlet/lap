@@ -148,7 +148,7 @@
 
           <!-- toggle dedup panel -->
           <TButton
-            :icon="IconPhotoAll"
+            :icon="IconSimilar"
             :tooltip="$t('toolbar.tooltip.open_dedup')"
             :selected="isDedupPanelOpen"
             :disabled="isScanStreamingMode"
@@ -626,15 +626,7 @@ import { config, libConfig } from '@/common/config';
 import { getShortcutLabel, matchesShortcut, ShortcutActionId, ShortcutPlatform } from '@/common/shortcuts';
 import { getSmartTagById, SMART_TAG_SEARCH_THRESHOLD } from '@/common/smartTags';
 import { getAlbumScanState, getAlbumScanIcon, shouldAnimateAlbumScanIcon } from '@/common/scanStatus';
-import {
-  GROUP_BY_NONE,
-  GROUP_BY_FOLDER_PATH,
-  GROUP_BY_DATE_DAY,
-  GROUP_BY_DATE_MONTH,
-  GROUP_BY_LOCATION,
-  GROUP_BY_CAMERA,
-  GROUP_BY_LENS,
-} from '@/common/grouping';
+import { GROUP, LIB_ITEM, SIDEBAR } from '@/common/constants';
 import { isWin, isMac, isLinux, setTheme, separator,
          formatFileSize, formatDate, getCalendarDateRange, formatFolderBreadcrumb, getThumbnailDataUrl, getAssetSrc, getPreviewUrl,
          getCachedThumbnailDataUrl,
@@ -663,7 +655,6 @@ import StatusBar from '@/components/StatusBar.vue';
 import {
   IconFolders,
   IconHeart,
-  IconFolderFavorite,
   IconFiles,
   IconFolder,
   IconTag,
@@ -692,6 +683,10 @@ import {
   IconPrev,
   IconAdd,
   IconPhotoAll,
+  IconStack,
+  IconStar,
+  IconSimilar,
+  IconCamera,
 } from '@/common/icons';
 
 const thumbnailPlaceholder = new URL('@/assets/images/image-file.png', import.meta.url).href;
@@ -748,7 +743,7 @@ function handleBreadcrumbClick(segmentIndex: number) {
   const sidebarIndex = config.main.sidebarIndex;
 
   // Location: clicking parent segment navigates to admin1 only
-  if (sidebarIndex === 7) {
+  if (sidebarIndex === SIDEBAR.LOCATION) {
     if (segmentIndex === 0) {
       libConfig.location.name = null;
     }
@@ -756,9 +751,9 @@ function handleBreadcrumbClick(segmentIndex: number) {
   }
 
   // Camera: clicking parent segment navigates to make only
-  if (sidebarIndex === 8) {
+  if (sidebarIndex === SIDEBAR.CAMERA) {
     if (segmentIndex === 0) {
-      if ((libConfig.camera as any).tab === 'lens') {
+      if (!config.camera.isCamera) {
         (libConfig.camera as any).lensModel = null;
       } else {
         libConfig.camera.model = null;
@@ -767,15 +762,13 @@ function handleBreadcrumbClick(segmentIndex: number) {
     return;
   }
 
-  // Album folders (index 0) or Favorite folders (index 2): navigate to parent folder
-  if (sidebarIndex === 0 || sidebarIndex === 2) {
+  // Album folders: navigate to parent folder
+  if (sidebarIndex === SIDEBAR.ALBUM) {
     const segments = titleSegments.value;
     // The first segment is the album/folder root name.
     // Remaining segments are relative path components.
     // To navigate to segmentIndex, we rebuild the folder path.
-    const currentPath = sidebarIndex === 0
-      ? (libConfig.album.folderPath || '')
-      : (libConfig.favorite.folderPath || '');
+    const currentPath = libConfig.album.folderPath || '';
 
     if (!currentPath) return;
 
@@ -786,14 +779,10 @@ function handleBreadcrumbClick(segmentIndex: number) {
     const levelsToGoUp = segments.length - 1 - segmentIndex;
     const targetPath = pathParts.slice(0, pathParts.length - levelsToGoUp).join(separator);
 
-    if (sidebarIndex === 0) {
-      // Update title immediately for responsive UI, defer folderPath update to
-      // the expand-album-folder event handler so folderId stays consistent.
-      contentTitle.value = segments.slice(0, segmentIndex + 1).join(' > ');
-      tauriEmit('expand-album-folder', { albumId: libConfig.album.id, folderPath: targetPath });
-    } else {
-      libConfig.favorite.folderPath = targetPath;
-    }
+    // Update title immediately for responsive UI, defer folderPath update to
+    // the expand-album-folder event handler so folderId stays consistent.
+    contentTitle.value = segments.slice(0, segmentIndex + 1).join(' > ');
+    tauriEmit('expand-album-folder', { albumId: libConfig.album.id, folderPath: targetPath });
   }
 }
 
@@ -801,7 +790,7 @@ function handleBreadcrumbClick(segmentIndex: number) {
 const isCurrentFolderExcluded = ref(false);
 
 const showFolderFiles = computed(() =>
-  Boolean(config.main.sidebarIndex === 0 && libConfig.album.id && libConfig.album.id > 0 && !libConfig.album.selected)
+  Boolean(config.main.sidebarIndex === SIDEBAR.ALBUM && libConfig.album.id && libConfig.album.id > 0 && !libConfig.album.selected)
 );
 
 // progress bar
@@ -934,26 +923,26 @@ function createViewBackup() {
 
 function getAutoGroupByForCurrentView() {
   switch (Number(config.main.sidebarIndex)) {
-    case 0:
-      return GROUP_BY_FOLDER_PATH;
-    case 1:
-      return GROUP_BY_NONE; // Smart album: disabled
-    case 4:
+    case SIDEBAR.ALBUM:
+      return GROUP.FOLDER;
+    case SIDEBAR.SMART_ALBUM:
+      return GROUP.NONE; // Smart album: disabled
+    case SIDEBAR.CALENDAR:
       if (config.calendar.isMonthly) {
-        return libConfig.calendar.year !== null && libConfig.calendar.month === -1 ? GROUP_BY_DATE_MONTH : GROUP_BY_NONE;
+        return libConfig.calendar.year !== null && libConfig.calendar.month === -1 ? GROUP.MONTH : GROUP.NONE;
       }
-      return libConfig.calendar.year !== null && libConfig.calendar.month !== -1 && libConfig.calendar.date === -1 ? GROUP_BY_DATE_DAY : GROUP_BY_NONE;
-    case 5:
-      return GROUP_BY_NONE; // Tag and smart tag: disabled
-    case 7:
-      return libConfig.location.admin1 && !libConfig.location.name ? GROUP_BY_LOCATION : GROUP_BY_NONE;
-    case 8:
-      if ((libConfig.camera as any).tab === 'lens') {
-        return (libConfig.camera as any).lensMake && !(libConfig.camera as any).lensModel ? GROUP_BY_LENS : GROUP_BY_NONE;
+      return libConfig.calendar.year !== null && libConfig.calendar.month !== -1 && libConfig.calendar.date === -1 ? GROUP.DAY : GROUP.NONE;
+    case SIDEBAR.TAG:
+      return GROUP.NONE; // Tag and smart tag: disabled
+    case SIDEBAR.LOCATION:
+      return libConfig.location.admin1 && !libConfig.location.name ? GROUP.LOCATION : GROUP.NONE;
+    case SIDEBAR.CAMERA:
+      if (!config.camera.isCamera) {
+        return (libConfig.camera as any).lensMake && !(libConfig.camera as any).lensModel ? GROUP.LENS : GROUP.NONE;
       }
-      return libConfig.camera.make && !libConfig.camera.model ? GROUP_BY_CAMERA : GROUP_BY_NONE;
+      return libConfig.camera.make && !libConfig.camera.model ? GROUP.CAMERA : GROUP.NONE;
     default:
-      return GROUP_BY_NONE;
+      return GROUP.NONE;
   }
 }
 
@@ -965,7 +954,7 @@ function isGroupingSupportedForCurrentView() {
     !config.settings.grid.showFilmStrip &&
     !isScanStreamingMode.value &&
     tempViewMode.value === 'none' &&
-    config.main.sidebarIndex !== 3
+    config.main.sidebarIndex !== SIDEBAR.SEARCH
   );
 }
 
@@ -994,9 +983,9 @@ function formatDateGroupLabel(groupBy: number, label: string) {
   if (!year || !month || !date) return rawLabel;
 
   switch (groupBy) {
-    case GROUP_BY_DATE_DAY:
+    case GROUP.DAY:
       return formatDate(year, month, date, localeMsg.value.format.date_long);
-    case GROUP_BY_DATE_MONTH:
+    case GROUP.MONTH:
       return formatDate(year, month, 1, localeMsg.value.format.month);
     default:
       return rawLabel;
@@ -1005,8 +994,8 @@ function formatDateGroupLabel(groupBy: number, label: string) {
 
 function formatGroupLabel(label: string) {
   const groupBy = Number(activeGroupBy.value || 0);
-  if (groupBy === GROUP_BY_DATE_DAY || groupBy === GROUP_BY_DATE_MONTH) return formatDateGroupLabel(groupBy, label);
-  if (groupBy === GROUP_BY_FOLDER_PATH) return formatFolderGroupLabel(label);
+  if (groupBy === GROUP.DAY || groupBy === GROUP.MONTH) return formatDateGroupLabel(groupBy, label);
+  if (groupBy === GROUP.FOLDER) return formatFolderGroupLabel(label);
   return label || '';
 }
 
@@ -1702,7 +1691,7 @@ const isContentInternalDrag = ref(false);
 const isPastingClipboard = ref(false);
 const acceptDrops = computed(() =>
   tempViewMode.value === 'none'
-  && config.main.sidebarIndex === 0
+  && config.main.sidebarIndex === SIDEBAR.ALBUM
   && libConfig.album.id > 0
 );
 
@@ -1797,7 +1786,7 @@ async function resolveAlbumImportDestination(albumId: number, folderPath?: strin
 
 async function resolveCurrentAlbumImportDestination() {
   const albumId = Number(libConfig.album.id || 0);
-  if (config.main.sidebarIndex !== 0 || albumId <= 0) return null;
+  if (config.main.sidebarIndex !== SIDEBAR.ALBUM || albumId <= 0) return null;
 
   const folderPath = !libConfig.album.selected && libConfig.album.folderPath
     ? libConfig.album.folderPath
@@ -2300,31 +2289,25 @@ const currentTitleIcon = computed(() => {
     case 'none':
       if (contentTitle.value) {
         switch (config.main.sidebarIndex) {
-          case 0:
-            switch (libConfig.album.id) {
-              case 0: return IconFolders;
-              default: return libConfig.album.selected || config.settings.showSubfolderFiles ? IconFolders : IconFolder;
+          case SIDEBAR.LIBRARY:
+            switch (libConfig.library.item) {
+              case LIB_ITEM.ALL: return IconPhotoAll;
+              case LIB_ITEM.FAV: return IconHeart;
+              case LIB_ITEM.SUBJECTS: return IconSmartTag;
+              case LIB_ITEM.RECENT: return IconHistory;
+              case LIB_ITEM.TODAY: return IconCalendarDay;
+              default: return IconPhotoAll;
             }
-          case 1:
-            if (libConfig.smartAlbum.type === 'system') {
-              switch (libConfig.smartAlbum.id) {
-                case 'recently-added': return IconHistory;
-                case 'on-this-day': return IconCalendarDay;
-              }
-            }
-            return IconBolt;
-          case 2:
-            switch (libConfig.favorite.folderId) {
-              case 0: return IconHeart;
-              case 1: return IconFolderFavorite;
-              default: return IconFolderFavorite;
-            }
-          case 3: return IconPhotoSearch;
-          case 4: return config.calendar.isMonthly ? IconCalendarMonth : IconCalendarDay;
-          case 5: return (libConfig.tag as any).tab === 'smart' ? IconSmartTag : IconTag;
-          case 6: return IconPersonSearch;
-          case 7: return IconLocation;
-          case 8: return IconCameraAperture;
+          case SIDEBAR.ALBUM:
+              return libConfig.album.selected || config.settings.showSubfolderFiles ? IconFolders : IconFolder;
+          case SIDEBAR.SMART_ALBUM: return IconBolt;
+          case SIDEBAR.RATING: return IconStar;
+          case SIDEBAR.SEARCH: return IconPhotoSearch;
+          case SIDEBAR.CALENDAR: return config.calendar.isMonthly ? IconCalendarMonth : IconCalendarDay;
+          case SIDEBAR.TAG: return IconTag;
+          case SIDEBAR.PERSON: return IconPersonSearch;
+          case SIDEBAR.LOCATION: return IconLocation;
+          case SIDEBAR.CAMERA: return config.camera.isCamera ? IconCamera : IconCameraAperture;
           default: return IconFiles;
         }
       }
@@ -3410,7 +3393,7 @@ async function processNextAlbum(skipFilePath: string | null = null, skipRecovery
 
 // Check if current album is being indexed
 const isIndexing = computed(() => {
-  return config.main.sidebarIndex === 0 && // Album mode
+  return config.main.sidebarIndex === SIDEBAR.ALBUM &&
          !!libConfig.album.id && libConfig.album.id > 0 && // Valid album
          libConfig.index.albumQueue.includes(libConfig.album.id) &&
          Number(libConfig.index.status || 0) !== 2;
@@ -3422,7 +3405,7 @@ const isAnyIndexing = computed(() =>
 
 const isScanStreamingMode = computed(() =>
   isIndexing.value &&
-  config.main.sidebarIndex === 0 &&
+  config.main.sidebarIndex === SIDEBAR.ALBUM &&
   Boolean(libConfig.album.selected)
 );
 
@@ -3482,7 +3465,7 @@ const selectedAlbumScanState = computed(() => getAlbumScanState({
 const selectedAlbumScanIcon = computed(() => getAlbumScanIcon(selectedAlbumScanState.value));
 const selectedAlbumScanAnimating = computed(() => shouldAnimateAlbumScanIcon(selectedAlbumScanState.value));
 const isOtherTabScanning = computed(() =>
-  config.main.sidebarIndex !== 0 &&
+  config.main.sidebarIndex !== SIDEBAR.ALBUM &&
   (libConfig.index.albumQueue as any[]).length > 0 &&
   Number(libConfig.index.status || 0) !== 2
 );
@@ -3493,7 +3476,7 @@ const showBackgroundScanningIcon = computed(() =>
 );
 
 const statusBarScanMode = computed<'none' | 'current' | 'waiting' | 'background' | 'paused'>(() => {
-  if (config.main.sidebarIndex === 0) {
+  if (config.main.sidebarIndex === SIDEBAR.ALBUM) {
     if (selectedAlbumScanState.value === 'scanning') return 'current';
     if (selectedAlbumScanState.value === 'queued') return 'waiting';
     if (selectedAlbumScanState.value === 'paused') return 'paused';
@@ -3743,7 +3726,7 @@ watch(
   ([sidebarIndex, albumId, activeId]) => {
     const targetAlbumId = Number(activeId || 0);
     if (
-      sidebarIndex === 0 &&
+      sidebarIndex === SIDEBAR.ALBUM &&
       Number(albumId || 0) > 0 &&
       Number(albumId || 0) === targetAlbumId &&
       targetAlbumId > 0
@@ -3762,7 +3745,7 @@ watch(
   () => [libConfig.index.discovered, libConfig.album.id, config.main.sidebarIndex, libConfig.album.selected],
   ([discovered, albumId, sidebarIndex, selected]) => {
     if (
-      sidebarIndex === 0 &&
+      sidebarIndex === SIDEBAR.ALBUM &&
       Number(albumId) > 0 &&
       libConfig.index.albumQueue.includes(Number(albumId)) &&
       Number(discovered || 0) >= 0
@@ -3816,7 +3799,7 @@ onMounted( async() => {
   unlistenLibraryTotalRefreshed = await listen('library-total-refreshed', (event: any) => {
     if (event?.payload?.source === 'content') return;
     if (isScanStreamingMode.value) return;
-    if (config.main.sidebarIndex === 0) {
+    if (config.main.sidebarIndex === SIDEBAR.ALBUM) {
       pendingInitialSelectedIndex = selectedItemIndex.value;
       hasRestoredInitialSelection = false;
       updateContent(true);
@@ -4006,7 +3989,7 @@ onMounted( async() => {
         libConfig.index.searchTotal = Number(search_total || 0);
         libConfig.index.failed = Number(failed || 0);
         if (
-          config.main.sidebarIndex === 0 &&
+          config.main.sidebarIndex === SIDEBAR.ALBUM &&
           Number(libConfig.album.id || 0) === Number(album_id || 0)
         ) {
           totalFileSize.value = Number(current_size || 0);
@@ -4019,7 +4002,7 @@ onMounted( async() => {
     // notify album list to update cover
     await tauriEmit('album-cover-changed', { albumId: album_id, fileId: null });
     const shouldRefreshCurrentView =
-      config.main.sidebarIndex === 0 &&
+      config.main.sidebarIndex === SIDEBAR.ALBUM &&
       Number(libConfig.album.id) > 0 &&
       Number(libConfig.album.id) === Number(album_id);
 
@@ -4149,8 +4132,7 @@ onMounted( async() => {
 
   // Face Indexing listeners
   unlistenFaceIndexProgress = await listenFaceIndexProgress((event: any) => {
-    // Clear file list if in Person view (sidebarIndex === 6) and file list is not empty
-    if (config.main.sidebarIndex === 6 && fileList.value.length > 0) {
+    if (config.main.sidebarIndex === SIDEBAR.PERSON && fileList.value.length > 0) {
       clearContentRows();
       totalFileCount.value = 0;
       totalFileSize.value = 0;
@@ -4262,7 +4244,7 @@ watch(
   () => {
     scheduleContentRefresh(() => {
       // Only update content if we are currently in the Image Search view
-      if (config.main.sidebarIndex === 3) {
+      if (config.main.sidebarIndex === SIDEBAR.SEARCH) {
         refreshContentFromSelectionChange();
       }
     });
@@ -4273,18 +4255,20 @@ watch(
 watch(
   () => [
     config.main.sidebarIndex,      // toolbar index
+    (libConfig.library as any).item, // library
+    libConfig.library.smartId,
     libConfig.album.id, libConfig.album.folderId, libConfig.album.folderPath, libConfig.album.selected, // album
     libConfig.smartAlbum.type, libConfig.smartAlbum.id, JSON.stringify(libConfig.smartAlbums || []), // smart album
-    (libConfig.favorite as any).tab, libConfig.favorite.albumId, libConfig.favorite.folderId, libConfig.favorite.folderPath, libConfig.favorite.rating, // favorite files and rating
+    libConfig.rating.item, // rating
     libConfig.search.fileName, config.search.fileType, config.search.sortType, config.search.sortOrder, // search and sort 
     config.settings.showSubfolderFiles,                                            // album folder view
     config.settings.folderSort, config.settings.calendarSort, config.settings.categorySort, // group sorting
     libConfig.person.id,                                                              // person
     config.calendar.isMonthly, libConfig.calendar.year, libConfig.calendar.month, libConfig.calendar.date, // calendar
-    libConfig.tag.id, libConfig.tag.smartId, (libConfig.tag as any).tab,             // tag
+    libConfig.tag.id,             // tag
     libConfig.location.admin1, libConfig.location.name,                               // location
     libConfig.camera.make, libConfig.camera.model,                                    // camera 
-    (libConfig.camera as any).tab, (libConfig.camera as any).lensMake, (libConfig.camera as any).lensModel, // lens
+    config.camera.isCamera, (libConfig.camera as any).lensMake, (libConfig.camera as any).lensModel, // lens
   ], 
   () => {
     // Clear active adjustments when the file list changes to avoid unnecessary confirmation dialogs
@@ -4688,7 +4672,7 @@ async function initializeGroupedFileList(requestId: number) {
     return false;
   }
 
-  if (activeGroupBy.value === GROUP_BY_FOLDER_PATH) {
+  if (activeGroupBy.value === GROUP.FOLDER) {
     await ensureFolderGroupRoots();
   }
 
@@ -5246,9 +5230,9 @@ async function getImageSearchFileList(
 
 async function updateContent(force = false) {
   const newIndex = config.main.sidebarIndex;
-  const nextAlbumId = newIndex === 0 ? Number(libConfig.album.id || 0) : 0;
+  const nextAlbumId = newIndex === SIDEBAR.ALBUM ? Number(libConfig.album.id || 0) : 0;
   const isCurrentAlbumIndexing =
-    newIndex === 0 &&
+    newIndex === SIDEBAR.ALBUM &&
     !!libConfig.album.id &&
     libConfig.album.id > 0 &&
     libConfig.index.albumQueue.includes(libConfig.album.id);
@@ -5287,11 +5271,49 @@ async function updateContent(force = false) {
   clearContentRows();
   isLoading.value = true;
 
-  if(newIndex === 0) {   // album
+  if(newIndex === SIDEBAR.LIBRARY) {
+    switch ((libConfig.library as any).item) {
+      case LIB_ITEM.FAV:
+        contentTitle.value = localeMsg.value.favorite.files;
+        getFileList({ isFavorite: true }, requestId);
+        break;
+      case LIB_ITEM.RECENT:
+        contentTitle.value = localeMsg.value.library.recently_added;
+        getFileList({ sortType: 1, sortOrder: 1 }, requestId);
+        break;
+      case LIB_ITEM.TODAY:
+        contentTitle.value = localeMsg.value.library.on_this_day;
+        getFileList({ startDate: -1, endDate: -1 }, requestId);
+        break;
+      case LIB_ITEM.SUBJECTS: {
+        const smartId = libConfig.library.smartId;
+        if (!smartId) {
+          contentTitle.value = localeMsg.value.subject.title;
+          showEmptyContent(requestId);
+          break;
+        }
+        const smartTag = getSmartTagById(smartId);
+        if (!smartTag) {
+          contentTitle.value = localeMsg.value.subject.title;
+          showEmptyContent(requestId);
+          break;
+        }
+        const smartTagLabel = localeMsg.value.subject.items?.[smartTag.id] || smartTag.id;
+        contentTitle.value = `${localeMsg.value.subject.title} > ${smartTagLabel}`;
+        getImageSearchFileList(smartTag.prompt, 0, requestId, false, SMART_TAG_SEARCH_THRESHOLD);
+        break;
+      }
+      default:
+        contentTitle.value = localeMsg.value.library.all_files;
+        getFileList({}, requestId);
+        break;
+    }
+  }
+  else if(newIndex === SIDEBAR.ALBUM) {
     if(libConfig.album.id === null) {
       contentTitle.value = "";
     } else if(libConfig.album.id === 0) {   // all files
-      contentTitle.value = localeMsg.value.album.all_files;
+      contentTitle.value = localeMsg.value.library.all_files;
       getFileList({}, requestId);
     } else {
       getAlbum(libConfig.album.id).then(async album => {
@@ -5323,7 +5345,7 @@ async function updateContent(force = false) {
                 }
                 if (
                   requestId !== currentContentRequestId ||
-                  config.main.sidebarIndex !== 0 ||
+                  config.main.sidebarIndex !== SIDEBAR.ALBUM ||
                   libConfig.album.folderId !== folderId ||
                   libConfig.album.folderPath !== folderPath
                 ) return;
@@ -5361,16 +5383,10 @@ async function updateContent(force = false) {
       });
     }
   }
-  else if(newIndex === 1) {   // smart album
+  else if(newIndex === SIDEBAR.SMART_ALBUM) {
     const smartAlbumType = libConfig.smartAlbum.type;
     const smartAlbumId = libConfig.smartAlbum.id;
-    if (smartAlbumType === 'system' && smartAlbumId === 'recently-added') {
-      contentTitle.value = localeMsg.value.album.smart_items.recently_added;
-      getFileList({ sortType: 1, sortOrder: 1 }, requestId);
-    } else if (smartAlbumType === 'system' && smartAlbumId === 'on-this-day') {
-      contentTitle.value = localeMsg.value.album.smart_items.on_this_day;
-      getFileList({ startDate: -1, endDate: -1 }, requestId);
-    } else if (smartAlbumType === 'custom' && smartAlbumId) {
+    if (smartAlbumType === 'custom' && smartAlbumId) {
       const smartAlbum = (libConfig.smartAlbums || []).find((item: any) => item.id === smartAlbumId);
       if (smartAlbum) {
         contentTitle.value = smartAlbum.name || '';
@@ -5384,14 +5400,11 @@ async function updateContent(force = false) {
       showEmptyContent(requestId);
     }
   }
-  else if(newIndex === 2) {   // favorite
-    if(libConfig.favorite.folderId === null) {
-      contentTitle.value = "";
-    } else {
-      if (libConfig.favorite.rating === 0) {
-        contentTitle.value = localeMsg.value.favorite.unrated;
+  else if(newIndex === SIDEBAR.RATING) {
+    if (libConfig.rating.item === 0) {
+        contentTitle.value = localeMsg.value.rating.unrated;
         getFileList({ rating: 0 }, requestId);
-      } else if ((libConfig.favorite.rating || 0) > 0) {
+    } else if ((libConfig.rating.item || 0) > 0) {
         const keyMap: Record<number, string> = {
           5: 'five_stars',
           4: 'four_stars',
@@ -5399,27 +5412,16 @@ async function updateContent(force = false) {
           2: 'two_stars',
           1: 'one_star',
         };
-        const rating = Number(libConfig.favorite.rating || 0);
+        const rating = Number(libConfig.rating.item || 0);
         const key = keyMap[rating] || '';
         contentTitle.value = key ? localeMsg.value.favorite[key] : `${rating}★`;
         getFileList({ rating }, requestId);
-      } else if(libConfig.favorite.folderId === 0) { // favorite files
-        contentTitle.value = localeMsg.value.favorite.files;
-        getFileList({ isFavorite: true }, requestId);
-      } else {                // favorite folders
-        getAlbum(libConfig.favorite.albumId).then(album => {
-          if (requestId !== currentContentRequestId) return;
-          if(album) {
-            contentTitle.value = formatFolderBreadcrumb(libConfig.favorite.folderPath || "", album.path);
-            getFileList({ searchAllSubfolders: libConfig.favorite.folderPath || "" }, requestId);
-          } else {
-            contentTitle.value = "";
-          }
-        });
-      }
+    } else {
+      contentTitle.value = "";
+      showEmptyContent(requestId);
     }
   }
-  else if(newIndex === 3) {   // image search
+  else if(newIndex === SIDEBAR.SEARCH) {
     if(libConfig.search.searchType === 0) {   // search
       if (libConfig.search.searchText) {
         contentTitle.value = localeMsg.value.search.search_images + ' - ' + libConfig.search.searchText;
@@ -5448,7 +5450,7 @@ async function updateContent(force = false) {
       }
     }
   }
-  else if(newIndex === 4) {   // calendar
+  else if(newIndex === SIDEBAR.CALENDAR) {
     if(libConfig.calendar.year === null) {
       contentTitle.value = "";
       showEmptyContent(requestId);
@@ -5464,43 +5466,24 @@ async function updateContent(force = false) {
       getFileList({ startDate, endDate }, requestId);
     }
   } 
-  else if(newIndex === 5) {   // tag
-    const tagTab = (libConfig.tag as any).tab === 'smart' ? 'smart' : 'custom';
-    if (tagTab === 'smart') {
-      const smartId = libConfig.tag.smartId;
-      if (!smartId) {
-        contentTitle.value = "";
-        showEmptyContent(requestId);
-      } else {
-        const smartTag = getSmartTagById(smartId);
-        if (!smartTag) {
+  else if(newIndex === SIDEBAR.TAG) {
+    if (libConfig.tag.id === null) {
+      contentTitle.value = "";
+      showEmptyContent(requestId);
+    } else {
+      getTagName(libConfig.tag.id).then(tagName => {
+        if (requestId !== currentContentRequestId) return;
+        if (tagName) {
+          contentTitle.value = tagName;
+          getFileList({ tagId: libConfig.tag.id || 0 }, requestId);
+        } else {
           contentTitle.value = "";
           showEmptyContent(requestId);
-          return;
         }
-        const smartTagLabel = localeMsg.value.tag.smart_items?.[smartTag.id] || smartTag.id;
-        contentTitle.value = `${localeMsg.value.tag.smart_group} > ${smartTagLabel}`;
-        getImageSearchFileList(smartTag.prompt, 0, requestId, false, SMART_TAG_SEARCH_THRESHOLD);
-      }
-    } else {
-      if (libConfig.tag.id === null) {
-        contentTitle.value = "";
-        showEmptyContent(requestId);
-      } else {
-        getTagName(libConfig.tag.id).then(tagName => {
-          if (requestId !== currentContentRequestId) return;
-          if (tagName) {
-            contentTitle.value = tagName;
-            getFileList({ tagId: libConfig.tag.id || 0 }, requestId);
-          } else {
-            contentTitle.value = "";
-            showEmptyContent(requestId);
-          }
-        });
-      }
+      });
     }
   }
-  else if(newIndex === 6) {   // person
+  else if(newIndex === SIDEBAR.PERSON) {
     if (libConfig.person.id === null) {
       contentTitle.value = "";
       showEmptyContent(requestId);
@@ -5509,7 +5492,7 @@ async function updateContent(force = false) {
       getFileList({ personId: libConfig.person.id }, requestId);
     }
   }
-  else if(newIndex === 7) {   // location
+  else if(newIndex === SIDEBAR.LOCATION) {
     if(libConfig.location.admin1 === null) {
       contentTitle.value = "";
       showEmptyContent(requestId);
@@ -5523,8 +5506,8 @@ async function updateContent(force = false) {
       } 
     }
   }
-  else if(newIndex === 8) {   // camera
-    if ((libConfig.camera as any).tab === 'lens') {
+  else if(newIndex === SIDEBAR.CAMERA) {
+    if (!config.camera.isCamera) {
       const lensMake = (libConfig.camera as any).lensMake;
       const lensModel = (libConfig.camera as any).lensModel;
       if (lensMake === null) {
@@ -5772,14 +5755,14 @@ function exitTempViewMode() {
 function handleTitleClick() {
   switch (tempViewMode.value) {
     case 'similar':
-      config.main.sidebarIndex = 3;   // search tab
+      config.main.sidebarIndex = SIDEBAR.SEARCH;
       libConfig.search.searchType = 1;   // similar image 
       break;
     case 'person':
-      config.main.sidebarIndex = 6;   // person tab
+      config.main.sidebarIndex = SIDEBAR.PERSON;
       break;
     case 'album':
-      config.main.sidebarIndex = 0;   // album tab
+      config.main.sidebarIndex = SIDEBAR.ALBUM;
 
       // Get first file to extract album info
       const file = fileList.value[0];
@@ -7189,9 +7172,9 @@ const sortExtendOptions = computed(() => {
 });
 
 const isSearchLikeView = computed(() => {
-  return config.main.sidebarIndex === 1 || config.main.sidebarIndex === 3 || (
-    config.main.sidebarIndex === 5 && (libConfig.tag as any).tab === 'smart'
-  );
+  return config.main.sidebarIndex === SIDEBAR.SMART_ALBUM ||
+    config.main.sidebarIndex === SIDEBAR.SEARCH ||
+    (config.main.sidebarIndex === SIDEBAR.LIBRARY && libConfig.library.item === LIB_ITEM.SUBJECTS);
 });
 
 // update image when the select file is changed

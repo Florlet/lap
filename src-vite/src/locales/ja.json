@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "ホーム",
+    "library": "ライブラリ",
     "album": "アルバム",
     "search": "検索",
-    "favorite": "お気に入り",
+    "rating": "評価",
     "tag": "タグ",
     "calendar": "カレンダー",
     "location": "場所",
@@ -21,17 +22,17 @@
     "delete": "削除",
     "drop_action": "追加",
     "drop_title_hint": "ドロップして追加",
-    "empty_drop_hint": "上のコレクションにアイテムをドラッグして追加します。"
+    "empty_drop_hint": "アイテムをコレクションにドラッグして追加します。"
+  },
+  "library": {
+    "all_files": "すべてのファイル",
+    "recently_added": "最近追加",
+    "on_this_day": "この日"
   },
   "album": {
-    "all_files": "すべてのファイル",
     "album_list": "アルバム",
     "smart_album_list": "スマートアルバム",
     "add_smart_album": "スマートアルバムを追加",
-    "smart_items": {
-      "recently_added": "最近追加",
-      "on_this_day": "この日"
-    },
     "folder_unavailable": {
       "title": "フォルダーを利用できません",
       "description": "ストレージデバイスを再接続するか、フォルダーの場所を確認してください。"
@@ -201,11 +202,14 @@
     "resume": "インデックスを再開"
   },
   "favorite": {
-    "tab_favorite": "お気に入り",
+    "title": "お気に入り",
     "files": "お気に入りファイル",
-    "folders": "お気に入りフォルダー",
-    "ratings": "評価",
+    "folders": "お気に入りフォルダー"
+  },
+  "rating": {
+    "title": "評価",
     "unrated": "未評価",
+    "rated": "評価済み",
     "mixed": "複数",
     "clear_rating": "評価をクリア",
     "five_stars": "5つ星",
@@ -215,16 +219,18 @@
     "one_star": "1つ星"
   },
   "tag": {
+    "title": "タグ",
     "add_tag": "タグを追加",
     "delete_tag": "タグを削除",
     "edit_tag": "タグを編集",
     "search_tags": "タグを検索",
     "enter_new_tag_name": "新しいタグ名を入力",
     "not_found": "タグが見つかりません",
-    "load_failed": "タグの状態を読み込めませんでした。ダイアログを閉じて再試行してください。",
-    "smart_group": "スマートタグ",
-    "custom_group": "カスタムタグ",
-    "smart_items": {
+    "load_failed": "タグの状態を読み込めませんでした。ダイアログを閉じて再試行してください。"
+  },
+  "subject": {
+    "title": "被写体",
+    "items": {
       "family": "家族",
       "portraits": "ポートレート",
       "kids": "子ども",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "カレンダー",
-    "monthly_view": "月表示",
-    "daily_view": "日表示",
+    "month_title": "月表示",
+    "day_title": "日表示",
+    "switch_to_month": "月表示に切替",
+    "switch_to_day": "日表示に切替",
     "day": "日",
     "week": "週",
     "month": "月",
@@ -521,6 +529,12 @@
       "daily": "日別",
       "time_asc": "古い順",
       "time_desc": "新しい順"
+    },
+    "camera_panel": {
+      "camera_title": "カメラ",
+      "lens_title": "レンズ",
+      "switch_to_camera": "カメラに切替",
+      "switch_to_lens": "レンズに切替"
     },
     "search": {
       "clear_history": "検索履歴を消去"

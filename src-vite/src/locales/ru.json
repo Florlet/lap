@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "Главная",
+    "library": "Библиотека",
     "album": "Альбомы",
     "search": "Поиск",
-    "favorite": "Избранное",
+    "rating": "Оценка",
     "tag": "Теги",
     "calendar": "Календарь",
     "location": "Место",
@@ -20,18 +21,18 @@
     "rename": "Переименовать",
     "delete": "Удалить",
     "drop_action": "Добавить",
-    "drop_title_hint": "Отпустите, чтобы добавить",
-    "empty_drop_hint": "Перетащите элементы на коллекцию выше, чтобы добавить их."
+    "drop_title_hint": "Бросить для добавления",
+    "empty_drop_hint": "Перетащите элементы в коллекцию, чтобы добавить их."
+  },
+  "library": {
+    "all_files": "Все файлы",
+    "recently_added": "Недавно добавленные",
+    "on_this_day": "В этот день"
   },
   "album": {
-    "all_files": "Все файлы",
     "album_list": "Альбомы",
     "smart_album_list": "Смарт-альбомы",
     "add_smart_album": "Добавить смарт-альбом",
-    "smart_items": {
-      "recently_added": "Недавно добавленные",
-      "on_this_day": "В этот день"
-    },
     "folder_unavailable": {
       "title": "Папка недоступна",
       "description": "Подключите накопитель повторно или проверьте расположение папки."
@@ -201,11 +202,14 @@
     "resume": "Продолжить"
   },
   "favorite": {
-    "tab_favorite": "Избранное",
+    "title": "Избранное",
     "files": "Избранные файлы",
-    "folders": "Избранные папки",
-    "ratings": "Оценки",
+    "folders": "Избранные папки"
+  },
+  "rating": {
+    "title": "Оценки",
     "unrated": "Без оценки",
+    "rated": "Оценено",
     "mixed": "Разные",
     "clear_rating": "Сбросить оценку",
     "five_stars": "5 звезд",
@@ -215,16 +219,18 @@
     "one_star": "1 звезда"
   },
   "tag": {
+    "title": "Теги",
     "add_tag": "Добавить тег",
     "delete_tag": "Удалить тег",
     "edit_tag": "Редактировать тег",
     "search_tags": "Поиск тегов",
     "enter_new_tag_name": "Новое имя тега",
     "not_found": "Теги не найдены",
-    "load_failed": "Не удалось загрузить состояние тегов. Закройте это окно и повторите попытку.",
-    "smart_group": "Умные теги",
-    "custom_group": "Пользовательские теги",
-    "smart_items": {
+    "load_failed": "Не удалось загрузить состояние тегов. Закройте это окно и повторите попытку."
+  },
+  "subject": {
+    "title": "Сюжеты",
+    "items": {
       "family": "Семья",
       "portraits": "Портреты",
       "kids": "Дети",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "Календарь",
-    "monthly_view": "Месяц",
-    "daily_view": "День",
+    "month_title": "Месяц",
+    "day_title": "День",
+    "switch_to_month": "На месяц",
+    "switch_to_day": "На день",
     "day": "День",
     "week": "Неделя",
     "month": "Месяц",
@@ -521,6 +529,12 @@
       "daily": "День",
       "time_asc": "Время Возр",
       "time_desc": "Время Убыв"
+    },
+    "camera_panel": {
+      "camera_title": "Камера",
+      "lens_title": "Объектив",
+      "switch_to_camera": "На камеру",
+      "switch_to_lens": "На объектив"
     },
     "search": {
       "clear_history": "Очистить историю"

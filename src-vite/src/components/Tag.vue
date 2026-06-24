@@ -2,23 +2,8 @@
 
   <div class="sidebar-panel">
     <div class="sidebar-panel-header">
-      <div role="tablist" class="sidebar-header-tabs">
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', activeTab === 'smart' ? 'tab-active' : '']"
-          @click="activeTab = 'smart'"
-        >
-          {{ localeMsg.tag.smart_group }}
-        </button>
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', activeTab === 'custom' ? 'tab-active' : '']"
-          @click="activeTab = 'custom'"
-        >
-          {{ localeMsg.tag.custom_group }}
-        </button>
-      </div>
-      <div v-if="activeTab === 'custom'" class="flex items-center gap-1">
+      <span class="sidebar-panel-header-title flex-1">{{ localeMsg.tag.title }}</span>
+      <div class="flex items-center gap-1">
         <TButton
           :icon="IconAdd"
           :buttonSize="'small'"
@@ -28,7 +13,7 @@
       </div>
     </div>
 
-    <div v-if="activeTab === 'custom'" class="mx-1 mb-2 px-1 shrink-0">
+    <div class="mx-1 mb-2 px-1 shrink-0">
       <div
         :class="[
           'h-8 flex items-center rounded-box transition-colors bg-base-100/40',
@@ -56,22 +41,7 @@
     </div>
 
     <div class="grow overflow-x-hidden overflow-y-auto">
-      <ul v-if="activeTab === 'smart'">
-        <li v-for="item in smartTagItems" :key="item.id" :id="'smart-tag-' + item.id">
-          <div
-            :class="[
-              'sidebar-item',
-              selectedSmartTagId === item.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
-            ]"
-            @click="selectSmartTag(item.id)"
-          >
-            <IconSmartTag class="mx-1 h-5 shrink-0" />
-            <span class="sidebar-item-label">{{ item.label }}</span>
-          </div>
-        </li>
-      </ul>
-
-      <ul v-else-if="filteredTags.length > 0">
+      <ul v-if="filteredTags.length > 0">
         <li v-for="tag in filteredTags" :key="tag.id" :id="'tag-' + tag.id">
           <div
             :class="[
@@ -157,12 +127,10 @@ import {
   IconClose,
   IconMore,
   IconSearch,
-  IconSmartTag,
   IconTag,
   IconRename, 
   IconTrash,
 } from '@/common/icons';
-import { SMART_TAG_CATEGORIES, getSmartTagById } from '@/common/smartTags';
 
 import ContextMenu from '@/components/ContextMenu.vue';
 import MessageBox from '@/components/MessageBox.vue';
@@ -184,13 +152,6 @@ const emit = defineEmits(['editDataChanged']);
 // tags
 const allTags = ref<any[]>([]);
 const selectedTag = ref<any>(null);
-const selectedSmartTagId = ref<string | null>(libConfig.tag.smartId || null);
-const activeTab = computed<'smart' | 'custom'>({
-  get: () => (libConfig.tag.tab === 'smart' ? 'smart' : 'custom'),
-  set: (value) => {
-    libConfig.tag.tab = value;
-  },
-});
 const isRenamingTag = ref(false);
 const originalTagName = ref('');
 const tagInputRef = ref<HTMLInputElement[]>([]);
@@ -202,16 +163,6 @@ const filteredTags = computed(() => {
   const query = tagSearch.value.trim().toLowerCase();
   if (!query) return sortedTags.value;
   return sortedTags.value.filter(tag => tag.name.toLowerCase().includes(query));
-});
-
-const smartTagItems = computed(() => {
-  return SMART_TAG_CATEGORIES.map(category => {
-    const item = category.items[0];
-    return {
-      id: item.id,
-      label: localeMsg.value.tag.smart_items?.[item.id] || item.id,
-    };
-  });
 });
 
 // message boxes
@@ -249,13 +200,6 @@ const getMoreMenuItems = () => [
 ];
 
 onMounted(() => {
-  if (selectedSmartTagId.value && !getSmartTagById(selectedSmartTagId.value)) {
-    selectedSmartTagId.value = null;
-    libConfig.tag.smartId = null;
-    if (activeTab.value === 'smart') {
-      activeTab.value = 'custom';
-    }
-  }
   loadTags();
 });
 
@@ -284,16 +228,8 @@ async function loadTags() {
 
 function selectTag(tag: any) {
   if (isRenamingTag.value) return;
-  activeTab.value = 'custom';
   selectedTag.value = tag;
   libConfig.tag.id = tag.id;
-}
-
-function selectSmartTag(smartTagId: string) {
-  if (isRenamingTag.value) return;
-  activeTab.value = 'smart';
-  selectedSmartTagId.value = smartTagId;
-  libConfig.tag.smartId = smartTagId;
 }
 
 async function handleRenameTag() {

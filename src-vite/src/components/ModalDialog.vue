@@ -186,6 +186,6 @@ const clickCancel = () => {
 .modal-enter-from .modal-dialog,
 .modal-leave-to .modal-dialog {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(4px);
 }
 </style>

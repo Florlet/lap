@@ -52,11 +52,6 @@
             {{ child.name }}
           </div>
           <div class="ml-auto flex flex-row items-center text-base-content/30">
-            <TButton v-if="child.is_favorite" 
-              :icon="IconHeart"
-              :disabled="true"
-              :buttonSize="'small'"
-            />
             <TButton v-if="child.is_excluded_from_search" 
               :icon="IconHide"
               :disabled="true"
@@ -144,7 +139,7 @@ import { isMac, shortenFilename, isValidFileName, getFolderPath, getFullPath, no
 import {
   createFolder, renameFolder, fetchFolder, getAllAlbums, moveFolder, moveFolderOutsideLibrary,
   copyFolder, checkFileExists, revealPath, deleteFolder, deleteFolderPermanently, recountAlbum,
-  setFolderFavorite, setFolderSearchExcluded, hasImportableClipboard,
+  setFolderSearchExcluded, hasImportableClipboard,
 } from '@/common/api';
 import { DEFAULT_PLATFORM, getShortcutLabel } from '@/common/shortcuts';
 import { Album, Folder } from '@/common/types';
@@ -166,8 +161,6 @@ import {
   IconRename,
   IconMove,
   IconTrash,
-  IconHeart,
-  IconHeartFilled,
   IconFolder,
   IconHide,
   IconUnhide,
@@ -340,13 +333,6 @@ const getMenuItemsForFolder = async (folder: any) => {
     {
       label: "-",
       action: null
-    },
-    {
-      label: !folder?.is_favorite ? localeMsg.value.menu.meta.favorite : localeMsg.value.menu.meta.unfavorite,
-      icon: !folder?.is_favorite ? IconHeart : IconHeartFilled,
-      action: () => {
-        toggleFavorite();
-      }
     },
     {
       label: folder?.is_excluded_from_search ? localeMsg.value.menu.album.include_in_search : localeMsg.value.menu.album.exclude_from_search,
@@ -831,16 +817,6 @@ const clickTrashFolder = async () => {
         : t('msgbox.move_to_trash.folder_error')
     );
   }
-};
-
-/// toggle folder favorite
-const toggleFavorite = async () => {
-  const folder = selectedFolder.value;
-  if (!folder || !selection.folderId.value) {
-    return;
-  }
-  folder.is_favorite = !folder.is_favorite;
-  await setFolderFavorite(selection.folderId.value, folder.is_favorite ?? false);
 };
 
 /// toggle whether folder and children are excluded from search

@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "Accueil",
+    "library": "Bibliothèque",
     "album": "Albums",
     "search": "Recherche",
-    "favorite": "Favoris",
+    "rating": "Note",
     "tag": "Tags",
     "calendar": "Calendrier",
     "location": "Lieu",
@@ -21,17 +22,17 @@
     "delete": "Supprimer",
     "drop_action": "Ajouter",
     "drop_title_hint": "Déposer pour ajouter",
-    "empty_drop_hint": "Faites glisser des éléments sur la collection ci-dessus pour les ajouter."
+    "empty_drop_hint": "Faites glisser les éléments dans la collection pour les ajouter."
+  },
+  "library": {
+    "all_files": "Tous les fichiers",
+    "recently_added": "Ajoutés récemment",
+    "on_this_day": "Ce jour-là"
   },
   "album": {
-    "all_files": "Tous les fichiers",
     "album_list": "Albums",
     "smart_album_list": "Albums intelligents",
     "add_smart_album": "Ajouter un album intelligent",
-    "smart_items": {
-      "recently_added": "Ajoutés récemment",
-      "on_this_day": "Ce jour-là"
-    },
     "folder_unavailable": {
       "title": "Dossier indisponible",
       "description": "Reconnectez le périphérique de stockage ou vérifiez l’emplacement du dossier."
@@ -201,11 +202,14 @@
     "resume": "Reprendre"
   },
   "favorite": {
-    "tab_favorite": "Favoris",
+    "title": "Favoris",
     "files": "Fichiers favoris",
-    "folders": "Dossiers favoris",
-    "ratings": "Notes",
+    "folders": "Dossiers favoris"
+  },
+  "rating": {
+    "title": "Notes",
     "unrated": "Sans note",
+    "rated": "Noté",
     "mixed": "Divers",
     "clear_rating": "Effacer la note",
     "five_stars": "5 étoiles",
@@ -215,16 +219,18 @@
     "one_star": "1 étoile"
   },
   "tag": {
+    "title": "Tags",
     "add_tag": "Ajouter tag",
     "delete_tag": "Supprimer tag",
     "edit_tag": "Modifier tag",
     "search_tags": "Rechercher tags",
     "enter_new_tag_name": "Nouveau nom",
     "not_found": "Aucun tag trouvé",
-    "load_failed": "Impossible de charger l’état des tags. Fermez cette boîte de dialogue et réessayez.",
-    "smart_group": "Tags intelligents",
-    "custom_group": "Tags personnalisés",
-    "smart_items": {
+    "load_failed": "Impossible de charger l’état des tags. Fermez cette boîte de dialogue et réessayez."
+  },
+  "subject": {
+    "title": "Sujets",
+    "items": {
       "family": "Famille",
       "portraits": "Portraits",
       "kids": "Enfants",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "Calendrier",
-    "monthly_view": "Vue mensuelle",
-    "daily_view": "Vue journalière",
+    "month_title": "Vue mensuelle",
+    "day_title": "Vue journalière",
+    "switch_to_month": "Passer au mois",
+    "switch_to_day": "Passer au jour",
     "day": "Jour",
     "week": "Semaine",
     "month": "Mois",
@@ -521,6 +529,12 @@
       "daily": "Quotidien",
       "time_asc": "Temps crois",
       "time_desc": "Temps décrois"
+    },
+    "camera_panel": {
+      "camera_title": "Appareil photo",
+      "lens_title": "Objectif",
+      "switch_to_camera": "Passer à l appareil",
+      "switch_to_lens": "Passer à l objectif"
     },
     "search": {
       "clear_history": "Effacer historique"

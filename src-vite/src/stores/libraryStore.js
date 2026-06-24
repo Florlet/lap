@@ -3,6 +3,7 @@
  */
 import { defineStore } from 'pinia';
 import { getCurrentLibraryState, saveLibraryState, getAppConfig } from '@/common/api';
+import { LIB_ITEM } from '@/common/constants';
 import { setThumbLibraryId } from '@/common/utils';
 
 export const useLibraryStore = defineStore('libraryStore', {
@@ -14,6 +15,13 @@ export const useLibraryStore = defineStore('libraryStore', {
     // Per-library state
     /** @type {'main' | 'collection'} */
     activePane: 'main',
+
+    /** @type {{ item: 'all-files' | 'recently-added' | 'favorites' | 'subjects' | 'on-this-day', smartId: string | null, subjectsExpanded: boolean }} */
+    library: {
+      item: LIB_ITEM.ALL,
+      smartId: null,
+      subjectsExpanded: true,
+    },
 
     /** @type {{ id: number, folderId: number | null, folderPath: string, selected: boolean, activateTick: number }} */
     album: {
@@ -38,20 +46,14 @@ export const useLibraryStore = defineStore('libraryStore', {
       selectedId: 'default',      // selected collection id
     },
 
-    /** @type {{ tab: 'favorite' | 'rating', albumId: number | null, folderId: number, folderPath: string, rating: number | null }} */
-    favorite: {
-      tab: 'favorite',
-      albumId: null,
-      folderId: 0,            // 0 means favorite files (default)
-      folderPath: '',
-      rating: null,           // null: all favorites, 0: unrated, 1-5: rated files
+    /** @type {{ item: number | null }} */
+    rating: {
+      item: null,             // 0: unrated, 1-5: rated files
     },
 
-    /** @type {{ id: number | null, smartId: string | null, tab: 'smart' | 'custom' }} */
+    /** @type {{ id: number | null }} */
     tag: {
       id: null,
-      smartId: null,
-      tab: 'custom',
     },
 
     /** @type {{ year: number | null, month: number | null, date: number | null }} */
@@ -61,9 +63,8 @@ export const useLibraryStore = defineStore('libraryStore', {
       date: null,             // selected date (1-31), -1 means selecting a month
     },
 
-    /** @type {{ tab: 'camera' | 'lens', make: string | null, model: string | null, lensMake: string | null, lensModel: string | null }} */
+    /** @type {{ make: string | null, model: string | null, lensMake: string | null, lensModel: string | null }} */
     camera: {
-      tab: 'camera',
       make: null,             // selected camera make
       model: null,            // selected camera model
       lensMake: null,         // selected lens make
@@ -174,11 +175,12 @@ export const useLibraryStore = defineStore('libraryStore', {
       if (this._libraryId && this._initialized) {
         try {
           const stateToSave = {
+            library: this.library,
             album: this.album,
             smartAlbum: this.smartAlbum,
             smartAlbums: this.smartAlbums,
             collection: this.collection,
-            favorite: this.favorite,
+            rating: this.rating,
             tag: this.tag,
             calendar: this.calendar,
             camera: this.camera,

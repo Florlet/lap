@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "Inicio",
+    "library": "Biblioteca",
     "album": "Álbumes",
     "search": "Buscar",
-    "favorite": "Favoritos",
+    "rating": "Valoración",
     "tag": "Etiquetas",
     "calendar": "Calendario",
     "location": "Ubicación",
@@ -20,18 +21,18 @@
     "rename": "Renombrar",
     "delete": "Eliminar",
     "drop_action": "Añadir",
-    "drop_title_hint": "Suelta para añadir",
-    "empty_drop_hint": "Arrastra elementos a la colección de arriba para añadirlos."
+    "drop_title_hint": "Soltar para añadir",
+    "empty_drop_hint": "Arrastra elementos a la colección para añadirlos."
+  },
+  "library": {
+    "all_files": "Todos los archivos",
+    "recently_added": "Añadido recientemente",
+    "on_this_day": "Un día como hoy"
   },
   "album": {
-    "all_files": "Todos los archivos",
     "album_list": "Álbumes",
     "smart_album_list": "Álbumes inteligentes",
     "add_smart_album": "Añadir álbum inteligente",
-    "smart_items": {
-      "recently_added": "Añadido recientemente",
-      "on_this_day": "Un día como hoy"
-    },
     "folder_unavailable": {
       "title": "Carpeta no disponible",
       "description": "Vuelve a conectar el dispositivo de almacenamiento o comprueba la ubicación de la carpeta."
@@ -201,11 +202,14 @@
     "resume": "Reanudar"
   },
   "favorite": {
-    "tab_favorite": "Favoritos",
+    "title": "Favoritos",
     "files": "Archivos favoritos",
-    "folders": "Carpetas favoritas",
-    "ratings": "Valoraciones",
+    "folders": "Carpetas favoritas"
+  },
+  "rating": {
+    "title": "Valoraciones",
     "unrated": "Sin valorar",
+    "rated": "Valorado",
     "mixed": "Varios",
     "clear_rating": "Quitar valoración",
     "five_stars": "5 estrellas",
@@ -215,16 +219,18 @@
     "one_star": "1 estrella"
   },
   "tag": {
+    "title": "Etiquetas",
     "add_tag": "Añadir etiqueta",
     "delete_tag": "Eliminar etiqueta",
     "edit_tag": "Editar etiqueta",
     "search_tags": "Buscar etiquetas",
     "enter_new_tag_name": "Introduce nuevo nombre",
     "not_found": "No se encontraron etiquetas",
-    "load_failed": "No se pudo cargar el estado de las etiquetas. Cierra este diálogo e inténtalo de nuevo.",
-    "smart_group": "Etiquetas inteligentes",
-    "custom_group": "Etiquetas personalizadas",
-    "smart_items": {
+    "load_failed": "No se pudo cargar el estado de las etiquetas. Cierra este diálogo e inténtalo de nuevo."
+  },
+  "subject": {
+    "title": "Temas",
+    "items": {
       "family": "Familia",
       "portraits": "Retratos",
       "kids": "Niños",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "Calendario",
-    "monthly_view": "Vista mensual",
-    "daily_view": "Vista diaria",
+    "month_title": "Vista mensual",
+    "day_title": "Vista diaria",
+    "switch_to_month": "Cambiar a mes",
+    "switch_to_day": "Cambiar a día",
     "day": "Día",
     "week": "Semana",
     "month": "Mes",
@@ -521,6 +529,12 @@
       "daily": "Diario",
       "time_asc": "Tiempo asc",
       "time_desc": "Tiempo desc"
+    },
+    "camera_panel": {
+      "camera_title": "Cámara",
+      "lens_title": "Lente",
+      "switch_to_camera": "Cambiar a cámara",
+      "switch_to_lens": "Cambiar a lente"
     },
     "search": {
       "clear_history": "Borrar historial"

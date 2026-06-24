@@ -1,24 +1,14 @@
 <template>
 
   <div class="sidebar-panel overflow-hidden">
-    <!-- calendar tabs -->
     <div class="sidebar-panel-header">
-      <div role="tablist" class="sidebar-header-tabs">
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', { 'tab-active': config.calendar.isMonthly }]"
-          @click="switchToMonthlyView()"
-        >
-          {{ localeMsg.menu.calendar.monthly }}
-        </button>
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', { 'tab-active': !config.calendar.isMonthly }]"
-          @click="switchToDailyView()"
-        >
-          {{ localeMsg.menu.calendar.daily }}
-        </button>
-      </div>
+      <span class="sidebar-panel-header-title flex-1">{{ calendarTitle }}</span>
+      <TButton
+        :icon="config.calendar.isMonthly ? IconCalendarMonth : IconCalendarDay"
+        :buttonSize="'small'"
+        :tooltip="calendarToggleTooltip"
+        @click="toggleCalendarView"
+      />
     </div>
 
     <!-- calendar -->
@@ -66,9 +56,11 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { config, libConfig } from '@/common/config';
 import { getTakenDates } from '@/common/api';
+import { IconCalendarDay, IconCalendarMonth } from '@/common/icons';
 
 import CalendarMonthly from '@/components/CalendarMonthly.vue';
 import CalendarDaily from '@/components/CalendarDaily.vue';
+import TButton from '@/components/TButton.vue';
 
 // props
 const props = defineProps({
@@ -79,6 +71,16 @@ const props = defineProps({
 const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 const weekdayLabels = computed(() => localeMsg.value.calendar?.weekdays || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+const calendarTitle = computed(() =>
+  config.calendar.isMonthly
+    ? (localeMsg.value.calendar.month_title || localeMsg.value.calendar.month || 'Month')
+    : (localeMsg.value.calendar.day_title || localeMsg.value.calendar.day || 'Day')
+);
+const calendarToggleTooltip = computed(() =>
+  config.calendar.isMonthly
+    ? (localeMsg.value.calendar.switch_to_day || 'Switch to Day')
+    : (localeMsg.value.calendar.switch_to_month || 'Switch to Month')
+);
 
 const scrollable = ref<HTMLDivElement | null>(null); // Ref for the scrollable element
 type CalendarDates = Record<number, Record<number, { date: number; count: number }[]>>;
@@ -162,6 +164,14 @@ function switchToDailyView() {
     }
   }
   config.calendar.isMonthly = false;
+}
+
+function toggleCalendarView() {
+  if (config.calendar.isMonthly) {
+    switchToDailyView();
+  } else {
+    switchToMonthlyView();
+  }
 }
 
 /// fetch calendar dates

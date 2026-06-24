@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "Início",
+    "library": "Biblioteca",
     "album": "Álbuns",
     "search": "Pesquisar",
-    "favorite": "Favoritos",
+    "rating": "Avaliação",
     "tag": "Tags",
     "calendar": "Calendário",
     "location": "Local",
@@ -20,18 +21,18 @@
     "rename": "Renomear",
     "delete": "Excluir",
     "drop_action": "Adicionar",
-    "drop_title_hint": "Solte para adicionar",
-    "empty_drop_hint": "Arraste itens para a coleção acima para adicioná-los."
+    "drop_title_hint": "Soltar para adicionar",
+    "empty_drop_hint": "Arraste itens para a coleção para adicioná-los."
+  },
+  "library": {
+    "all_files": "Todos os arquivos",
+    "recently_added": "Adicionados recentemente",
+    "on_this_day": "Neste dia"
   },
   "album": {
-    "all_files": "Todos os arquivos",
     "album_list": "Álbuns",
     "smart_album_list": "Álbuns inteligentes",
     "add_smart_album": "Adicionar álbum inteligente",
-    "smart_items": {
-      "recently_added": "Adicionados recentemente",
-      "on_this_day": "Neste dia"
-    },
     "folder_unavailable": {
       "title": "Pasta indisponível",
       "description": "Reconecte o dispositivo de armazenamento ou verifique a localização da pasta."
@@ -201,11 +202,14 @@
     "resume": "Retomar"
   },
   "favorite": {
-    "tab_favorite": "Favoritos",
+    "title": "Favoritos",
     "files": "Arquivos favoritos",
-    "folders": "Pastas favoritas",
-    "ratings": "Classificações",
+    "folders": "Pastas favoritas"
+  },
+  "rating": {
+    "title": "Avaliações",
     "unrated": "Sem classificação",
+    "rated": "Avaliado",
     "mixed": "Vários",
     "clear_rating": "Limpar classificação",
     "five_stars": "5 estrelas",
@@ -215,16 +219,18 @@
     "one_star": "1 estrela"
   },
   "tag": {
+    "title": "Tags",
     "add_tag": "Adicionar tag",
     "delete_tag": "Excluir tag",
     "edit_tag": "Editar tag",
     "search_tags": "Pesquisar tags",
     "enter_new_tag_name": "Novo nome da tag",
     "not_found": "Tags não encontradas",
-    "load_failed": "Não foi possível carregar o estado das tags. Feche esta caixa de diálogo e tente novamente.",
-    "smart_group": "Tags inteligentes",
-    "custom_group": "Tags personalizados",
-    "smart_items": {
+    "load_failed": "Não foi possível carregar o estado das tags. Feche esta caixa de diálogo e tente novamente."
+  },
+  "subject": {
+    "title": "Temas",
+    "items": {
       "family": "Família",
       "portraits": "Retratos",
       "kids": "Crianças",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "Calendário",
-    "monthly_view": "Visão mensal",
-    "daily_view": "Visão diária",
+    "month_title": "Visão mensal",
+    "day_title": "Visão diária",
+    "switch_to_month": "Mudar para mês",
+    "switch_to_day": "Mudar para dia",
     "day": "Dia",
     "week": "Semana",
     "month": "Mês",
@@ -521,6 +529,12 @@
       "daily": "Diário",
       "time_asc": "Tempo asc",
       "time_desc": "Tempo desc"
+    },
+    "camera_panel": {
+      "camera_title": "Câmera",
+      "lens_title": "Lente",
+      "switch_to_camera": "Mudar para câmera",
+      "switch_to_lens": "Mudar para lente"
     },
     "search": {
       "clear_history": "Limpar histórico"

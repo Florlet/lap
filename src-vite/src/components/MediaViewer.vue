@@ -110,7 +110,7 @@
                 :icon="Number(file?.rating || 0) > 0 ? IconStarFilled : IconStar"
                 :disabled="fileIndex < 0 || isSlideShow || !canInteract"
                 :selected="Number(file?.rating || 0) > 0 && !isSlideShow"
-                :tooltip="$t('favorite.ratings')"
+                :tooltip="$t('rating.title')"
                 :shortcut="ratingShortcutLabel"
                 @click.stop="toggle"
               />
@@ -542,44 +542,44 @@ const currentSlideShowIntervalLabel = computed(() => `${getSlideShowInterval(eff
 const slideShowTransitionMode = computed(() => Number(config.settings.slideShowTransition ?? 0));
 // const ratingButtonTooltip = computed(() => {
 //   const rating = Number(props.file?.rating || 0);
-//   return rating > 0 ? `${localeMsg.value.favorite.ratings}: ${rating}` : localeMsg.value.favorite.ratings;
+//   return rating > 0 ? `${localeMsg.value.rating.title}: ${rating}` : localeMsg.value.rating.title;
 // });
 const ratingMenuItems = computed(() => {
   const rating = Number(props.file?.rating || 0);
   return [
     {
-      label: localeMsg.value.favorite.clear_rating,
+      label: localeMsg.value.rating.clear_rating,
       icon: IconStar,
       shortcut: shortcut('meta.rating.clear'),
       action: () => emit('item-action', { action: 'rating-0', index: props.fileIndex }),
     },
     { label: '-', action: null },
     {
-      label: localeMsg.value.favorite.five_stars,
+      label: localeMsg.value.rating.five_stars,
       icon: rating === 5 ? IconStarFilled : IconStar,
       shortcut: shortcut('meta.rating.five'),
       action: () => emit('item-action', { action: 'rating-5', index: props.fileIndex }),
     },
     {
-      label: localeMsg.value.favorite.four_stars,
+      label: localeMsg.value.rating.four_stars,
       icon: rating === 4 ? IconStarFilled : IconStar,
       shortcut: shortcut('meta.rating.four'),
       action: () => emit('item-action', { action: 'rating-4', index: props.fileIndex }),
     },
     {
-      label: localeMsg.value.favorite.three_stars,
+      label: localeMsg.value.rating.three_stars,
       icon: rating === 3 ? IconStarFilled : IconStar,
       shortcut: shortcut('meta.rating.three'),
       action: () => emit('item-action', { action: 'rating-3', index: props.fileIndex }),
     },
     {
-      label: localeMsg.value.favorite.two_stars,
+      label: localeMsg.value.rating.two_stars,
       icon: rating === 2 ? IconStarFilled : IconStar,
       shortcut: shortcut('meta.rating.two'),
       action: () => emit('item-action', { action: 'rating-2', index: props.fileIndex }),
     },
     {
-      label: localeMsg.value.favorite.one_star,
+      label: localeMsg.value.rating.one_star,
       icon: rating === 1 ? IconStarFilled : IconStar,
       shortcut: shortcut('meta.rating.one'),
       action: () => emit('item-action', { action: 'rating-1', index: props.fileIndex }),

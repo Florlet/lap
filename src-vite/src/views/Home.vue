@@ -90,7 +90,7 @@
                     class="px-2 py-1 flex items-center gap-1 rounded-box text-base-content/70 hover:bg-base-100/30 hover:text-base-content cursor-pointer transition-colors"
                     @click="toggle"
                   >
-                    <IconStack class="w-5 h-5 shrink-0" />
+                    <!-- <IconStack class="w-5 h-5 shrink-0" /> -->
                     <span class="overflow-hidden whitespace-pre text-ellipsis max-w-32">{{ currentLibrary?.name || 'Library' }}</span>
                     <IconArrowDown class="w-3 h-3 shrink-0 opacity-50" />
                   </button>
@@ -114,22 +114,23 @@
             <!-- Component panel (flex-1 to fill remaining space) -->
             <div
               class="min-h-0 flex-1 overflow-hidden"
-              :class="libConfig.activePane === 'collection' ? 'sidebar-pane-inactive' : ''"
+              :class="libConfig.activePane === 'collection' && config.main.sidebarIndex !== SIDEBAR.LIBRARY ? 'sidebar-pane-inactive' : ''"
               @mousedown.capture="activateMainPanel"
             >
               <component ref="panelRef" 
                 :key="libraryVersion"
-                :is="buttons[config.main.sidebarIndex].component" 
-                :titlebar="buttons[config.main.sidebarIndex].text"
+                :is="activeSidebarButton.component"
+                :titlebar="activeSidebarButton.text"
+                v-bind="activeSidebarButton.props || {}"
               />
             </div>
             <div
-              v-if="!libraryEmpty && config.settings.showCollections && config.collectionTray.expanded"
+              v-if="showBottomCollectionTray && config.collectionTray.expanded"
               class="h-1 shrink-0 cursor-row-resize transition-colors hover:bg-primary"
               @mousedown="startDraggingCollectionSplitter"
             ></div>
             <CollectionTray
-              v-if="!libraryEmpty && config.settings.showCollections"
+              v-if="showBottomCollectionTray"
               class="overflow-hidden transition-[height] duration-200 ease-out"
               :class="config.collectionTray.expanded ? '' : 'h-10'"
               :style="collectionTrayStyle"
@@ -157,8 +158,8 @@
           showDesktopTitleBar ? 'rounded-tl-box' : '',
         ]"
       >
-        <!-- <MapHeatmapView v-if="config.main.sidebarIndex === MAP_SIDEBAR_INDEX" /> -->
-        <Content ref="contentRef" :key="libraryVersion" :titlebar="buttons[config.main.sidebarIndex].text" :libraryEmpty="libraryEmpty"/>
+        <!-- <MapHeatmapView v-if="config.main.sidebarIndex === SIDEBAR.MAP" /> -->
+        <Content ref="contentRef" :key="libraryVersion" :titlebar="activeSidebarButton.text" :libraryEmpty="libraryEmpty"/>
       </div>
     </div>
 
@@ -190,19 +191,22 @@ import { useAppUpdater } from '@/common/updater';
 import { useUIStore } from '@/stores/uiStore';
 import { isWin, isMac, isLinux, SCALE_VALUES } from '@/common/utils';
 import { matchesShortcut, ShortcutPlatform } from '@/common/shortcuts';
+import { SIDEBAR } from '@/common/constants';
 import { getAppConfig, switchLibrary, cancelIndexing, cancelFaceIndex } from '@/common/api';
 
 // vue components
-import Album from '@/components/Album.vue';
+import Library from '@/components/Library.vue';
+import AlbumList from '@/components/AlbumList.vue';
 import SmartAlbumList from '@/components/SmartAlbumList.vue';
 import ImageSearch from '@/components/ImageSearch.vue';
-import Favorite from '@/components/Favorite.vue';
+import Rating from '@/components/Rating.vue';
 import Tag from '@/components/Tag.vue';
 import Calendar from '@/components/Calendar.vue';
 import Location from '@/components/Location.vue';
 import Person from '@/components/Person.vue';
 import Camera from '@/components/Camera.vue';
 // import MapHeatmapView from '@/components/MapHeatmapView.vue';
+
 import TitleBar from '@/components/TitleBar.vue';
 import TButton from '@/components/TButton.vue';
 import Content from '@/components/Content.vue';
@@ -212,7 +216,7 @@ import ManageLibraries from '@/components/ManageLibraries.vue';
 import iconLogo from '@/assets/images/icon.png';
 
 import {
-  IconHeart,
+  IconStar,
   IconTag,
   IconLocation,
   IconPerson,
@@ -237,7 +241,7 @@ const checkLibraryEmpty = async () => {
     const albums = await invoke<any[]>('get_all_albums');
     libraryEmpty.value = (albums?.length ?? 0) === 0;
     if (libraryEmpty.value) {
-      config.main.sidebarIndex = 0;
+      config.main.sidebarIndex = SIDEBAR.LIBRARY;
     }
   } catch {
     libraryEmpty.value = false;
@@ -354,30 +358,33 @@ const {
 
 // buttons
 const buttons = computed(() =>  [
-  { icon: IconFolders, component: Album, text: localeMsg.value.sidebar.album },
-  { icon: IconBolt, component: SmartAlbumList, text: localeMsg.value.album.smart_album_list },
-  { icon: IconHeart, component: Favorite, text: localeMsg.value.sidebar.favorite },
-  { icon: IconSearch, component: ImageSearch, text: localeMsg.value.sidebar.search },
-  { icon: IconCalendarDay, component: Calendar, text: localeMsg.value.sidebar.calendar },
-  { icon: IconTag, component: Tag, text: localeMsg.value.sidebar.tag },
-  { icon: IconPerson, component: Person, text: localeMsg.value.sidebar.people, hidden: !config.settings.face.enabled },
-  { icon: IconLocation, component: Location, text: localeMsg.value.sidebar.location },
-  { icon: IconCameraAperture, component: Camera, text: localeMsg.value.sidebar.camera },
+  { index: SIDEBAR.LIBRARY, icon: IconStack, component: Library, text: localeMsg.value.sidebar.library },
+  { index: SIDEBAR.ALBUM, icon: IconFolders, component: AlbumList, text: localeMsg.value.sidebar.album, props: { selectionSource: 'album' } },
+  { index: SIDEBAR.SMART_ALBUM, icon: IconBolt, component: SmartAlbumList, text: localeMsg.value.album.smart_album_list },
+  { index: SIDEBAR.RATING, icon: IconStar, component: Rating, text: localeMsg.value.rating.title },
+  { index: SIDEBAR.SEARCH, icon: IconSearch, component: ImageSearch, text: localeMsg.value.sidebar.search },
+  { index: SIDEBAR.CALENDAR, icon: IconCalendarDay, component: Calendar, text: localeMsg.value.sidebar.calendar },
+  { index: SIDEBAR.TAG, icon: IconTag, component: Tag, text: localeMsg.value.sidebar.tag },
+  { index: SIDEBAR.PERSON, icon: IconPerson, component: Person, text: localeMsg.value.sidebar.people, hidden: !config.settings.face.enabled },
+  { index: SIDEBAR.LOCATION, icon: IconLocation, component: Location, text: localeMsg.value.sidebar.location },
+  { index: SIDEBAR.CAMERA, icon: IconCameraAperture, component: Camera, text: localeMsg.value.sidebar.camera },
   // { icon: IconMapDefault, component: null, text: localeMsg.value.sidebar.map },
 ]);
 
-// dedicated full-area heatmap view, shown instead of Content
-const MAP_SIDEBAR_INDEX = 9;
+const activeSidebarButton = computed(() =>
+  buttons.value.find(item => item.index === config.main.sidebarIndex) || buttons.value[SIDEBAR.LIBRARY]
+);
 
 const visibleButtons = computed(() =>
   buttons.value
-    .map((item, index) => ({ ...item, index, disabled: libraryEmpty.value && index !== 0 }))
+    .map((item) => ({ ...item, disabled: libraryEmpty.value && item.index !== SIDEBAR.LIBRARY }))
     .filter(item => !item.hidden)
+    .sort((a, b) => a.index - b.index)
 );
 
 watch(() => config.settings.face.enabled, (enabled) => {
-  if (!enabled && config.main.sidebarIndex === 6) {
-    config.main.sidebarIndex = 0;
+  if (!enabled && config.main.sidebarIndex === SIDEBAR.PERSON) {
+    config.main.sidebarIndex = SIDEBAR.ALBUM;
   }
 });
 
@@ -439,19 +446,19 @@ onMounted(async () => {
   void checkLibraryEmpty();
 
   unlistenAddAlbumRequested = await listen('add-album-requested', async () => {
-    if (config.main.sidebarIndex !== 0) config.main.sidebarIndex = 0;
+    if (config.main.sidebarIndex !== SIDEBAR.ALBUM) config.main.sidebarIndex = SIDEBAR.ALBUM;
     showPanel.value = true;
     await nextTick();
-    (panelRef.value as any)?.albumListRef?.clickNewAlbum();
+    (panelRef.value as any)?.clickNewAlbum?.();
   });
 
   unlistenEditAlbumRequested = await listen('edit-album-requested', async (event: any) => {
     const albumId = Number(event.payload?.albumId || 0);
     if (albumId <= 0) return;
-    if (config.main.sidebarIndex !== 0) config.main.sidebarIndex = 0;
+    if (config.main.sidebarIndex !== SIDEBAR.ALBUM) config.main.sidebarIndex = SIDEBAR.ALBUM;
     showPanel.value = true;
     await nextTick();
-    (panelRef.value as any)?.albumListRef?.openAlbumEdit(albumId);
+    (panelRef.value as any)?.openAlbumEdit?.(albumId);
   });
 
   unlistenAlbumsRefreshed = await listen('albums-refreshed', () => {
@@ -513,10 +520,10 @@ function handleHomeKeyDown(event: KeyboardEvent) {
     event.preventDefault();
     event.stopPropagation();
     if (!libraryEmpty.value) {
-      if (config.main.sidebarIndex === 3 && showPanel.value) {
+      if (config.main.sidebarIndex === SIDEBAR.SEARCH && showPanel.value) {
         nextTick(() => (panelRef.value as any)?.focusSearchInput?.());
       } else {
-        config.main.sidebarIndex = 3;
+        config.main.sidebarIndex = SIDEBAR.SEARCH;
         showPanel.value = true;
       }
     }
@@ -597,8 +604,8 @@ const onManageLibrariesUpdated = async () => {
 // click sidebar
 function clickSidebar(index: number) {
   activateMainPanel();
-  if (libraryEmpty.value && index !== 0) return;
-  if (index === MAP_SIDEBAR_INDEX) {
+  if (libraryEmpty.value && index !== SIDEBAR.LIBRARY) return;
+  if (index === SIDEBAR.MAP) {
     // map view has no filter panel - give it the full content area
     showPanel.value = false;
     config.main.sidebarIndex = index;
@@ -645,6 +652,12 @@ const collectionTrayStyle = computed(() => {
   if (!config.collectionTray.expanded) return {};
   return { height: `${config.collectionTray.height}px` };
 });
+
+const showBottomCollectionTray = computed(() =>
+  !libraryEmpty.value &&
+  config.settings.showCollections &&
+  config.main.sidebarIndex !== SIDEBAR.LIBRARY
+);
 
 function toggleCollectionTray() {
   config.collectionTray.expanded = !config.collectionTray.expanded;

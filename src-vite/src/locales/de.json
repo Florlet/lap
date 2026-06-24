@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "Startseite",
+    "library": "Bibliothek",
     "album": "Alben",
     "search": "Suche",
-    "favorite": "Favoriten",
+    "rating": "Bewertung",
     "tag": "Tags",
     "calendar": "Kalender",
     "location": "Ort",
@@ -21,17 +22,17 @@
     "delete": "Löschen",
     "drop_action": "Hinzufügen",
     "drop_title_hint": "Zum Hinzufügen ablegen",
-    "empty_drop_hint": "Elemente auf die Sammlung oben ziehen, um sie hinzuzufügen."
+    "empty_drop_hint": "Ziehen Sie Elemente in die Sammlung, um sie hinzuzufügen."
+  },
+  "library": {
+    "all_files": "Alle Dateien",
+    "recently_added": "Kürzlich hinzugefügt",
+    "on_this_day": "An diesem Tag"
   },
   "album": {
-    "all_files": "Alle Dateien",
     "album_list": "Alben",
     "smart_album_list": "Intelligente Alben",
     "add_smart_album": "Intelligentes Album hinzufügen",
-    "smart_items": {
-      "recently_added": "Kürzlich hinzugefügt",
-      "on_this_day": "An diesem Tag"
-    },
     "folder_unavailable": {
       "title": "Ordner nicht verfügbar",
       "description": "Verbinden Sie das Speichergerät erneut oder prüfen Sie den Ordnerpfad."
@@ -201,11 +202,14 @@
     "resume": "Fortsetzen"
   },
   "favorite": {
-    "tab_favorite": "Favoriten",
+    "title": "Favoriten",
     "files": "Favorisierte Dateien",
-    "folders": "Favorisierte Ordner",
-    "ratings": "Bewertungen",
+    "folders": "Favorisierte Ordner"
+  },
+  "rating": {
+    "title": "Bewertungen",
     "unrated": "Unbewertet",
+    "rated": "Bewertet",
     "mixed": "Verschieden",
     "clear_rating": "Bewertung löschen",
     "five_stars": "5 Sterne",
@@ -215,16 +219,18 @@
     "one_star": "1 Stern"
   },
   "tag": {
+    "title": "Tags",
     "add_tag": "Tag hinzufügen",
     "delete_tag": "Tag löschen",
     "edit_tag": "Tag bearbeiten",
     "search_tags": "Tags suchen",
     "enter_new_tag_name": "Neuer Tag-Name",
     "not_found": "Keine Tags gefunden",
-    "load_failed": "Tag-Status konnte nicht geladen werden. Schließen Sie diesen Dialog und versuchen Sie es erneut.",
-    "smart_group": "Intelligente Tags",
-    "custom_group": "Benutzerdefinierte Tags",
-    "smart_items": {
+    "load_failed": "Tag-Status konnte nicht geladen werden. Schließen Sie diesen Dialog und versuchen Sie es erneut."
+  },
+  "subject": {
+    "title": "Motive",
+    "items": {
       "family": "Familie",
       "portraits": "Porträts",
       "kids": "Kinder",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "Kalender",
-    "monthly_view": "Monatsansicht",
-    "daily_view": "Tagesansicht",
+    "month_title": "Monatsansicht",
+    "day_title": "Tagesansicht",
+    "switch_to_month": "Zu Monat wechseln",
+    "switch_to_day": "Zu Tag wechseln",
     "day": "Tag",
     "week": "Woche",
     "month": "Monat",
@@ -521,6 +529,12 @@
       "daily": "Täglich",
       "time_asc": "Zeit Auf",
       "time_desc": "Zeit Ab"
+    },
+    "camera_panel": {
+      "camera_title": "Kamera",
+      "lens_title": "Objektiv",
+      "switch_to_camera": "Zu Kamera wechseln",
+      "switch_to_lens": "Zu Objektiv wechseln"
     },
     "search": {
       "clear_history": "Suchverlauf löschen"

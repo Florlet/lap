@@ -251,6 +251,7 @@ import {
 
 const props = withDefaults(defineProps<{
   selectionSource: SelectionSource;
+  titlebar?: string;
   showTotalCount?: boolean;
 }>(), {
   showTotalCount: true,

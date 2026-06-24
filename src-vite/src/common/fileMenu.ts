@@ -79,43 +79,43 @@ export const useFileMenuItems = (
         action: createAction('favorite')
       },
       {
-        label: localeMsg.value.favorite.ratings,
+        label: localeMsg.value.rating.title,
         icon: markRaw(Number(f.rating || 0) > 0 ? IconStarFilled : IconStar),
         submenuOpenDelay: 200,
         children: [
           {
-            label: localeMsg.value.favorite.clear_rating,
+            label: localeMsg.value.rating.clear_rating,
             icon: markRaw(IconStar),
             shortcut: shortcut('meta.rating.clear'),
             action: createAction('rating-0')
           },
           { label: '-', action: null },
           {
-            label: localeMsg.value.favorite.five_stars,
+            label: localeMsg.value.rating.five_stars,
             icon: markRaw(Number(f.rating || 0) === 5 ? IconStarFilled : IconStar),
             shortcut: shortcut('meta.rating.five'),
             action: createAction('rating-5')
           },
           {
-            label: localeMsg.value.favorite.four_stars,
+            label: localeMsg.value.rating.four_stars,
             icon: markRaw(Number(f.rating || 0) === 4 ? IconStarFilled : IconStar),
             shortcut: shortcut('meta.rating.four'),
             action: createAction('rating-4')
           },
           {
-            label: localeMsg.value.favorite.three_stars,
+            label: localeMsg.value.rating.three_stars,
             icon: markRaw(Number(f.rating || 0) === 3 ? IconStarFilled : IconStar),
             shortcut: shortcut('meta.rating.three'),
             action: createAction('rating-3')
           },
           {
-            label: localeMsg.value.favorite.two_stars,
+            label: localeMsg.value.rating.two_stars,
             icon: markRaw(Number(f.rating || 0) === 2 ? IconStarFilled : IconStar),
             shortcut: shortcut('meta.rating.two'),
             action: createAction('rating-2')
           },
           {
-            label: localeMsg.value.favorite.one_star,
+            label: localeMsg.value.rating.one_star,
             icon: markRaw(Number(f.rating || 0) === 1 ? IconStarFilled : IconStar),
             shortcut: shortcut('meta.rating.one'),
             action: createAction('rating-1')

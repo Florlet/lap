@@ -1,21 +1,6 @@
 <template>
   <div class="sidebar-panel">
-    <div
-      v-for="smartAlbum in systemSmartAlbums"
-      :key="smartAlbum.id"
-      :class="[
-        'sidebar-item',
-        libConfig.smartAlbum.type === 'system' && libConfig.smartAlbum.id === smartAlbum.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
-      ]"
-      @click="clickSmartAlbum(smartAlbum)"
-    >
-      <component :is="smartAlbum.icon" class="mx-1 w-5 h-5 shrink-0" />
-      <div class="sidebar-item-label">
-        <span>{{ smartAlbum.label }}</span>
-      </div>
-    </div>
-
-    <div class="sidebar-panel-header mt-2">
+    <div class="sidebar-panel-header">
       <span class="sidebar-panel-header-title flex-1">{{ $t('album.smart_album_list') }}</span>
       <TButton
         :icon="IconAdd"
@@ -86,44 +71,17 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { libConfig } from '@/common/config';
-import { IconAdd, IconBolt, IconCalendarDay, IconEdit, IconHistory, IconTrash } from '@/common/icons';
+import { IconAdd, IconBolt, IconEdit, IconTrash } from '@/common/icons';
 import TButton from '@/components/TButton.vue';
 import SmartAlbumEdit from '@/components/SmartAlbumEdit.vue';
 import MessageBox from '@/components/MessageBox.vue';
 
-const { locale, messages } = useI18n();
-const localeMsg = computed(() => messages.value[locale.value] as any);
-
-type SystemSmartAlbum = {
-  id: 'recently-added' | 'on-this-day';
-  label: string;
-  icon: any;
-};
-
-const systemSmartAlbums = computed<SystemSmartAlbum[]>(() => [
-  {
-    id: 'recently-added',
-    label: localeMsg.value.album.smart_items.recently_added,
-    icon: IconHistory,
-  },
-  {
-    id: 'on-this-day',
-    label: localeMsg.value.album.smart_items.on_this_day,
-    icon: IconCalendarDay,
-  },
-]);
 const customSmartAlbums = computed(() => libConfig.smartAlbums || []);
 const showEditDialog = ref(false);
 const editingSmartAlbum = ref<any | null>(null);
 const showDeleteDialog = ref(false);
 const deletingSmartAlbum = ref<any | null>(null);
-
-function clickSmartAlbum(smartAlbum: SystemSmartAlbum) {
-  libConfig.smartAlbum.type = 'system';
-  libConfig.smartAlbum.id = smartAlbum.id;
-}
 
 function clickCustomSmartAlbum(smartAlbum: any) {
   libConfig.smartAlbum.type = 'custom';

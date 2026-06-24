@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "홈",
+    "library": "라이브러리",
     "album": "앨범",
     "search": "검색",
-    "favorite": "즐겨찾기",
+    "rating": "평점",
     "tag": "태그",
     "calendar": "달력",
     "location": "위치",
@@ -20,18 +21,18 @@
     "rename": "이름 변경",
     "delete": "삭제",
     "drop_action": "추가",
-    "drop_title_hint": "드롭하여 추가",
-    "empty_drop_hint": "위의 컬렉션으로 항목을 드래그하여 추가하세요."
+    "drop_title_hint": "추가하려면 드롭",
+    "empty_drop_hint": "항목을 컬렉션으로 드래그하여 추가하세요."
+  },
+  "library": {
+    "all_files": "모든 파일",
+    "recently_added": "최근 추가됨",
+    "on_this_day": "과거의 오늘"
   },
   "album": {
-    "all_files": "모든 파일",
     "album_list": "앨범",
     "smart_album_list": "스마트 앨범",
     "add_smart_album": "스마트 앨범 추가",
-    "smart_items": {
-      "recently_added": "최근 추가됨",
-      "on_this_day": "과거의 오늘"
-    },
     "folder_unavailable": {
       "title": "폴더를 사용할 수 없음",
       "description": "저장 장치를 다시 연결하거나 폴더 위치를 확인하세요."
@@ -201,11 +202,14 @@
     "resume": "인덱싱 재개"
   },
   "favorite": {
-    "tab_favorite": "즐겨찾기",
+    "title": "즐겨찾기",
     "files": "즐겨찾는 파일",
-    "folders": "즐겨찾는 폴더",
-    "ratings": "별점",
+    "folders": "즐겨찾는 폴더"
+  },
+  "rating": {
+    "title": "평점",
     "unrated": "별점 없음",
+    "rated": "평점 있음",
     "mixed": "여러 값",
     "clear_rating": "별점 지우기",
     "five_stars": "5점",
@@ -215,16 +219,18 @@
     "one_star": "1점"
   },
   "tag": {
+    "title": "태그",
     "add_tag": "태그 추가",
     "delete_tag": "태그 삭제",
     "edit_tag": "태그 편집",
     "search_tags": "태그 검색",
     "enter_new_tag_name": "새 태그 이름 입력",
     "not_found": "태그를 찾을 수 없음",
-    "load_failed": "태그 상태를 불러오지 못했습니다. 대화 상자를 닫고 다시 시도하세요.",
-    "smart_group": "스마트 태그",
-    "custom_group": "사용자 태그",
-    "smart_items": {
+    "load_failed": "태그 상태를 불러오지 못했습니다. 대화 상자를 닫고 다시 시도하세요."
+  },
+  "subject": {
+    "title": "주제",
+    "items": {
       "family": "가족",
       "portraits": "인물 사진",
       "kids": "아이",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "달력",
-    "monthly_view": "월별 보기",
-    "daily_view": "일별 보기",
+    "month_title": "월별 보기",
+    "day_title": "일별 보기",
+    "switch_to_month": "월로 전환",
+    "switch_to_day": "일로 전환",
     "day": "일",
     "week": "주",
     "month": "월",
@@ -521,6 +529,12 @@
       "daily": "일별",
       "time_asc": "오래된 순",
       "time_desc": "최신 순"
+    },
+    "camera_panel": {
+      "camera_title": "카메라",
+      "lens_title": "렌즈",
+      "switch_to_camera": "카메라로 전환",
+      "switch_to_lens": "렌즈로 전환"
     },
     "search": {
       "clear_history": "검색 기록 지우기"

@@ -58,7 +58,7 @@
               <span
                 :class="[
                   'block truncate',
-                  idx < getGroupTitleSegments(item).length - 1 ? 'max-w-[12rem] text-base-content/70' : ''
+                  idx < getGroupTitleSegments(item).length - 1 ? 'max-w-48 text-base-content/70' : ''
                 ]"
               >
                 {{ seg }}
@@ -106,7 +106,7 @@
               <span
                 :class="[
                   'block truncate',
-                  idx < getGroupTitleSegments(activeStickyGroup).length - 1 ? 'max-w-[12rem] text-base-content/70' : ''
+                  idx < getGroupTitleSegments(activeStickyGroup).length - 1 ? 'max-w-48 text-base-content/70' : ''
                 ]"
               >
                 {{ seg }}
@@ -150,15 +150,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { config } from '@/common/config';
 import Thumbnail from '@/components/Thumbnail.vue';
 import VirtualScroll from '@/components/VirtualScroll.vue';
-import {
-  GROUP_BY_FOLDER_PATH,
-  GROUP_BY_DATE_DAY,
-  GROUP_BY_DATE_MONTH,
-  GROUP_BY_RATING,
-  GROUP_BY_LOCATION,
-  GROUP_BY_CAMERA,
-  GROUP_BY_LENS,
-} from '@/common/grouping';
+import { GROUP } from '@/common/constants';
 import { calculateJustifiedLayout, calculateLinearRowLayout, calculateLinearColumnLayout, calculateMasonryLayout, type Geometry } from '@/common/layout';
 import { formatFolderBreadcrumb, isWithinRootPath } from '@/common/utils';
 import {
@@ -924,19 +916,19 @@ function isGroupSelectionLoading(item: any) {
 
 function getGroupIcon() {
   switch (Number(props.groupBy || 0)) {
-    case GROUP_BY_FOLDER_PATH:
+    case GROUP.FOLDER:
       return IconFolder;
-    case GROUP_BY_DATE_DAY:
+    case GROUP.DAY:
       return IconCalendarDay;
-    case GROUP_BY_DATE_MONTH:
+    case GROUP.MONTH:
       return IconCalendarMonth;
-    case GROUP_BY_RATING:
+    case GROUP.RATING:
       return IconStar;
-    case GROUP_BY_LOCATION:
+    case GROUP.LOCATION:
       return IconLocation;
-    case GROUP_BY_CAMERA:
+    case GROUP.CAMERA:
       return IconCameraAperture;
-    case GROUP_BY_LENS:
+    case GROUP.LENS:
       return IconCameraAperture;
     default:
       return IconFiles;
@@ -944,7 +936,7 @@ function getGroupIcon() {
 }
 
 function isFolderPathGroup() {
-  return Number(props.groupBy || 0) === GROUP_BY_FOLDER_PATH;
+  return Number(props.groupBy || 0) === GROUP.FOLDER;
 }
 
 function getGroupTitleSegments(item: any) {

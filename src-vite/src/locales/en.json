@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "Home",
+    "library": "Library",
     "album": "Albums",
     "search": "Search",
-    "favorite": "Favorites",
+    "rating": "Rating",
     "tag": "Tags",
     "calendar": "Calendar",
     "location": "Location",
@@ -23,15 +24,15 @@
     "drop_title_hint": "Drop to add",
     "empty_drop_hint": "Drag items onto the collection above to add them."
   },
-  "album": {
+  "library": {
     "all_files": "All files",
+    "recently_added": "Recently Added",
+    "on_this_day": "On this day"
+  },
+  "album": {
     "album_list": "Albums",
     "smart_album_list": "Smart albums",
     "add_smart_album": "Add smart album",
-    "smart_items": {
-      "recently_added": "Recently Added",
-      "on_this_day": "On this day"
-    },
     "folder_unavailable": {
       "title": "Folder unavailable",
       "description": "Reconnect the storage device or check the folder location."
@@ -201,11 +202,14 @@
     "resume": "Resume indexing"
   },
   "favorite": {
-    "tab_favorite": "Favorite",
+    "title": "Favorite",
     "files": "Favorite files",
-    "folders": "Favorite folders",
-    "ratings": "Ratings",
+    "folders": "Favorite folders"
+  },
+  "rating": {
+    "title": "Ratings",
     "unrated": "Unrated",
+    "rated": "Rated",
     "mixed": "Various",
     "clear_rating": "Clear rating",
     "five_stars": "5 stars",
@@ -215,16 +219,18 @@
     "one_star": "1 star"
   },
   "tag": {
+    "title": "Tags",
     "add_tag": "Add new tag",
     "delete_tag": "Delete tag",
     "edit_tag": "Edit tag",
     "search_tags": "Search tags",
     "enter_new_tag_name": "Enter new tag name",
     "not_found": "No tags found",
-    "load_failed": "Failed to load tag states. Close this dialog and try again.",
-    "smart_group": "Smart tags",
-    "custom_group": "Custom tags",
-    "smart_items": {
+    "load_failed": "Failed to load tag states. Close this dialog and try again."
+  },
+  "subject": {
+    "title": "Subjects",
+    "items": {
       "family": "Family",
       "portraits": "Portraits",
       "kids": "Kids",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "Calendar",
-    "monthly_view": "Monthly view",
-    "daily_view": "Daily view",
+    "month_title": "Month",
+    "day_title": "Day",
+    "switch_to_month": "Switch to Month",
+    "switch_to_day": "Switch to Day",
     "day": "Day",
     "week": "Week",
     "month": "Month",
@@ -521,6 +529,12 @@
       "daily": "Daily",
       "time_asc": "Time asc",
       "time_desc": "Time desc"
+    },
+    "camera_panel": {
+      "camera_title": "Camera",
+      "lens_title": "Lens",
+      "switch_to_camera": "Switch to Camera",
+      "switch_to_lens": "Switch to Lens"
     },
     "search": {
       "clear_history": "Clear search history"

@@ -1,9 +1,10 @@
 {
   "sidebar": {
     "home": "主页",
+    "library": "资料库",
     "album": "相册",
     "search": "搜索",
-    "favorite": "收藏",
+    "rating": "评分",
     "tag": "标签",
     "calendar": "日历",
     "location": "地点",
@@ -20,18 +21,18 @@
     "rename": "重命名",
     "delete": "删除",
     "drop_action": "添加",
-    "drop_title_hint": "拖入即可添加",
-    "empty_drop_hint": "拖动项目到上方合集，即可添加。"
+    "drop_title_hint": "拖放以添加",
+    "empty_drop_hint": "将项目拖到收藏集中以添加。"
+  },
+  "library": {
+    "all_files": "所有文件",
+    "recently_added": "最近添加",
+    "on_this_day": "历史上的今天"
   },
   "album": {
-    "all_files": "所有文件",
     "album_list": "相册",
     "smart_album_list": "智能相册",
     "add_smart_album": "添加智能相册",
-    "smart_items": {
-      "recently_added": "最近添加",
-      "on_this_day": "历史上的今天"
-    },
     "folder_unavailable": {
       "title": "无法访问文件夹",
       "description": "请重新连接存储设备，或检查文件夹位置。"
@@ -201,11 +202,14 @@
     "resume": "继续索引"
   },
   "favorite": {
-    "tab_favorite": "收藏",
+    "title": "收藏",
     "files": "收藏的文件",
-    "folders": "收藏的文件夹",
-    "ratings": "评分",
+    "folders": "收藏的文件夹"
+  },
+  "rating": {
+    "title": "评分",
     "unrated": "未评分",
+    "rated": "已评分",
     "mixed": "多种",
     "clear_rating": "清除评分",
     "five_stars": "5 星",
@@ -215,16 +219,18 @@
     "one_star": "1 星"
   },
   "tag": {
+    "title": "标签",
     "add_tag": "添加新标签",
     "delete_tag": "删除标签",
     "edit_tag": "编辑标签",
     "search_tags": "搜索标签",
     "enter_new_tag_name": "输入新标签名称",
     "not_found": "未找到标签",
-    "load_failed": "无法加载标签状态，请关闭对话框后重试。",
-    "smart_group": "智能标签",
-    "custom_group": "自定义标签",
-    "smart_items": {
+    "load_failed": "无法加载标签状态，请关闭对话框后重试。"
+  },
+  "subject": {
+    "title": "主题",
+    "items": {
       "family": "家庭",
       "portraits": "人像",
       "kids": "孩子",
@@ -237,8 +243,10 @@
   },
   "calendar": {
     "title": "日历",
-    "monthly_view": "月视图",
-    "daily_view": "日视图",
+    "month_title": "月视图",
+    "day_title": "日视图",
+    "switch_to_month": "切换到月视图",
+    "switch_to_day": "切换到日视图",
     "day": "日",
     "week": "周",
     "month": "月",
@@ -521,6 +529,12 @@
       "daily": "按日",
       "time_asc": "时间升序",
       "time_desc": "时间降序"
+    },
+    "camera_panel": {
+      "camera_title": "相机",
+      "lens_title": "镜头",
+      "switch_to_camera": "切换到相机",
+      "switch_to_lens": "切换到镜头"
     },
     "search": {
       "clear_history": "清空搜索历史"

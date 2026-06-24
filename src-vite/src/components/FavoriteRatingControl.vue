@@ -15,14 +15,14 @@
     </button>
     <div class="w-px h-4 bg-base-content/10 mx-1"></div>
     <!-- <span class="mr-1 text-[11px] font-medium" :class="disabled ? 'text-base-content/30' : labelClass">
-      {{ $t('favorite.ratings') }}
+      {{ $t('rating.title') }}
     </span> -->
     <span
       v-if="rating === null && !disabled"
       class="mr-1 rounded border border-base-content/5 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-warning/70"
-      :title="`${$t('favorite.ratings')}: ${$t('favorite.mixed')}`"
+      :title="`${$t('rating.title')}: ${$t('rating.mixed')}`"
     >
-      {{ $t('favorite.mixed') }}
+      {{ $t('rating.mixed') }}
     </span>
     <button
       v-for="value in [1, 2, 3, 4, 5]"
@@ -74,7 +74,7 @@ const localeMsg = computed(() => messages.value[locale.value] as any);
 const favoriteTitle = computed(() => {
   if (props.favorite === null) {
     const label = props.favoriteLabel || t('menu.meta.favorite');
-    return `${label} (${t('favorite.mixed')})`;
+    return `${label} (${t('rating.mixed')})`;
   }
   if (props.favorite) {
     return props.unfavoriteLabel || t('menu.meta.unfavorite');

@@ -3,6 +3,11 @@
   <div class="sidebar-panel">
     <!-- title bar -->
     <div class="sidebar-panel-header" data-tauri-drag-region>
+      <span class="sidebar-panel-header-title flex-1">{{ titlebar }}</span>
+      <ContextMenu :menuItems="searchPanelMenuItems" :iconMenu="IconMore" :smallIcon="true" />
+    </div>
+
+    <div class="px-2 mb-2">
       <div role="tablist" class="sidebar-header-tabs">
         <a
           role="tab"
@@ -26,7 +31,6 @@
           {{ $t('search.filename_search') }}
         </a>
       </div>
-      <ContextMenu :menuItems="searchPanelMenuItems" :iconMenu="IconMore" :smallIcon="true" />
     </div>
 
     <!-- 0: search text -->

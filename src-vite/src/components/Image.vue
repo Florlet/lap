@@ -176,6 +176,7 @@
 import { ref, shallowRef, triggerRef, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
 import { useUIStore } from '@/stores/uiStore';
 import { config, libConfig } from '@/common/config';
+import { SIDEBAR } from '@/common/constants';
 import {
   getAssetSrc,
   getPreviewUrl,
@@ -272,7 +273,7 @@ const mouseDragNavTriggered = ref(false);
 
 const faces = ref<any[]>([]); // Store faces for the current image
 const showFaceOverlay = computed(() =>
-  config.settings.face.enabled && config.main.sidebarIndex === 6
+  config.settings.face.enabled && config.main.sidebarIndex === SIDEBAR.PERSON
 );
 
 let animationFrameId: number | null = null;

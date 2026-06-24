@@ -130,42 +130,43 @@ fn default_smart_album_source() -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FavoriteState {
-    #[serde(default = "default_favorite_tab")]
-    pub tab: String,
-    #[serde(alias = "album_id")]
-    pub album_id: Option<i64>,
-    #[serde(alias = "folder_id")]
-    pub folder_id: i64,
-    #[serde(alias = "folder_path")]
-    pub folder_path: Option<String>,
-    #[serde(default)]
-    pub rating: Option<i32>,
+pub struct LibraryPanelState {
+    #[serde(default = "default_library_item")]
+    pub item: String,
+    #[serde(default, alias = "smart_id")]
+    pub smart_id: Option<String>,
+    #[serde(default = "default_subjects_expanded", alias = "subjects_expanded")]
+    pub subjects_expanded: bool,
 }
 
-fn default_favorite_tab() -> String {
-    "favorite".to_string()
+fn default_library_item() -> String {
+    "all-files".to_string()
 }
 
-impl Default for FavoriteState {
+fn default_subjects_expanded() -> bool {
+    true
+}
+
+impl Default for LibraryPanelState {
     fn default() -> Self {
         Self {
-            tab: default_favorite_tab(),
-            album_id: None,
-            folder_id: 0,
-            folder_path: None,
-            rating: None,
+            item: default_library_item(),
+            smart_id: None,
+            subjects_expanded: default_subjects_expanded(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct RatingState {
+    pub item: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TagState {
     pub id: Option<i64>,
-    pub smart_id: Option<String>,
-    #[serde(default = "default_tag_tab")]
-    pub tab: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -179,28 +180,16 @@ pub struct CalendarState {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CameraState {
-    #[serde(default = "default_camera_tab")]
-    pub tab: String,
     pub make: Option<String>,
     pub model: Option<String>,
     pub lens_make: Option<String>,
     pub lens_model: Option<String>,
 }
 
-fn default_camera_tab() -> String {
-    "camera".to_string()
-}
-
-fn default_tag_tab() -> String {
-    "custom".to_string()
-}
-
 impl Default for TagState {
     fn default() -> Self {
         Self {
             id: None,
-            smart_id: None,
-            tab: default_tag_tab(),
         }
     }
 }
@@ -208,7 +197,6 @@ impl Default for TagState {
 impl Default for CameraState {
     fn default() -> Self {
         Self {
-            tab: default_camera_tab(),
             make: None,
             model: None,
             lens_make: None,
@@ -295,12 +283,15 @@ pub struct PersonState {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryState {
+    #[serde(default)]
+    pub library: LibraryPanelState,
     pub album: AlbumState,
     #[serde(default)]
     pub smart_album: SmartAlbumState,
     #[serde(default)]
     pub smart_albums: Vec<CustomSmartAlbumState>,
-    pub favorite: FavoriteState,
+    #[serde(default)]
+    pub rating: RatingState,
     pub tag: TagState,
     pub calendar: CalendarState,
     pub camera: CameraState,

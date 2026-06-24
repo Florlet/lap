@@ -2,11 +2,12 @@
  * Config Store - Global application configuration
  */
 import { defineStore } from 'pinia';
+import { SIDEBAR } from '@/common/constants';
 
 export const useConfigStore = defineStore('configStore', {
   state: () => ({
     main: {
-      sidebarIndex: 0,            // toolbar index
+      sidebarIndex: SIDEBAR.ALBUM, // toolbar index
       maxLibraryCount: 20,        // max library count
       selectionChunkSize: 200,    // virtual list fetch chunk size
     },
@@ -51,6 +52,10 @@ export const useConfigStore = defineStore('configStore', {
 
     calendar: {
       isMonthly: true,    // display monthly or daily calendar
+    },
+
+    camera: {
+      isCamera: true,    // show cameras or lens
     },
 
     mediaViewer: {

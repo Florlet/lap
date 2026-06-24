@@ -2,22 +2,13 @@
 
   <div class="sidebar-panel">
     <div class="sidebar-panel-header">
-      <div role="tablist" class="sidebar-header-tabs">
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', activeTab === 'camera' ? 'tab-active' : '']"
-          @click="setActiveTab('camera')"
-        >
-          {{ localeMsg.sidebar.camera }}
-        </button>
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', activeTab === 'lens' ? 'tab-active' : '']"
-          @click="setActiveTab('lens')"
-        >
-          {{ $t('file_info.lens') }}
-        </button>
-      </div>
+      <span class="sidebar-panel-header-title flex-1">{{ cameraTitle }}</span>
+      <TButton
+        :icon="activeTab === 'lens' ? IconCameraAperture : IconCamera"
+        :buttonSize="'small'"
+        :tooltip="cameraToggleTooltip"
+        @click="toggleCameraTab"
+      />
     </div>
 
     <div v-if="activeItems.length > 0" class="flex-1 overflow-x-hidden overflow-y-auto">
@@ -74,7 +65,8 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { config, libConfig } from '@/common/config';
 import { getCameraInfo, getLensInfo } from '@/common/api';
-import { IconRight } from '@/common/icons';
+import { IconCamera, IconCameraAperture, IconRight } from '@/common/icons';
+import TButton from '@/components/TButton.vue';
 
 const props = defineProps({
   titlebar: {
@@ -85,12 +77,22 @@ const props = defineProps({
 
 const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
+const cameraTitle = computed(() =>
+  config.camera.isCamera
+    ? (localeMsg.value.camera_panel?.camera_title || localeMsg.value.file_info?.camera || 'Camera')
+    : (localeMsg.value.camera_panel?.lens_title || localeMsg.value.file_info?.lens || 'Lens')
+);
+const cameraToggleTooltip = computed(() =>
+  config.camera.isCamera
+    ? (localeMsg.value.camera_panel?.switch_to_lens || 'Switch to Lens')
+    : (localeMsg.value.camera_panel?.switch_to_camera || 'Switch to Camera')
+);
 
 const cameras = ref<any[]>([]);
 const lenses = ref<any[]>([]);
 
 const activeTab = computed(() => {
-  return (libConfig.camera as any).tab === 'lens' ? 'lens' : 'camera';
+  return config.camera.isCamera ? 'camera' : 'lens';
 });
 
 const activeItems = computed(() => {
@@ -100,10 +102,6 @@ const activeItems = computed(() => {
 const sortedItems = computed(() => activeItems.value);
 
 onMounted(async () => {
-  if ((libConfig.camera as any).tab !== 'lens' && (libConfig.camera as any).tab !== 'camera') {
-    (libConfig.camera as any).tab = 'camera';
-  }
-
   if (cameras.value.length === 0 || lenses.value.length === 0) {
     await Promise.all([getCameras(), getLenses()]);
   }
@@ -135,7 +133,11 @@ function restoreExpandedItem(items: any[], selectedMake: string | null, selected
 }
 
 function setActiveTab(tab: 'camera' | 'lens') {
-  (libConfig.camera as any).tab = tab;
+  config.camera.isCamera = tab === 'camera';
+}
+
+function toggleCameraTab() {
+  setActiveTab(activeTab.value === 'lens' ? 'camera' : 'lens');
 }
 
 function isMakeSelected(make: string) {
@@ -222,7 +224,7 @@ function validateSelections() {
     (libConfig.camera as any).lensMake = null;
     (libConfig.camera as any).lensModel = null;
     if (activeTab.value === 'lens') {
-      (libConfig.camera as any).tab = 'camera';
+      config.camera.isCamera = true;
     }
   } else if ((libConfig.camera as any).lensMake) {
     const hasLensMake = lenses.value.some(lens => lens.make === (libConfig.camera as any).lensMake);

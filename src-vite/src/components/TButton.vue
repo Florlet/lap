@@ -6,8 +6,8 @@
       @mouseenter="showTooltip"
       @mouseleave="hideTooltip"
     >
-      <button
-        class="btn btn-ghost btn-square rounded-box border-0 focus:outline-none shadow-none flex flex-col"
+      <div
+        class="btn btn-ghost btn-square rounded-box border-0 focus:outline-none shadow-none flex flex-col text-base-content/70 hover:text-base-content"
         :class="[
           buttonClasses,
           {
@@ -15,11 +15,15 @@
             'btn-sm hover:bg-base-100/30': buttonSize === 'medium',
             'btn-lg hover:bg-base-100/30': buttonSize === 'large',
             'bg-base-100/30': selected,
-            'btn-disabled': disabled,
+            'btn-disabled pointer-events-none text-base-content/30 hover:text-base-content/30': disabled,
           }
         ]"
-        :disabled="disabled"
+        role="button"
+        :aria-disabled="disabled"
+        :tabindex="disabled ? -1 : 0"
         @click="handleClick"
+        @keydown.enter.prevent="handleClick"
+        @keydown.space.prevent="handleClick"
       >
         <component v-if="icon"
           :is="icon"
@@ -46,7 +50,7 @@
         >
           {{ text }}
         </span>
-      </button>
+      </div>
     </div>
     <Teleport to="body">
       <transition name="fade">
@@ -220,7 +224,8 @@ const hideTooltip = () => {
   removePositionListeners();
 };
 
-const handleClick = (event: MouseEvent) => {
+const handleClick = (event: Event) => {
+  if (props.disabled) return;
   hideTooltip();
   emit('click', event);
 };
