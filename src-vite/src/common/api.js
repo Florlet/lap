@@ -258,6 +258,33 @@ export async function getSmartQueryFiles(params, offset, limit) {
   return null;
 }
 
+export async function getSmartGroupedQueryRows(params, offset, limit) {
+  try {
+    return await invoke('get_smart_grouped_query_rows', { params, offset, limit });
+  } catch (error) {
+    console.error('Failed to get smart grouped query rows:', error);
+  }
+  return null;
+}
+
+export async function getSmartGroupFileIds(params, groupId) {
+  try {
+    return await invoke('get_smart_group_file_ids', { params, groupId });
+  } catch (error) {
+    console.error('Failed to get smart group file ids:', error);
+  }
+  return null;
+}
+
+export async function getSmartQueryFileIds(params) {
+  try {
+    return await invoke('get_smart_query_file_ids', { params });
+  } catch (error) {
+    console.error('Failed to get smart query file ids:', error);
+  }
+  return null;
+}
+
 export async function getSmartQueryFilePosition(params, fileId) {
   try {
     return await invoke('get_smart_query_file_position', { params, fileId });
@@ -697,6 +724,52 @@ export async function getQueryFiles(params, offset, limit) {
     };
   } catch (error) {
     console.error('getQueryFiles error:', error);
+  }
+  return null;
+}
+
+/// get grouped query rows from db (row-based pagination: group headers + files)
+export async function getGroupedQueryRows(params, offset, limit) {
+  try {
+    const result = await invoke('get_grouped_query_rows', {
+      params,
+      offset,
+      limit,
+    });
+    if (result) {
+      return result;
+    }
+  } catch (error) {
+    console.error('getGroupedQueryRows error:', error);
+  }
+  return null;
+}
+
+/// get all file ids in a grouped query group
+export async function getGroupFileIds(params, groupId) {
+  try {
+    const result = await invoke('get_group_file_ids', {
+      params,
+      groupId,
+    });
+    if (result) {
+      return result;
+    }
+  } catch (error) {
+    console.error('getGroupFileIds error:', error);
+  }
+  return null;
+}
+
+/// get all file ids in current query
+export async function getQueryFileIds(params) {
+  try {
+    const result = await invoke('get_query_file_ids', { params });
+    if (result) {
+      return result;
+    }
+  } catch (error) {
+    console.error('getQueryFileIds error:', error);
   }
   return null;
 }

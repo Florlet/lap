@@ -1080,27 +1080,6 @@
         "Lente",
         "Configurações"
       ],
-      "section_grouping": "Agrupamento",
-      "group_by": "Agrupar por",
-      "group_by_hint": "Organiza os itens da grade em seções",
-      "group_unknown_folder": "Pasta desconhecida",
-      "group_by_options": [
-        "Nenhum",
-        "Data (dia)",
-        "Data (mês)",
-        "Data (ano)",
-        "Caminho da pasta",
-        "Tipo de arquivo",
-        "Avaliação",
-        "Câmera",
-        "Localização"
-      ],
-      "group_order": "Ordem dos grupos",
-      "group_order_options": [
-        "Automático",
-        "Crescente",
-        "Decrescente"
-      ],
       "filmstrip_view": {
         "title": "Tira de filme",
         "enable_filmstrip": "Ativar visualização em tira de filme",

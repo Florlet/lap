@@ -1080,27 +1080,6 @@
         "镜头",
         "拍摄设置"
       ],
-      "section_grouping": "分组",
-      "group_by": "分组方式",
-      "group_by_hint": "将网格项目按条件分组显示",
-      "group_unknown_folder": "未知文件夹",
-      "group_by_options": [
-        "不分组",
-        "日期（按日）",
-        "日期（按月）",
-        "日期（按年）",
-        "文件夹路径",
-        "文件类型",
-        "评分",
-        "相机",
-        "地点"
-      ],
-      "group_order": "分组顺序",
-      "group_order_options": [
-        "自动",
-        "升序",
-        "降序"
-      ],
       "filmstrip_view": {
         "title": "胶片栏",
         "enable_filmstrip": "启用胶片栏视图",

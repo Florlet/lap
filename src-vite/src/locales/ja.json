@@ -1080,27 +1080,6 @@
         "レンズ",
         "設定"
       ],
-      "section_grouping": "グループ化",
-      "group_by": "グループ化",
-      "group_by_hint": "グリッド項目をセクションに整理します",
-      "group_unknown_folder": "不明なフォルダ",
-      "group_by_options": [
-        "なし",
-        "日付（日）",
-        "日付（月）",
-        "日付（年）",
-        "フォルダパス",
-        "ファイル形式",
-        "評価",
-        "カメラ",
-        "場所"
-      ],
-      "group_order": "グループ順序",
-      "group_order_options": [
-        "自動",
-        "昇順",
-        "降順"
-      ],
       "filmstrip_view": {
         "title": "フィルムストリップ",
         "enable_filmstrip": "フィルムストリップ表示を有効にする",

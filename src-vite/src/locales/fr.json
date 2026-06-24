@@ -1080,27 +1080,6 @@
         "Objectif",
         "Paramètres"
       ],
-      "section_grouping": "Regroupement",
-      "group_by": "Regrouper par",
-      "group_by_hint": "Organise les éléments de la grille en sections",
-      "group_unknown_folder": "Dossier inconnu",
-      "group_by_options": [
-        "Aucun",
-        "Date (jour)",
-        "Date (mois)",
-        "Date (année)",
-        "Chemin du dossier",
-        "Type de fichier",
-        "Note",
-        "Appareil photo",
-        "Lieu"
-      ],
-      "group_order": "Ordre des groupes",
-      "group_order_options": [
-        "Automatique",
-        "Croissant",
-        "Décroissant"
-      ],
       "filmstrip_view": {
         "title": "Pellicule",
         "enable_filmstrip": "Activer la vue pellicule",

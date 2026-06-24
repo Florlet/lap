@@ -194,7 +194,7 @@
               <Welcome v-if="showWelcomeContent" />
               <GridView v-else ref="gridViewRef"
                 :selected-item-index="selectedItemIndex"
-                :fileList="fileList"
+                :fileList="gridRows"
                 :timeline-data="timelineData"
                 :sort-type="currentQueryParams.sortType"
                 :showFolderFiles="showFolderFiles"
@@ -203,11 +203,16 @@
                 :content-ready="contentReady"
                 :empty-message="emptyFilesMessage"
                 :layout-version="layoutVersion"
+                :group-by="activeGroupBy"
+                :group-selected-counts="groupSelectedCounts"
+                :group-selection-loading="groupSelectionLoading"
+                :folder-group-roots="folderGroupRoots"
                 @item-clicked="handleItemClicked"
                 @item-dblclicked="handleItemDblClicked"
                 @item-select-toggled="handleItemSelectToggled"
                 @item-action="handleItemAction"
                 @date-group-select="handleDateGroupSelect"
+                @group-select-toggled="handleGroupSelectToggled"
                 @visible-range-update="handleVisibleRangeUpdate"
                 @scroll="handleGridScroll"
                 @layout-update="handleLayoutUpdate"
@@ -283,16 +288,16 @@
         </div> <!-- grid view -->
 
         <!-- custom scrollbar -->
-        <div v-if="!showWelcomeContent && !config.settings.grid.showFilmStrip && fileList.length > 0" 
+        <div v-if="!showWelcomeContent && !config.settings.grid.showFilmStrip && fileList.length > 0"
           class="mt-12 shrink-0" 
           :class="[ config.settings.showStatusBar ? 'mb-8' : 'mb-1' ]"
         >
           <ScrollBar
-            :total="totalFileCount"
-            :pageSize="visibleItemCount"
+            :total="scrollbarTotal"
+            :pageSize="scrollbarPageSize"
             :modelValue="scrollPosition"
-            :markers="isSearchLikeView ? [] : timelineData"
-            :selectedIndex="selectedItemIndex"
+            :markers="scrollbarMarkers"
+            :selectedIndex="scrollbarSelectedIndex"
             @update:modelValue="handleScrollUpdate"
             @select-item="handleTimelineSelectItem"
           ></ScrollBar>
@@ -602,15 +607,15 @@
 
 <script setup lang="ts">
 
-import { ref, watch, computed, createVNode, onMounted, onBeforeUnmount, nextTick, render } from 'vue';
+import { ref, watch, computed, createVNode, onMounted, onBeforeUnmount, nextTick, render, markRaw } from 'vue';
 import { emit as tauriEmit, listen } from '@tauri-apps/api/event';
 import { ask, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '@/common/toast';
 import { useUIStore } from '@/stores/uiStore';
-import { getAlbum, getAllAlbums, recountAlbum, getQueryCountAndSum, getQueryTimeLine, getQueryFiles, syncAlbumFolderMtimes,
-         getSmartQueryCountAndSum, getSmartQueryTimeLine, getSmartQueryFiles, getSmartQueryFilePosition,
+import { getAlbum, getAllAlbums, recountAlbum, getQueryCountAndSum, getQueryTimeLine, getQueryFiles, getGroupedQueryRows, getGroupFileIds, getQueryFileIds, syncAlbumFolderMtimes,
+         getSmartQueryCountAndSum, getSmartQueryTimeLine, getSmartQueryFiles, getSmartGroupedQueryRows, getSmartGroupFileIds, getSmartQueryFileIds, getSmartQueryFilePosition,
          copyImages, renameFile, moveFile, moveFileOutsideLibrary, copyFile, deleteFile, deleteFilePermanently, batchDeleteFiles, editFileComment, getFileThumb, getFileThumbs, getFileInfo,
          setFileRotate, setFileFavorite, setFileRating, batchUpdateFileMetadata, getTagsForFile, searchSimilarImages, generateEmbedding,
          revealPath, getTagName, indexAlbum, listenIndexProgress, listenIndexFinished, setAlbumCover,
@@ -621,6 +626,15 @@ import { config, libConfig } from '@/common/config';
 import { getShortcutLabel, matchesShortcut, ShortcutActionId, ShortcutPlatform } from '@/common/shortcuts';
 import { getSmartTagById, SMART_TAG_SEARCH_THRESHOLD } from '@/common/smartTags';
 import { getAlbumScanState, getAlbumScanIcon, shouldAnimateAlbumScanIcon } from '@/common/scanStatus';
+import {
+  GROUP_BY_NONE,
+  GROUP_BY_FOLDER_PATH,
+  GROUP_BY_DATE_DAY,
+  GROUP_BY_DATE_MONTH,
+  GROUP_BY_LOCATION,
+  GROUP_BY_CAMERA,
+  GROUP_BY_LENS,
+} from '@/common/grouping';
 import { isWin, isMac, isLinux, setTheme, separator,
          formatFileSize, formatDate, getCalendarDateRange, formatFolderBreadcrumb, getThumbnailDataUrl, getAssetSrc, getPreviewUrl,
          getCachedThumbnailDataUrl,
@@ -718,7 +732,7 @@ function handleBreadcrumbClick(segmentIndex: number) {
     contentTitle.value = segments.slice(0, segmentIndex + 1).join(' > ');
 
     const requestId = ++currentContentRequestId;
-    fileList.value = [];
+    clearContentRows();
     totalFileCount.value = 0;
     totalFileSize.value = 0;
     scrollPosition.value = 0;
@@ -802,7 +816,9 @@ const isContentHovered = ref(false);
 
 // file list
 const fileList = ref<any[]>([]);
+const groupedRows = ref<any[]>([]);
 const totalFileCount = ref(0);    // total files' count
+const totalRowCount = ref(0);     // total render rows' count (group headers + files)
 const totalFileSize = ref(0);     // total files' size
 
 const selectedItemIndex = ref(-1);
@@ -815,22 +831,387 @@ const selectedCount = ref(0);
 const selectedSize = ref(0);  // selected files size
 const selectionChunkSize = computed(() => Number(config.main?.selectionChunkSize) || 200);
 const isRealFileItem = (item: any) => !!item && !item.isPlaceholder && typeof item.id === 'number';
+const isGroupRow = (item: any) => item?.type === 'group';
+const isItemRow = (item: any) => item?.type === 'item';
+const selectedFileIds = markRaw(new Set<number>());
+const selectionVersion = ref(0);
+const selectedFilesVersion = ref(0);
 const setItemSelected = (index: number, selected: boolean) => {
   if (index < 0 || index >= fileList.value.length) return;
-  fileList.value[index].isSelected = selected;
+  if (!fileList.value[index] && !ensureGroupedFileAtIndex(index)) return;
+  const item = fileList.value[index];
+  if (!item) return;
+  const fileId = Number(item?.id || 0);
+  const previous = fileId > 0 ? selectedFileIds.has(fileId) : Boolean(item?.isSelected);
+  if (previous === selected) {
+    item.isSelected = selected;
+    return;
+  }
+  item.isSelected = selected;
+  if (fileId > 0) {
+    if (selected) selectedFileIds.add(fileId);
+    else selectedFileIds.delete(fileId);
+  }
+  applySelectionDelta(item, selected ? 1 : -1);
 };
 const getActionableSelectedItems = () =>
-  fileList.value.filter(item => item.isSelected && isRealFileItem(item));
-const selectedFiles = computed(() => selectMode.value ? getActionableSelectedItems() : []);
+  fileList.value.filter(item => isRealFileItem(item) && (item.isSelected || selectedFileIds.has(Number(item.id))));
+const selectedFiles = computed(() => {
+  selectedFilesVersion.value;
+  return selectMode.value ? getActionableSelectedItems() : [];
+});
+const groupedModeActive = ref(false);
+const gridRows = computed(() => groupedModeActive.value ? groupedRows.value : fileList.value);
+const groupFileIdsCache = new Map<string, number[]>();
+const groupedTimelineGroups = ref<any[]>([]);
+const folderGroupRoots = ref<Array<{ path: string; name?: string }>>([]);
+const groupSelectedCountMap = ref<Record<string, number>>({});
+const groupSelectedSizeMap = ref<Record<string, number>>({});
+const groupSelectedCounts = computed(() => groupSelectedCountMap.value);
+const groupSelectionLoading = ref<Record<string, boolean>>({});
+const fileIdToGroupId = new Map<number, string>();
+const groupMetaMap = new Map<string, { count: number; size: number }>();
 const LARGE_BATCH_CONFIRM_THRESHOLD = 1000;
 const FILE_OPERATION_CONCURRENCY = 8;
 
 function clearSelectionForFileListUpdate() {
   selectMode.value = false;
-  selectedCount.value = 0;
-  selectedSize.value = 0;
+  resetSelectionSummary();
   lastSelectedIndex.value = -1;
   keyboardSelectionAnchorIndex.value = -1;
+  groupSelectedCountMap.value = {};
+  groupSelectedSizeMap.value = {};
+}
+
+function clearLoadedSelectionFlags() {
+  for (const file of fileList.value) {
+    if (file) file.isSelected = false;
+  }
+}
+
+function resetGroupingState() {
+  groupedModeActive.value = false;
+  groupedRows.value = [];
+  totalRowCount.value = 0;
+  groupFileIdsCache.clear();
+  groupedTimelineGroups.value = [];
+  groupSelectedCountMap.value = {};
+  groupSelectedSizeMap.value = {};
+  groupSelectionLoading.value = {};
+  fileIdToGroupId.clear();
+  groupMetaMap.clear();
+}
+
+function clearContentRows() {
+  resetGroupingState();
+  fileList.value = [];
+}
+
+function createViewBackup() {
+  return {
+    fileList: [...fileList.value],
+    groupedModeActive: groupedModeActive.value,
+    groupedRows: [...groupedRows.value],
+    totalRowCount: totalRowCount.value,
+    groupedTimelineGroups: [...groupedTimelineGroups.value],
+    folderGroupRoots: [...folderGroupRoots.value],
+    groupMetaEntries: Array.from(groupMetaMap.entries()),
+    fileIdToGroupIdEntries: Array.from(fileIdToGroupId.entries()),
+    totalFileCount: totalFileCount.value,
+    totalFileSize: totalFileSize.value,
+    contentTitle: contentTitle.value,
+    selectedItemIndex: selectedItemIndex.value,
+    scrollPosition: scrollPosition.value,
+    timelineData: [...timelineData.value],
+    currentQueryParams: { ...currentQueryParams.value },
+    currentQuerySource: currentQuerySource.value,
+    currentSmartQueryParams: currentSmartQueryParams.value ? { ...currentSmartQueryParams.value } : null,
+    thumbCount: thumbCount.value,
+    showProgressBar: showProgressBar.value,
+    scrollTop: gridViewRef.value ? gridViewRef.value.getScrollTop() : 0,
+  };
+}
+
+function getAutoGroupByForCurrentView() {
+  switch (Number(config.main.sidebarIndex)) {
+    case 0:
+      return GROUP_BY_FOLDER_PATH;
+    case 1:
+      return GROUP_BY_NONE; // Smart album: disabled
+    case 4:
+      if (config.calendar.isMonthly) {
+        return libConfig.calendar.year !== null && libConfig.calendar.month === -1 ? GROUP_BY_DATE_MONTH : GROUP_BY_NONE;
+      }
+      return libConfig.calendar.year !== null && libConfig.calendar.month !== -1 && libConfig.calendar.date === -1 ? GROUP_BY_DATE_DAY : GROUP_BY_NONE;
+    case 5:
+      return GROUP_BY_NONE; // Tag and smart tag: disabled
+    case 7:
+      return libConfig.location.admin1 && !libConfig.location.name ? GROUP_BY_LOCATION : GROUP_BY_NONE;
+    case 8:
+      if ((libConfig.camera as any).tab === 'lens') {
+        return (libConfig.camera as any).lensMake && !(libConfig.camera as any).lensModel ? GROUP_BY_LENS : GROUP_BY_NONE;
+      }
+      return libConfig.camera.make && !libConfig.camera.model ? GROUP_BY_CAMERA : GROUP_BY_NONE;
+    default:
+      return GROUP_BY_NONE;
+  }
+}
+
+const activeGroupBy = computed(() => getAutoGroupByForCurrentView());
+
+function isGroupingSupportedForCurrentView() {
+  return (
+    activeGroupBy.value > 0 &&
+    !config.settings.grid.showFilmStrip &&
+    !isScanStreamingMode.value &&
+    tempViewMode.value === 'none' &&
+    config.main.sidebarIndex !== 3
+  );
+}
+
+function formatFolderGroupLabel(label: string) {
+  const folderPath = String(label || '').trim();
+  if (!folderPath || folderPath === 'Unknown folder') return folderPath;
+
+  const root = [...folderGroupRoots.value]
+    .filter(root => root.path && isWithinRootPath(folderPath, root.path))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+  if (!root) return folderPath;
+
+  return formatFolderBreadcrumb(folderPath, root.path, root.name || '');
+}
+
+function formatDateGroupLabel(groupBy: number, label: string) {
+  const rawLabel = String(label || '').trim();
+
+  const timestamp = Number(rawLabel);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return rawLabel;
+
+  const value = new Date(timestamp * 1000);
+  const year = value.getFullYear();
+  const month = value.getMonth() + 1;
+  const date = value.getDate();
+  if (!year || !month || !date) return rawLabel;
+
+  switch (groupBy) {
+    case GROUP_BY_DATE_DAY:
+      return formatDate(year, month, date, localeMsg.value.format.date_long);
+    case GROUP_BY_DATE_MONTH:
+      return formatDate(year, month, 1, localeMsg.value.format.month);
+    default:
+      return rawLabel;
+  }
+}
+
+function formatGroupLabel(label: string) {
+  const groupBy = Number(activeGroupBy.value || 0);
+  if (groupBy === GROUP_BY_DATE_DAY || groupBy === GROUP_BY_DATE_MONTH) return formatDateGroupLabel(groupBy, label);
+  if (groupBy === GROUP_BY_FOLDER_PATH) return formatFolderGroupLabel(label);
+  return label || '';
+}
+
+function getGroupingQueryParams() {
+  const baseParams = currentQuerySource.value === 'smart' && currentSmartQueryParams.value
+    ? currentSmartQueryParams.value
+    : currentQueryParams.value;
+  return {
+    ...baseParams,
+    groupBy: activeGroupBy.value,
+    folderSort: Number(config.settings.folderSort || 0),
+    calendarSort: Number(config.settings.calendarSort || 0),
+    categorySort: Number(config.settings.categorySort || 0),
+  };
+}
+
+async function ensureFolderGroupRoots() {
+  if (folderGroupRoots.value.length > 0) return;
+  try {
+    const albums = await getAllAlbums();
+    folderGroupRoots.value = Array.isArray(albums)
+      ? albums
+          .map((album: any) => ({
+            path: String(album?.path || ''),
+            name: String(album?.name || ''),
+          }))
+          .filter(album => album.path)
+      : [];
+  } catch (error) {
+    console.error('ensureFolderGroupRoots error:', error);
+    folderGroupRoots.value = [];
+  }
+}
+
+function updateGroupSelectedCount(groupId: string, count: number) {
+  groupSelectedCountMap.value = {
+    ...groupSelectedCountMap.value,
+    [groupId]: Math.max(0, count),
+  };
+}
+
+function updateGroupSelectedSize(groupId: string, size: number) {
+  groupSelectedSizeMap.value = {
+    ...groupSelectedSizeMap.value,
+    [groupId]: Math.max(0, size),
+  };
+}
+
+function syncSelectionVersions() {
+  selectionVersion.value++;
+  selectedFilesVersion.value++;
+}
+
+function applySelectionDelta(file: any, delta: number) {
+  if (!isRealFileItem(file) || delta === 0) return;
+  selectedCount.value = Math.max(0, selectedCount.value + delta);
+  selectedSize.value = Math.max(0, selectedSize.value + delta * Number(file.size || 0));
+  updateGroupSelectedCountForFile(file, delta);
+  syncSelectionVersions();
+}
+
+function updateGroupSelectedCountForFile(file: any, delta: number) {
+  const fileId = Number(file?.id || 0);
+  if (!fileId) return;
+  const groupId = fileIdToGroupId.get(fileId);
+  if (!groupId) return;
+  const meta = groupMetaMap.get(groupId);
+  const current = Number(groupSelectedCountMap.value[groupId] || 0);
+  const maxCount = Number(meta?.count || Number.MAX_SAFE_INTEGER);
+  updateGroupSelectedCount(groupId, Math.min(maxCount, Math.max(0, current + delta)));
+
+  const currentSize = Number(groupSelectedSizeMap.value[groupId] || 0);
+  const fileSize = Number(file?.size || 0);
+  const maxSize = Number(meta?.size || Number.MAX_SAFE_INTEGER);
+  updateGroupSelectedSize(groupId, Math.min(maxSize, Math.max(0, currentSize + delta * fileSize)));
+}
+
+function resetSelectionSummary() {
+  selectedCount.value = 0;
+  selectedSize.value = 0;
+  selectedFileIds.clear();
+  syncSelectionVersions();
+}
+
+function recomputeLoadedGroupSelectedCounts() {
+  const next: Record<string, number> = {};
+  const nextSize: Record<string, number> = {};
+  for (const groupId of groupMetaMap.keys()) {
+    next[groupId] = 0;
+    nextSize[groupId] = 0;
+  }
+
+  for (const file of fileList.value) {
+    if (!isRealFileItem(file)) continue;
+    const fileId = Number(file.id || 0);
+    const groupId = fileIdToGroupId.get(fileId);
+    if (!groupId) continue;
+    if (file.isSelected || selectedFileIds.has(fileId)) {
+      const maxCount = Number(groupMetaMap.get(groupId)?.count || Number.MAX_SAFE_INTEGER);
+      next[groupId] = Math.min(maxCount, Number(next[groupId] || 0) + 1);
+      const maxSize = Number(groupMetaMap.get(groupId)?.size || Number.MAX_SAFE_INTEGER);
+      nextSize[groupId] = Math.min(maxSize, Number(nextSize[groupId] || 0) + Number(file.size || 0));
+    }
+  }
+
+  groupSelectedCountMap.value = next;
+  groupSelectedSizeMap.value = nextSize;
+}
+
+function normalizeGroupedRowsResult(result: any) {
+  const rows = Array.isArray(result) ? result : (Array.isArray(result?.rows) ? result.rows : []);
+  const groups = Array.isArray(result?.groups)
+    ? result.groups.map((group: any) => ({
+        groupId: String(group.group_id ?? group.groupId ?? ''),
+        label: formatGroupLabel(group.label ?? ''),
+        count: Number(group.count || 0),
+        size: Number(group.size || 0),
+        rowIndex: Number(group.row_index ?? group.rowIndex ?? 0),
+      }))
+    : [];
+  return {
+    rows,
+    groups,
+    totalItemCount: Number(result?.totalItemCount ?? result?.total_item_count ?? result?.totalFileCount ?? result?.total_count ?? totalFileCount.value ?? 0),
+    totalRowCount: Number(result?.total_row_count ?? result?.totalRowCount ?? rows.length),
+    totalSize: Number(result?.total_size ?? result?.totalSize ?? totalFileSize.value ?? 0),
+  };
+}
+
+function ensureGroupedFileAtIndex(index: number) {
+  if (!groupedModeActive.value || isRealFileItem(fileList.value[index])) return true;
+  const row = groupedRows.value.find((item: any) =>
+    isItemRow(item) && Number(item.file_index) === Number(index)
+  );
+  const file = row?.file;
+  if (!file) return false;
+
+  const fileId = Number(file?.id || 0);
+  const existingItem = fileList.value[index];
+  fileList.value[index] = {
+    ...file,
+    isSelected: Boolean(existingItem?.isSelected) || (fileId > 0 && selectedFileIds.has(fileId)),
+    rotate: existingItem?.rotate || file.rotate || 0,
+    thumbnail: existingItem?.thumbnail || file.thumbnail,
+  };
+  const groupId = String(row.group_id || '');
+  if (groupId && fileId) fileIdToGroupId.set(fileId, groupId);
+  if (fileList.value[index]?.isSelected && fileId > 0 && !selectedFileIds.has(fileId)) {
+    selectedFileIds.add(fileId);
+    applySelectionDelta(fileList.value[index], 1);
+  }
+  return true;
+}
+
+function createGroupHeaderRow(group: any) {
+  const groupId = String(group.groupId || '');
+  return {
+    type: 'group',
+    id: `group-row-${groupId}`,
+    group_id: groupId,
+    label: formatGroupLabel(group.label || ''),
+    count: Number(group.count || 0),
+    size: Number(group.size || 0),
+  };
+}
+
+function getGroupedRowIndexForFileIndex(fileIndex: number) {
+  if (!groupedModeActive.value || fileIndex < 0) return fileIndex;
+  let fileCursor = 0;
+  for (const group of groupedTimelineGroups.value) {
+    const count = Number(group.count || 0);
+    if (fileIndex < fileCursor + count) {
+      return Number(group.rowIndex || 0) + 1 + (fileIndex - fileCursor);
+    }
+    fileCursor += count;
+  }
+  const row = groupedRows.value.findIndex((item: any) =>
+    isItemRow(item) && Number(item.file_index) === Number(fileIndex)
+  );
+  return row >= 0 ? row : -1;
+}
+
+function getGroupedFileIndexForRowIndex(rowIndex: number) {
+  if (!groupedModeActive.value || rowIndex < 0) return rowIndex;
+  let fileCursor = 0;
+  for (const group of groupedTimelineGroups.value) {
+    const count = Number(group.count || 0);
+    const groupRowIndex = Number(group.rowIndex || 0);
+    const firstItemRowIndex = groupRowIndex + 1;
+    const nextGroupRowIndex = firstItemRowIndex + count;
+    if (rowIndex >= groupRowIndex && rowIndex < nextGroupRowIndex) {
+      return count > 0
+        ? fileCursor + Math.max(0, rowIndex - firstItemRowIndex)
+        : -1;
+    }
+    fileCursor += count;
+  }
+
+  const row = groupedRows.value[rowIndex];
+  if (isItemRow(row)) return Number(row.file_index);
+  if (isGroupRow(row)) {
+    const nextRow = groupedRows.value[rowIndex + 1];
+    return isItemRow(nextRow) ? Number(nextRow.file_index) : -1;
+  }
+  return -1;
 }
 
 class CopyIndexError extends Error {}
@@ -1265,6 +1646,35 @@ const visibleItemCount = computed(() => {
 });
 
 const timelineData = ref<any[]>([]);  // timeline markers for scrollbar
+const groupTimelineData = computed(() => {
+  if (!groupedModeActive.value) return [];
+  if (groupedTimelineGroups.value.length > 0) {
+    return groupedTimelineGroups.value.map((group: any) => ({
+      label: group.label || '',
+      position: Number(group.rowIndex || 0),
+    }));
+  }
+  return groupedRows.value
+    .map((row: any, index: number) => isGroupRow(row) && !row.isPlaceholder
+      ? {
+          label: row.label || '',
+          position: index,
+        }
+      : null)
+    .filter(Boolean);
+});
+const scrollbarTotal = computed(() => groupedModeActive.value ? totalRowCount.value : totalFileCount.value);
+const scrollbarPageSize = computed(() => Math.max(1, Math.min(visibleItemCount.value, scrollbarTotal.value || visibleItemCount.value)));
+const scrollbarMarkers = computed(() => {
+  if (groupedModeActive.value) return groupTimelineData.value;
+  if (isSearchLikeView.value) return [];
+  return timelineData.value;
+});
+const scrollbarSelectedIndex = computed(() => (
+  groupedModeActive.value
+    ? getGroupedRowIndexForFileIndex(selectedItemIndex.value)
+    : selectedItemIndex.value
+));
 
 const toast = useToast();
 const shortcutPlatform: ShortcutPlatform = isMac ? 'mac' : (isLinux ? 'linux' : 'windows');
@@ -1793,6 +2203,8 @@ const currentQueryParams = ref({
   startDate: 0,
   endDate: 0,
   calendarSort: 0,
+  folderSort: 0,
+  categorySort: 0,
   make: "",
   model: "",
   lensMake: "",
@@ -1848,7 +2260,7 @@ const currentImageSearchParams = ref({
 function showEmptyContent(requestId: number) {
   if (requestId !== currentContentRequestId) return;
   clearSelectionForFileListUpdate();
-  fileList.value = [];
+  clearContentRows();
   totalFileCount.value = 0;
   totalFileSize.value = 0;
   timelineData.value = [];
@@ -1864,7 +2276,7 @@ function showEmptyContent(requestId: number) {
 function showLoadingContent(requestId: number) {
   if (requestId !== currentContentRequestId) return;
   clearSelectionForFileListUpdate();
-  fileList.value = [];
+  clearContentRows();
   totalFileCount.value = 0;
   totalFileSize.value = 0;
   timelineData.value = [];
@@ -2002,33 +2414,13 @@ function handleItemClicked(
   index: number,
   modifiers: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean } = {}
 ) {
+  if (!ensureGroupedFileAtIndex(index)) return;
   const shiftKey = !!modifiers.shiftKey;
   const toggleSelection = !!(modifiers.metaKey || modifiers.ctrlKey);
 
   if (!selectMode.value && shiftKey && selectedItemIndex.value >= 0 && selectedItemIndex.value !== index) {
     checkUnsavedChanges(() => {
-      const wasSelectMode = selectMode.value;
-      selectMode.value = true;
-      showQuickView.value = false;
-      stopSlideShow();
-      config.rightPanel.show = false;
-
-      const anchorIndex = selectedItemIndex.value;
-      const start = Math.min(anchorIndex, index);
-      const end = Math.max(anchorIndex, index);
-
-      for (let i = 0; i < fileList.value.length; i++) {
-        setItemSelected(i, false);
-      }
-
-      for (let i = start; i <= end; i++) {
-        if (isRealFileItem(fileList.value[i])) {
-          setItemSelected(i, true);
-        }
-      }
-
-      selectedItemIndex.value = index;
-      lastSelectedIndex.value = index;
+      void selectRangeFromSingleSelection(selectedItemIndex.value, index);
     });
     return;
   }
@@ -2041,7 +2433,7 @@ function handleItemClicked(
 
       selectedItemIndex.value = index;
       if (index !== anchorIndex) {
-        handleItemSelectToggled(index);
+        void handleItemSelectToggled(index);
       }
     });
     return;
@@ -2049,7 +2441,7 @@ function handleItemClicked(
 
   if (index === selectedItemIndex.value) {
     if (selectMode.value) {
-      handleItemSelectToggled(index, shiftKey);
+      void handleItemSelectToggled(index, shiftKey);
     }
     return;
   }
@@ -2057,7 +2449,7 @@ function handleItemClicked(
   checkUnsavedChanges(() => {
     selectedItemIndex.value = index;
     if (selectMode.value) {
-      handleItemSelectToggled(index, shiftKey);
+      void handleItemSelectToggled(index, shiftKey);
     } else {
       lastSelectedIndex.value = index;
     }
@@ -2069,6 +2461,7 @@ function handleItemDblClicked(
   index: number,
   modifiers: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean } = {}
 ) {
+  if (!ensureGroupedFileAtIndex(index)) return;
   const openInNewWindow = !!(modifiers.shiftKey || modifiers.metaKey || modifiers.ctrlKey);
   if (openInNewWindow) {
     checkUnsavedChanges(() => {
@@ -2102,20 +2495,80 @@ function handleItemDblClicked(
 const lastSelectedIndex = ref(-1);
 const keyboardSelectionAnchorIndex = ref(-1);
 
-function handleItemSelectToggled(index: number, shiftKey: boolean = false) {
+async function hydrateSelectionRange(startIndex: number, endIndex: number) {
+  const start = Math.max(0, Math.min(startIndex, endIndex));
+  const end = Math.min(fileList.value.length - 1, Math.max(startIndex, endIndex));
+  if (start > end) return false;
+
+  if (groupedModeActive.value) {
+    const rowStart = getGroupedRowIndexForFileIndex(start);
+    const rowEnd = getGroupedRowIndexForFileIndex(end);
+    if (rowStart < 0 || rowEnd < 0) return false;
+    await fetchGroupedRowsRange(Math.min(rowStart, rowEnd), Math.max(rowStart, rowEnd) + 1);
+    for (let i = start; i <= end; i++) {
+      if (!isRealFileItem(fileList.value[i]) && !ensureGroupedFileAtIndex(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const hasPlaceholders = fileList.value
+    .slice(start, end + 1)
+    .some(item => item?.isPlaceholder);
+  return !hasPlaceholders || await hydrateRangeForSelection(start, end + 1);
+}
+
+async function selectRangeFromSingleSelection(anchorIndex: number, targetIndex: number) {
+  const start = Math.min(anchorIndex, targetIndex);
+  const end = Math.max(anchorIndex, targetIndex);
+  if (!await hydrateSelectionRange(start, end)) {
+    toast.error(t('info_panel.selection_load_failed'));
+    return;
+  }
+
+  clearLoadedSelectionFlags();
+  resetSelectionSummary();
+  groupSelectedCountMap.value = {};
+  groupSelectedSizeMap.value = {};
+  selectMode.value = true;
+  showQuickView.value = false;
+  stopSlideShow();
+  config.rightPanel.show = false;
+
+  for (let i = start; i <= end; i++) {
+    if (isRealFileItem(fileList.value[i])) {
+      setItemSelected(i, true);
+    }
+  }
+
+  selectedItemIndex.value = targetIndex;
+  lastSelectedIndex.value = targetIndex;
+}
+
+async function handleItemSelectToggled(index: number, shiftKey: boolean = false) {
+  if (!ensureGroupedFileAtIndex(index)) return;
+  const targetItem = fileList.value[index];
+  if (!targetItem) return;
   if (shiftKey && lastSelectedIndex.value !== -1 && lastSelectedIndex.value !== index) {
     // Range selection: select all items between lastSelectedIndex and index
     const start = Math.min(lastSelectedIndex.value, index);
     const end = Math.max(lastSelectedIndex.value, index);
     
     // Set all items in range to the same selection state as the target item
-    const targetState = !fileList.value[index].isSelected;
+    const targetState = !targetItem.isSelected;
+    if (!await hydrateSelectionRange(start, end)) {
+      toast.error(t('info_panel.selection_load_failed'));
+      return;
+    }
     for (let i = start; i <= end; i++) {
-      setItemSelected(i, targetState);
+      if (isRealFileItem(fileList.value[i])) {
+        setItemSelected(i, targetState);
+      }
     }
   } else {
     // Single toggle
-    setItemSelected(index, !fileList.value[index].isSelected);
+    setItemSelected(index, !targetItem.isSelected);
   }
   
   // Update last selected index
@@ -2128,27 +2581,36 @@ function toggleKeyboardSelection(direction: 'prev' | 'next') {
   const currentIndex = selectedItemIndex.value;
   const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
   if (currentIndex < 0 || nextIndex < 0 || nextIndex >= fileList.value.length) return false;
+  if (!ensureGroupedFileAtIndex(nextIndex)) return false;
 
   checkUnsavedChanges(() => {
-    if (keyboardSelectionAnchorIndex.value < 0) {
-      keyboardSelectionAnchorIndex.value = currentIndex;
-    }
-
-    if (!selectMode.value) {
-      handleSelectMode(true);
-    }
-
-    const start = Math.min(keyboardSelectionAnchorIndex.value, nextIndex);
-    const end = Math.max(keyboardSelectionAnchorIndex.value, nextIndex);
-    const targetState = !fileList.value[nextIndex].isSelected;
-    for (let i = start; i <= end; i++) {
-      if (isRealFileItem(fileList.value[i])) {
-        setItemSelected(i, targetState);
+    void (async () => {
+      if (keyboardSelectionAnchorIndex.value < 0) {
+        keyboardSelectionAnchorIndex.value = currentIndex;
       }
-    }
 
-    selectedItemIndex.value = nextIndex;
-    lastSelectedIndex.value = nextIndex;
+      if (!selectMode.value) {
+        handleSelectMode(true);
+      }
+
+      const start = Math.min(keyboardSelectionAnchorIndex.value, nextIndex);
+      const end = Math.max(keyboardSelectionAnchorIndex.value, nextIndex);
+      const nextItem = fileList.value[nextIndex];
+      if (!nextItem) return;
+      const targetState = !nextItem.isSelected;
+      if (!await hydrateSelectionRange(start, end)) {
+        toast.error(t('info_panel.selection_load_failed'));
+        return;
+      }
+      for (let i = start; i <= end; i++) {
+        if (isRealFileItem(fileList.value[i])) {
+          setItemSelected(i, targetState);
+        }
+      }
+
+      selectedItemIndex.value = nextIndex;
+      lastSelectedIndex.value = nextIndex;
+    })();
   });
   return true;
 }
@@ -2173,6 +2635,78 @@ async function handleDateGroupSelect({ startIndex, endIndex, selected }: { start
   lastSelectedIndex.value = selected ? start : -1;
 }
 
+async function handleGroupSelectToggled(groupRow: any, selected: boolean) {
+  const groupId = String(groupRow?.group_id || '');
+  if (!groupId || groupSelectionLoading.value[groupId]) return;
+
+  groupSelectionLoading.value = {
+    ...groupSelectionLoading.value,
+    [groupId]: true,
+  };
+
+  try {
+    const ids = await getCachedGroupFileIds(groupId);
+    if (!ids || ids.length === 0) return;
+
+    selectMode.value = true;
+    const idSet = new Set(ids.map(id => Number(id)).filter(id => Number.isFinite(id) && id > 0));
+    const loadedById = new Map<number, number>();
+    fileList.value.forEach((file, index) => {
+      const fileId = Number(file?.id || 0);
+      if (fileId) loadedById.set(fileId, index);
+    });
+
+    for (const fileId of idSet) {
+      if (selected) selectedFileIds.add(fileId);
+      else selectedFileIds.delete(fileId);
+
+      const index = loadedById.get(fileId);
+      if (index === undefined) continue;
+      const file = fileList.value[index];
+      if (isRealFileItem(file)) {
+        file.isSelected = selected;
+      }
+    }
+
+    const currentGroupCount = Number(groupSelectedCountMap.value[groupId] || 0);
+    const currentGroupSize = Number(groupSelectedSizeMap.value[groupId] || 0);
+    const nextGroupCount = selected ? Number(groupRow.count || idSet.size) : 0;
+    const nextGroupSize = selected ? Number(groupRow.size || groupMetaMap.get(groupId)?.size || 0) : 0;
+    updateGroupSelectedCount(groupId, nextGroupCount);
+    updateGroupSelectedSize(groupId, nextGroupSize);
+    selectedCount.value = Math.max(0, selectedCount.value + (nextGroupCount - currentGroupCount));
+    selectedSize.value = Math.max(0, selectedSize.value + (nextGroupSize - currentGroupSize));
+    syncSelectionVersions();
+  } catch (error) {
+    console.error('handleGroupSelectToggled error:', error);
+    toast.error(t('info_panel.selection_load_failed'));
+  } finally {
+    groupSelectionLoading.value = {
+      ...groupSelectionLoading.value,
+      [groupId]: false,
+    };
+  }
+}
+
+async function getCachedGroupFileIds(groupId: string) {
+  const cached = groupFileIdsCache.get(groupId);
+  if (cached) return cached;
+
+  const result = currentQuerySource.value === 'smart' && currentSmartQueryParams.value
+    ? await getSmartGroupFileIds(getGroupingQueryParams(), groupId)
+    : await getGroupFileIds(getGroupingQueryParams(), groupId);
+  const ids = Array.isArray(result)
+    ? result
+    : Array.isArray(result?.file_ids)
+      ? result.file_ids
+      : Array.isArray(result?.fileIds)
+        ? result.fileIds
+        : [];
+  const normalized = ids.map((id: any) => Number(id)).filter((id: number) => Number.isFinite(id) && id > 0);
+  groupFileIdsCache.set(groupId, normalized);
+  return normalized;
+}
+
 function unselectFileFromSelection(fileId: number) {
   const targetId = Number(fileId);
   const file = fileList.value.find(item => Number(item?.id || 0) === targetId);
@@ -2181,7 +2715,27 @@ function unselectFileFromSelection(fileId: number) {
   setItemSelected(index, false);
 }
 
-function handleTimelineSelectItem(index: number) {
+async function handleTimelineSelectItem(index: number) {
+  if (groupedModeActive.value) {
+    if (index < 0 || index >= totalRowCount.value) return;
+    const fileIndex = getGroupedFileIndexForRowIndex(index);
+    if (fileIndex < 0 || fileIndex >= fileList.value.length) return;
+    const rowIndex = getGroupedRowIndexForFileIndex(fileIndex);
+    if (rowIndex >= 0) {
+      await fetchGroupedRowsRange(rowIndex, rowIndex + 1);
+    }
+    if (!ensureGroupedFileAtIndex(fileIndex)) return;
+    if (fileIndex === selectedItemIndex.value) return;
+
+    checkUnsavedChanges(() => {
+      selectedItemIndex.value = fileIndex;
+      if (!selectMode.value) {
+        lastSelectedIndex.value = fileIndex;
+      }
+    });
+    return;
+  }
+
   if (index < 0 || index >= fileList.value.length) return;
   if (index === selectedItemIndex.value) return;
 
@@ -2305,7 +2859,7 @@ function performNavigate(direction: 'prev' | 'next') {
 function updateScrollPosition(currentScrollTop: number, currentScrollHeight: number) {
     if (!config.settings.grid.showFilmStrip) {
       // Calculate max scroll top
-      const totalRows = Math.ceil(totalFileCount.value / columnCount.value);
+      const totalRows = Math.ceil(scrollbarTotal.value / columnCount.value);
       const topPadding = 48;
       const bottomPadding = config.settings.showStatusBar ? 32 : 4;
       
@@ -2325,7 +2879,7 @@ function updateScrollPosition(currentScrollTop: number, currentScrollHeight: num
         scrollPosition.value = 0;
       } else {
         const ratio = Math.min(1, Math.max(0, currentScrollTop / maxScrollTop));
-        const maxIndex = Math.max(1, totalFileCount.value - visibleItemCount.value);
+        const maxIndex = Math.max(1, scrollbarTotal.value - scrollbarPageSize.value);
         scrollPosition.value = Math.round(ratio * maxIndex);
       }
     } else if (config.settings.grid.showFilmStrip) {
@@ -2363,11 +2917,11 @@ function handleScrollUpdate(newIndex: number) {
   
   if (!config.settings.grid.showFilmStrip && gridViewRef.value) {
     // Calculate ratio (0 to 1)
-    const maxIndex = Math.max(1, totalFileCount.value - visibleItemCount.value);
+    const maxIndex = Math.max(1, scrollbarTotal.value - scrollbarPageSize.value);
     const ratio = Math.min(1, Math.max(0, newIndex / maxIndex));
     
     // Calculate max scroll top
-    const totalRows = Math.ceil(totalFileCount.value / columnCount.value);
+    const totalRows = Math.ceil(scrollbarTotal.value / columnCount.value);
     const topPadding = 48;
     const bottomPadding = config.settings.showStatusBar ? 32 : 4;
     
@@ -2878,6 +3432,9 @@ watch(isScanStreamingMode, (streaming) => {
     config.rightPanel.show = false;
     if (selectMode.value) selectMode.value = false;
   }
+  if (groupedModeActive.value || activeGroupBy.value > 0) {
+    updateContent();
+  }
 });
 
 const thumbProgressPercent = computed(() => {
@@ -3013,6 +3570,8 @@ function buildScanStreamQueryParams() {
     startDate: 0,
     endDate: 0,
     calendarSort: 0,
+    folderSort: 0,
+    categorySort: 0,
     make: "",
     model: "",
     lensMake: "",
@@ -3029,7 +3588,7 @@ function buildScanStreamQueryParams() {
 function enterScanStreamingMode(albumId: number) {
   scanStreamAlbumId.value = albumId;
   clearSelectionForFileListUpdate();
-  fileList.value = [];
+  clearContentRows();
   totalFileCount.value = 0;
   totalFileSize.value = 0;
   selectedItemIndex.value = -1;
@@ -3592,7 +4151,7 @@ onMounted( async() => {
   unlistenFaceIndexProgress = await listenFaceIndexProgress((event: any) => {
     // Clear file list if in Person view (sidebarIndex === 6) and file list is not empty
     if (config.main.sidebarIndex === 6 && fileList.value.length > 0) {
-      fileList.value = [];
+      clearContentRows();
       totalFileCount.value = 0;
       totalFileSize.value = 0;
       scrollPosition.value = 0;
@@ -3719,8 +4278,9 @@ watch(
     (libConfig.favorite as any).tab, libConfig.favorite.albumId, libConfig.favorite.folderId, libConfig.favorite.folderPath, libConfig.favorite.rating, // favorite files and rating
     libConfig.search.fileName, config.search.fileType, config.search.sortType, config.search.sortOrder, // search and sort 
     config.settings.showSubfolderFiles,                                            // album folder view
+    config.settings.folderSort, config.settings.calendarSort, config.settings.categorySort, // group sorting
     libConfig.person.id,                                                              // person
-    libConfig.calendar.year, libConfig.calendar.month, libConfig.calendar.date,       // calendar
+    config.calendar.isMonthly, libConfig.calendar.year, libConfig.calendar.month, libConfig.calendar.date, // calendar
     libConfig.tag.id, libConfig.tag.smartId, (libConfig.tag as any).tab,             // tag
     libConfig.location.admin1, libConfig.location.name,                               // location
     libConfig.camera.make, libConfig.camera.model,                                    // camera 
@@ -3766,26 +4326,19 @@ watch(() => selectedItemIndex.value, (newIndex, oldIndex) => {
   updateSelectedImage(newIndex);
 });
 
-// watch for selected items in the file list (select mode)
-watch(
-  () => fileList.value.map(file => ({ isSelected: file.isSelected, size: file.size })),
-  () => {
-    const selectedItems = fileList.value.filter(item => item.isSelected);
-    selectedCount.value = selectedItems.length;
-    selectedSize.value = selectedItems.length === fileList.value.length
-      ? totalFileSize.value
-      : selectedItems.reduce(
-          (total, item) => total + (isRealFileItem(item) ? Number(item.size || 0) : 0),
-          0,
-        );
-  }
-);
-
 // watch for show preview or layout change
 watch(() => config.settings.grid.style, () => {
   updateSelectedImage(selectedItemIndex.value);
   stopSlideShow();
 });
+
+watch(
+  () => Boolean(config.settings.grid.showFilmStrip),
+  () => {
+    if (!groupedModeActive.value && activeGroupBy.value <= 0) return;
+    updateContent();
+  },
+);
 
 function disablePreviewModes() {
   showQuickView.value = false;
@@ -3839,6 +4392,20 @@ const getCurrentQueryFiles = (offset: number, limit: number) => {
   return getQueryFiles(currentQueryParams.value, offset, limit);
 };
 
+const getCurrentGroupedQueryRows = (offset: number, limit: number) => {
+  if (currentQuerySource.value === 'smart' && currentSmartQueryParams.value) {
+    return getSmartGroupedQueryRows(getGroupingQueryParams(), offset, limit);
+  }
+  return getGroupedQueryRows(getGroupingQueryParams(), offset, limit);
+};
+
+const getCurrentQueryFileIds = () => {
+  if (currentQuerySource.value === 'smart' && currentSmartQueryParams.value) {
+    return getSmartQueryFileIds(getGroupingQueryParams());
+  }
+  return getQueryFileIds(getGroupingQueryParams());
+};
+
 const getCurrentQueryFilePosition = (fileId: number) => {
   if (currentQuerySource.value === 'smart' && currentSmartQueryParams.value) {
     return getSmartQueryFilePosition(currentSmartQueryParams.value, fileId);
@@ -3847,6 +4414,10 @@ const getCurrentQueryFilePosition = (fileId: number) => {
 };
 
 async function fetchDataRange(start: number, end: number, reverse = false) {
+  if (groupedModeActive.value) {
+    return fetchGroupedRowsRange(start, end, reverse);
+  }
+
   const requestId = currentContentRequestId;
 
   // Clamp range
@@ -3901,7 +4472,8 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
               }
 
               // Preserve client-side state when upgrading placeholder -> real item.
-              const isSelected = Boolean(existingItem?.isSelected);
+              const fileId = Number(newFiles[j]?.id || 0);
+              const isSelected = Boolean(existingItem?.isSelected) || (fileId > 0 && selectedFileIds.has(fileId));
               const rotate = existingItem ? (existingItem.rotate || 0) : 0;
               const thumbnail = existingItem?.thumbnail;
 
@@ -3911,6 +4483,10 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
                 rotate: rotate || newFiles[j].rotate || 0,
                 thumbnail,
               };
+              if (isSelected && fileId > 0 && !selectedFileIds.has(fileId)) {
+                selectedFileIds.add(fileId);
+                applySelectionDelta(fileList.value[chunkStart + j], 1);
+              }
 
               // In scan streaming mode, total size starts at 0 and should grow
               // as placeholders are upgraded to real files.
@@ -3956,6 +4532,225 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
   }
 }
 
+async function fetchGroupedRowsRange(start: number, end: number, reverse = false) {
+  const requestId = currentContentRequestId;
+
+  start = Math.max(0, start);
+  end = Math.min(totalRowCount.value, end);
+  if (start >= end || requestId !== currentContentRequestId) return;
+
+  const chunkSize = selectionChunkSize.value;
+  const startChunk = Math.floor(start / chunkSize);
+  const endChunk = Math.floor((end - 1) / chunkSize);
+  const chunkPromises: Promise<void>[] = [];
+
+  const chunkStartIdx = reverse ? endChunk : startChunk;
+  const chunkEndIdx = reverse ? startChunk : endChunk;
+  for (let i = chunkStartIdx; reverse ? i >= chunkEndIdx : i <= chunkEndIdx; reverse ? i-- : i++) {
+    const chunkStart = i * chunkSize;
+    const chunkEnd = Math.min(totalRowCount.value, chunkStart + chunkSize);
+    let chunkNeedsLoad = false;
+    for (let idx = chunkStart; idx < chunkEnd; idx++) {
+      if (groupedRows.value[idx]?.isPlaceholder) {
+        chunkNeedsLoad = true;
+        break;
+      }
+    }
+    if (!chunkNeedsLoad) continue;
+
+    const key = `${requestId}:grouped:${chunkStart}-${chunkSize}`;
+    if (pendingRequests.has(key)) continue;
+    pendingRequests.add(key);
+
+    const promise = getCurrentGroupedQueryRows(chunkStart, chunkEnd - chunkStart)
+      .then(async (result) => {
+        if (requestId !== currentContentRequestId) return;
+        const normalized = normalizeGroupedRowsResult(result);
+        const filesToFetch = applyGroupedRows(normalized.rows, chunkStart);
+
+        scheduleLayoutRefresh();
+        if (filesToFetch.length > 0) {
+          if (reverse) filesToFetch.reverse();
+          await getFileListThumb(filesToFetch);
+        }
+      })
+      .catch(err => {
+        console.error(`Error fetching grouped chunk ${key}:`, err);
+      })
+      .finally(() => {
+        pendingRequests.delete(key);
+      });
+
+    chunkPromises.push(promise);
+  }
+
+  if (chunkPromises.length > 0) {
+    await Promise.all(chunkPromises);
+  }
+}
+
+function normalizeGridRow(row: any, rowIndex: number) {
+  if (!row) {
+    return {
+      id: `grouped-missing-${rowIndex}`,
+      isPlaceholder: true,
+    };
+  }
+  if (row?.type === 'group') {
+    const groupId = String(row.group_id ?? row.groupId ?? row.id ?? `group-${rowIndex}`);
+    return {
+      ...row,
+      type: 'group',
+      id: row.row_id ?? row.rowId ?? `group-row-${groupId}`,
+      group_id: groupId,
+      label: formatGroupLabel(row.label ?? ''),
+      count: Number(row.count || 0),
+    };
+  }
+
+  const file = row?.file ?? row;
+  const fileIndex = Number(row?.file_index ?? row?.fileIndex ?? rowIndex);
+  const groupId = row?.group_id ?? row?.groupId;
+  return {
+    ...row,
+    type: 'item',
+    id: row?.row_id ?? row?.rowId ?? `item-row-${file?.id ?? rowIndex}`,
+    group_id: groupId ? String(groupId) : '',
+    file_index: fileIndex,
+    file,
+  };
+}
+
+function applyGroupedRows(rows: any[], rowOffset: number) {
+  const filesToFetch: any[] = [];
+  for (let j = 0; j < rows.length; j++) {
+    const rowIndex = rowOffset + j;
+    if (rowIndex >= groupedRows.value.length) continue;
+    const row = normalizeGridRow(rows[j], rowIndex);
+    groupedRows.value[rowIndex] = row;
+
+    if (isGroupRow(row)) {
+      const groupId = String(row.group_id || '');
+      if (groupId) {
+        groupMetaMap.set(groupId, {
+          count: Number(row.count || 0),
+          size: Number(row.size || 0),
+        });
+        if (groupSelectedCountMap.value[groupId] === undefined) {
+          updateGroupSelectedCount(groupId, 0);
+        }
+        if (groupSelectedSizeMap.value[groupId] === undefined) {
+          updateGroupSelectedSize(groupId, 0);
+        }
+      }
+      continue;
+    }
+
+    if (isItemRow(row)) {
+      const fileIndex = Number(row.file_index);
+      const file = row.file;
+      if (!Number.isFinite(fileIndex) || fileIndex < 0 || fileIndex >= fileList.value.length || !file) continue;
+
+      const existingItem = fileList.value[fileIndex];
+      const fileId = Number(file?.id || 0);
+      const isSelected = Boolean(existingItem?.isSelected) || (fileId > 0 && selectedFileIds.has(fileId));
+      const rotate = existingItem ? (existingItem.rotate || 0) : 0;
+      const thumbnail = existingItem?.thumbnail;
+      const nextFile = {
+        ...file,
+        isSelected,
+        rotate: rotate || file.rotate || 0,
+        thumbnail,
+      };
+      fileList.value[fileIndex] = nextFile;
+      row.file = nextFile;
+      if (isSelected && fileId > 0 && !selectedFileIds.has(fileId)) {
+        selectedFileIds.add(fileId);
+        applySelectionDelta(nextFile, 1);
+      }
+
+      const groupId = String(row.group_id || '');
+      if (groupId && fileId) fileIdToGroupId.set(fileId, groupId);
+      filesToFetch.push(nextFile);
+
+      if (fileIndex === selectedItemIndex.value) {
+        openImageViewer(selectedItemIndex.value, false, selectedItemIndex.value === 0);
+        updateSelectedImage(selectedItemIndex.value);
+      }
+    }
+  }
+  return filesToFetch;
+}
+
+async function initializeGroupedFileList(requestId: number) {
+  if (!isGroupingSupportedForCurrentView()) {
+    resetGroupingState();
+    return false;
+  }
+
+  if (activeGroupBy.value === GROUP_BY_FOLDER_PATH) {
+    await ensureFolderGroupRoots();
+  }
+
+  const groupedResult = await getCurrentGroupedQueryRows(0, selectionChunkSize.value);
+  if (requestId !== currentContentRequestId) return true;
+  if (!groupedResult) {
+    resetGroupingState();
+    return false;
+  }
+
+  const normalized = normalizeGroupedRowsResult(groupedResult);
+  clearSelectionForFileListUpdate();
+  groupedModeActive.value = true;
+  groupedTimelineGroups.value = normalized.groups;
+  totalFileCount.value = normalized.totalItemCount;
+  totalRowCount.value = normalized.totalRowCount;
+  totalFileSize.value = normalized.totalSize;
+  scrollPosition.value = 0;
+  timelineData.value = [];
+  groupedRows.value = Array.from({ length: totalRowCount.value }).map((_, i) => ({
+    id: `grouped-ph-${i}`,
+    isPlaceholder: true,
+  }));
+
+  for (const group of normalized.groups) {
+    const rowIndex = Number(group.rowIndex || 0);
+    if (rowIndex < 0 || rowIndex >= groupedRows.value.length) continue;
+    groupedRows.value[rowIndex] = createGroupHeaderRow(group);
+    if (group.groupId) {
+      groupMetaMap.set(group.groupId, {
+        count: Number(group.count || 0),
+        size: Number(group.size || 0),
+      });
+      updateGroupSelectedCount(group.groupId, 0);
+      updateGroupSelectedSize(group.groupId, 0);
+    }
+  }
+
+  fileList.value = Array.from({ length: totalFileCount.value }).map((_, i) => ({
+    id: `ph-${i}`,
+    isPlaceholder: true,
+    name: '',
+    size: 0,
+  }));
+
+  const initialFiles = applyGroupedRows(normalized.rows, 0);
+  if (initialFiles.length > 0) {
+    await getFileListThumb(initialFiles);
+  }
+  await nextTick();
+  gridViewRef.value?.refreshLayout?.();
+  markDedupSourceUpdated(requestId);
+  restoreInitialSelectionIfNeeded();
+  restoreScrollAfterRefresh();
+  if (totalFileCount.value === 0) {
+    openImageViewer(0, false, true);
+  }
+  lastVisibleRange = { start: -1, end: -1 };
+  visibleRangeSeqId++;
+  return true;
+}
+
 async function hydrateRangeForSelection(startIndex: number, endIndex: number) {
   if (fileList.value.length === 0 || endIndex <= startIndex) return true;
   const requestId = currentContentRequestId;
@@ -3985,11 +4780,17 @@ async function hydrateRangeForSelection(startIndex: number, endIndex: number) {
         if (targetIndex >= fileList.value.length || targetIndex >= cappedEnd) break;
         if (targetIndex < cappedStart) continue;
         const existingItem = fileList.value[targetIndex];
+        const fileId = Number(loadedFiles[i]?.id || 0);
+        const isSelected = Boolean(existingItem?.isSelected) || (fileId > 0 && selectedFileIds.has(fileId));
         fileList.value[targetIndex] = {
           ...loadedFiles[i],
-          isSelected: Boolean(existingItem?.isSelected),
+          isSelected,
           rotate: existingItem?.rotate || loadedFiles[i].rotate || 0,
         };
+        if (isSelected && fileId > 0 && !selectedFileIds.has(fileId)) {
+          selectedFileIds.add(fileId);
+          applySelectionDelta(fileList.value[targetIndex], 1);
+        }
       }
       if (fileList.value.slice(selectionStart, chunkEnd).some(item => item?.isPlaceholder)) {
         return false;
@@ -4007,7 +4808,57 @@ async function hydrateRangeForSelection(startIndex: number, endIndex: number) {
   }
 }
 
+async function hydrateSelectedFilesByIds() {
+  if (selectedFileIds.size === 0) return getActionableSelectedItems();
+
+  const loadedSelectedItems = getActionableSelectedItems();
+  const loadedIds = new Set(
+    loadedSelectedItems
+      .map(item => Number(item.id || 0))
+      .filter(id => id > 0),
+  );
+  const missingIds = Array.from(selectedFileIds).filter(id => !loadedIds.has(id));
+  if (missingIds.length === 0) return loadedSelectedItems;
+
+  const hydratedItems: any[] = [...loadedSelectedItems];
+  const missingIdSet = new Set(missingIds);
+  const chunkSize = Math.max(1, selectionChunkSize.value);
+  isProcessing.value = true;
+  try {
+    for (let start = 0; start < totalFileCount.value && missingIdSet.size > 0; start += chunkSize) {
+      const files = await getCurrentQueryFiles(start, chunkSize);
+      if (!Array.isArray(files)) return null;
+
+      for (const file of files) {
+        const fileId = Number(file?.id || 0);
+        if (fileId <= 0 || !missingIdSet.has(fileId)) continue;
+        hydratedItems.push({
+          ...file,
+          isSelected: true,
+          rotate: file.rotate || 0,
+        });
+        missingIdSet.delete(fileId);
+      }
+    }
+    return missingIdSet.size === 0 ? hydratedItems : null;
+  } catch (err) {
+    console.error('hydrateSelectedFilesByIds error:', err);
+    return null;
+  } finally {
+    isProcessing.value = false;
+  }
+}
+
 async function getActionableSelectedItemsForAction() {
+  if (selectedFileIds.size > getActionableSelectedItems().length) {
+    const hydratedItems = await hydrateSelectedFilesByIds();
+    if (!hydratedItems) {
+      toast.error(t('info_panel.selection_load_failed'));
+      return null;
+    }
+    return hydratedItems;
+  }
+
   const hasSelectedPlaceholders = fileList.value.some(
     item => item?.isSelected && item?.isPlaceholder,
   );
@@ -4019,6 +4870,15 @@ async function getActionableSelectedItemsForAction() {
 }
 
 async function getSelectedItemsForClipboard(limit = 10) {
+  if (selectedFileIds.size > 0 && getActionableSelectedItems().length < Math.min(selectedFileIds.size, limit)) {
+    const hydratedItems = await hydrateSelectedFilesByIds();
+    if (!hydratedItems) {
+      toast.error(t('info_panel.selection_load_failed'));
+      return null;
+    }
+    return hydratedItems.slice(0, limit);
+  }
+
   const selectedItems: any[] = [];
   const chunkSize = Math.max(1, selectionChunkSize.value);
 
@@ -4046,9 +4906,30 @@ async function getSelectedItemsForClipboard(limit = 10) {
 let lastVisibleRange = { start: -1, end: -1 };
 let visibleRangeSeqId = 0;
 
+async function fetchMissingVisibleThumbnails(startIndex: number, endIndex: number) {
+  const rows = groupedModeActive.value
+    ? gridRows.value.slice(startIndex, endIndex + 1)
+    : fileList.value.slice(startIndex, endIndex + 1);
+  const seen = new Set<number>();
+  const files = rows
+    .map((row: any) => isItemRow(row) ? row.file : row)
+    .filter((file: any) => {
+      if (!isRealFileItem(file) || file.thumbnail) return false;
+      const fileId = Number(file.id || 0);
+      if (fileId <= 0 || seen.has(fileId)) return false;
+      seen.add(fileId);
+      return true;
+    });
+
+  if (files.length > 0) {
+    await getFileListThumb(files);
+  }
+}
+
 function handleVisibleRangeUpdate({ startIndex, endIndex }: { startIndex: number, endIndex: number }) {
   // Skip if the range hasn't changed significantly
   if (lastVisibleRange.start === startIndex && lastVisibleRange.end === endIndex) {
+    void fetchMissingVisibleThumbnails(startIndex, endIndex);
     return;
   }
 
@@ -4060,13 +4941,16 @@ function handleVisibleRangeUpdate({ startIndex, endIndex }: { startIndex: number
   // Phase 1: viewport thumbnails first (immediately visible)
   fetchDataRange(startIndex, endIndex + 1).then(() => {
     if (seqId !== visibleRangeSeqId) return;
-
-    // Phase 2: below viewport (most likely scroll direction)
-    fetchDataRange(endIndex + 1, endIndex + 1 + buffer).then(() => {
+    fetchMissingVisibleThumbnails(startIndex, endIndex).then(() => {
       if (seqId !== visibleRangeSeqId) return;
 
-      // Phase 3: above viewport (least likely, reverse: load closest to viewport first)
-      fetchDataRange(Math.max(0, startIndex - buffer), startIndex, true);
+      // Phase 2: below viewport (most likely scroll direction)
+      fetchDataRange(endIndex + 1, endIndex + 1 + buffer).then(() => {
+        if (seqId !== visibleRangeSeqId) return;
+
+        // Phase 3: above viewport (least likely, reverse: load closest to viewport first)
+        fetchDataRange(Math.max(0, startIndex - buffer), startIndex, true);
+      });
     });
   });
 }
@@ -4083,6 +4967,8 @@ async function getFileList(
     startDate = 0,
     endDate = 0,
     calendarSort = config.settings.calendarSort,
+    folderSort = config.settings.folderSort,
+    categorySort = config.settings.categorySort,
     make = '',
     model = '', 
     lensMake = '',
@@ -4110,6 +4996,8 @@ async function getFileList(
     startDate,
     endDate,
     calendarSort,
+    folderSort,
+    categorySort,
     make,
     model,
     lensMake,
@@ -4126,6 +5014,8 @@ async function getFileList(
   isLoading.value = true;
 
   try {
+    if (await initializeGroupedFileList(requestId)) return;
+
     // Get count and sum first
     const result = await getCurrentQueryCountAndSum();
     
@@ -4165,7 +5055,7 @@ async function getFileList(
       visibleRangeSeqId++;
     } else {
       clearSelectionForFileListUpdate();
-      fileList.value = [];
+      clearContentRows();
       markDedupSourceUpdated(requestId);
       openImageViewer(0, false, true);
     }
@@ -4173,7 +5063,7 @@ async function getFileList(
     console.error('getFileList error:', err);
     if (requestId === currentContentRequestId) {
       clearSelectionForFileListUpdate();
-      fileList.value = [];
+      clearContentRows();
       markDedupSourceUpdated(requestId);
       openImageViewer(0, false, true);
     }
@@ -4202,11 +5092,16 @@ async function getSmartFileList(smartAlbum: any, requestId: number) {
     rules,
     sortType: Number(smartAlbum?.sort?.type ?? 0),
     sortOrder: Number(smartAlbum?.sort?.order ?? 1),
+    folderSort: Number(config.settings.folderSort || 0),
+    calendarSort: Number(config.settings.calendarSort || 0),
+    categorySort: Number(config.settings.categorySort || 0),
   };
 
   isLoading.value = true;
 
   try {
+    if (await initializeGroupedFileList(requestId)) return;
+
     const result = await getCurrentQueryCountAndSum();
     if (requestId !== currentContentRequestId) return;
 
@@ -4238,7 +5133,7 @@ async function getSmartFileList(smartAlbum: any, requestId: number) {
       visibleRangeSeqId++;
     } else {
       clearSelectionForFileListUpdate();
-      fileList.value = [];
+      clearContentRows();
       markDedupSourceUpdated(requestId);
       openImageViewer(0, false, true);
     }
@@ -4246,7 +5141,7 @@ async function getSmartFileList(smartAlbum: any, requestId: number) {
     console.error('getSmartFileList error:', err);
     if (requestId === currentContentRequestId) {
       clearSelectionForFileListUpdate();
-      fileList.value = [];
+      clearContentRows();
       markDedupSourceUpdated(requestId);
       openImageViewer(0, false, true);
     }
@@ -4288,6 +5183,7 @@ async function getImageSearchFileList(
 
     if (result) {
       clearSelectionForFileListUpdate();
+      resetGroupingState();
       fileList.value = preserveLoadedThumbnails(result);
       totalFileCount.value = fileList.value.length;
       totalFileSize.value = fileList.value.reduce((total, file) => total + file.size, 0);
@@ -4324,7 +5220,7 @@ async function getImageSearchFileList(
       getFileListThumb(fileList.value);
     } else {
       clearSelectionForFileListUpdate();
-      fileList.value = [];
+      clearContentRows();
       totalFileCount.value = 0;
       totalFileSize.value = 0;
       markDedupSourceUpdated(requestId);
@@ -4333,7 +5229,7 @@ async function getImageSearchFileList(
     console.error('getImageSearchFileList error:', err);
     if (requestId === currentContentRequestId) {
       clearSelectionForFileListUpdate();
-      fileList.value = [];
+      clearContentRows();
       totalFileCount.value = 0;
       totalFileSize.value = 0;
       markDedupSourceUpdated(requestId);
@@ -4388,7 +5284,7 @@ async function updateContent(force = false) {
 
   // Reset file list immediately to reflect UI change
   clearSelectionForFileListUpdate();
-  fileList.value = [];
+  clearContentRows();
   isLoading.value = true;
 
   if(newIndex === 0) {   // album
@@ -4672,21 +5568,7 @@ function enterSimilarSearchMode(file: any) {
 
   // 1. Backup current state
   if (tempViewMode.value === 'none') {
-    backupState.value = {
-      fileList: [...fileList.value],
-      totalFileCount: totalFileCount.value,
-      totalFileSize: totalFileSize.value,
-      contentTitle: contentTitle.value,
-      selectedItemIndex: selectedItemIndex.value,
-      scrollPosition: scrollPosition.value,
-      timelineData: [...timelineData.value],
-      currentQueryParams: { ...currentQueryParams.value },
-      thumbCount: thumbCount.value,
-      showProgressBar: showProgressBar.value,
-      
-      // GridView specific backup
-      scrollTop: gridViewRef.value ? gridViewRef.value.getScrollTop() : 0,
-    };
+    backupState.value = createViewBackup();
   }
 
   // 2. Set mode
@@ -4753,19 +5635,7 @@ async function enterPersonSearchMode(file: any) {
 
   // 1. Backup current state
   if (tempViewMode.value === 'none') {
-    backupState.value = {
-      fileList: [...fileList.value],
-      totalFileCount: totalFileCount.value,
-      totalFileSize: totalFileSize.value,
-      contentTitle: contentTitle.value,
-      selectedItemIndex: selectedItemIndex.value,
-      scrollPosition: scrollPosition.value,
-      timelineData: [...timelineData.value],
-      currentQueryParams: { ...currentQueryParams.value },
-      thumbCount: thumbCount.value,
-      showProgressBar: showProgressBar.value,
-      scrollTop: gridViewRef.value ? gridViewRef.value.getScrollTop() : 0,
-    };
+    backupState.value = createViewBackup();
   }
 
   // 2. Set mode
@@ -4801,21 +5671,7 @@ function enterAlbumPreviewMode(file: any, targetFolderPath?: string) {
 
   // 1. Backup current state
   if (tempViewMode.value === 'none') {
-    backupState.value = {
-      fileList: [...fileList.value],
-      totalFileCount: totalFileCount.value,
-      totalFileSize: totalFileSize.value,
-      contentTitle: contentTitle.value,
-      selectedItemIndex: selectedItemIndex.value,
-      scrollPosition: scrollPosition.value,
-      timelineData: [...timelineData.value],
-      currentQueryParams: { ...currentQueryParams.value },
-      thumbCount: thumbCount.value,
-      showProgressBar: showProgressBar.value,
-      
-      // GridView specific backup
-      scrollTop: gridViewRef.value ? gridViewRef.value.getScrollTop() : 0,
-    };
+    backupState.value = createViewBackup();
   }
   
   // Increment request ID to cancel any previous thumbnail generation and reset queue
@@ -4841,7 +5697,7 @@ function enterAlbumPreviewMode(file: any, targetFolderPath?: string) {
   const requestId = ++currentContentRequestId;
   
   // Reset list for loading state
-  fileList.value = [];
+  clearContentRows();
   totalFileCount.value = 0;
   totalFileSize.value = 0;
   
@@ -4866,6 +5722,21 @@ function exitTempViewMode() {
     if (file) file.isSelected = false;
   }
   fileList.value = state.fileList;
+  groupedModeActive.value = Boolean(state.groupedModeActive);
+  groupedRows.value = state.groupedRows || [];
+  totalRowCount.value = Number(state.totalRowCount || 0);
+  groupedTimelineGroups.value = state.groupedTimelineGroups || [];
+  folderGroupRoots.value = state.folderGroupRoots || [];
+  groupMetaMap.clear();
+  for (const [groupId, meta] of state.groupMetaEntries || []) {
+    groupMetaMap.set(groupId, meta);
+  }
+  fileIdToGroupId.clear();
+  for (const [fileId, groupId] of state.fileIdToGroupIdEntries || []) {
+    fileIdToGroupId.set(fileId, groupId);
+  }
+  groupSelectedCountMap.value = {};
+  groupSelectedSizeMap.value = {};
   totalFileCount.value = state.totalFileCount;
   totalFileSize.value = state.totalFileSize;
   contentTitle.value = state.contentTitle;
@@ -4873,6 +5744,8 @@ function exitTempViewMode() {
   scrollPosition.value = state.scrollPosition;
   timelineData.value = state.timelineData;
   currentQueryParams.value = state.currentQueryParams;
+  currentQuerySource.value = state.currentQuerySource || 'query';
+  currentSmartQueryParams.value = state.currentSmartQueryParams || null;
   thumbCount.value = state.thumbCount;
   showProgressBar.value = state.showProgressBar;
 
@@ -5068,11 +5941,21 @@ const refreshLibraryTotalCount = async () => {
 
 function rebuildSelectionAfterListMutation(selectedIds: Set<number>) {
   let remainingCount = 0;
+  let remainingSize = 0;
+  selectedFileIds.clear();
   for (const file of fileList.value) {
     const selected = isRealFileItem(file) && selectedIds.has(Number(file.id));
     file.isSelected = selected;
-    if (selected) remainingCount++;
+    if (selected) {
+      selectedFileIds.add(Number(file.id));
+      remainingCount++;
+      remainingSize += Number(file.size || 0);
+    }
   }
+  recomputeLoadedGroupSelectedCounts();
+  selectedCount.value = remainingCount;
+  selectedSize.value = remainingCount === totalFileCount.value ? totalFileSize.value : remainingSize;
+  syncSelectionVersions();
 
   if (remainingCount === 0) {
     selectMode.value = false;
@@ -6017,23 +6900,102 @@ const openCommentEditor = () => {
 }
 
 const selectAllInCurrentList = async () => {
-  for (const file of fileList.value) {
-    file.isSelected = true;
+  if (groupedModeActive.value) {
+    const nextCounts: Record<string, number> = {};
+    const nextSizes: Record<string, number> = {};
+    const ids = await getCurrentQueryFileIds();
+    if (!Array.isArray(ids)) {
+      toast.error(t('info_panel.selection_load_failed'));
+      return;
+    }
+
+    selectedFileIds.clear();
+    for (const id of Array.isArray(ids) ? ids : []) {
+      const fileId = Number(id);
+      if (Number.isFinite(fileId) && fileId > 0) selectedFileIds.add(fileId);
+    }
+
+    for (const groupId of groupMetaMap.keys()) {
+      const meta = groupMetaMap.get(groupId);
+      nextCounts[groupId] = Number(meta?.count || 0);
+      nextSizes[groupId] = Number(meta?.size || 0);
+    }
+
+    for (const file of fileList.value) {
+      if (isRealFileItem(file)) file.isSelected = true;
+    }
+    groupSelectedCountMap.value = nextCounts;
+    groupSelectedSizeMap.value = nextSizes;
+    selectedCount.value = selectedFileIds.size;
+    selectedSize.value = selectedFileIds.size === totalFileCount.value ? totalFileSize.value : Object.values(nextSizes)
+      .reduce((total, size) => total + Number(size || 0), 0);
+    syncSelectionVersions();
+    selectMode.value = true;
+    return;
   }
+
+  const hasPlaceholders = fileList.value.some(file => file?.isPlaceholder);
+  selectedFileIds.clear();
+  if (hasPlaceholders) {
+    const ids = await getCurrentQueryFileIds();
+    if (!Array.isArray(ids)) {
+      toast.error(t('info_panel.selection_load_failed'));
+      return;
+    }
+    for (const id of ids) {
+      const fileId = Number(id);
+      if (Number.isFinite(fileId) && fileId > 0) selectedFileIds.add(fileId);
+    }
+  }
+
+  let nextSize = 0;
+  for (const file of fileList.value) {
+    if (!file) continue;
+    if (isRealFileItem(file)) {
+      file.isSelected = true;
+      selectedFileIds.add(Number(file.id));
+      nextSize += Number(file.size || 0);
+    } else {
+      file.isSelected = false;
+    }
+  }
+  recomputeLoadedGroupSelectedCounts();
+  selectedCount.value = selectedFileIds.size;
+  selectedSize.value = selectedFileIds.size === totalFileCount.value ? totalFileSize.value : nextSize;
+  syncSelectionVersions();
   selectMode.value = true;
 };
 
 const selectNoneInCurrentList = () => {
-  for (let i = 0; i < fileList.value.length; i++) {
-    fileList.value[i].isSelected = false;
-  }
+  clearLoadedSelectionFlags();
+  resetSelectionSummary();
+  groupSelectedCountMap.value = {};
+  groupSelectedSizeMap.value = {};
   selectMode.value = true;
 };
 
 const invertSelectionInCurrentList = async () => {
+  selectedFileIds.clear();
+  let nextCount = 0;
+  let nextSize = 0;
   for (let i = 0; i < fileList.value.length; i++) {
-    fileList.value[i].isSelected = !fileList.value[i].isSelected;
+    const file = fileList.value[i];
+    if (!file) continue;
+    if (!isRealFileItem(file)) {
+      file.isSelected = false;
+      continue;
+    }
+    file.isSelected = !file.isSelected;
+    if (file.isSelected) {
+      selectedFileIds.add(Number(file.id));
+      nextCount++;
+      nextSize += Number(file.size || 0);
+    }
   }
+  recomputeLoadedGroupSelectedCounts();
+  selectedCount.value = nextCount;
+  selectedSize.value = nextCount === totalFileCount.value ? totalFileSize.value : nextSize;
+  syncSelectionVersions();
   selectMode.value = true;
 };
 
@@ -6041,11 +7003,15 @@ const handleSelectMode = (value: any) => {
   if (isScanStreamingMode.value) return;
   selectMode.value = value;
   if(!selectMode.value) {
-    for (let i = 0; i < fileList.value.length; i++) {
-      fileList.value[i].isSelected = false;
-    }
+    clearLoadedSelectionFlags();
+    resetSelectionSummary();
+    groupSelectedCountMap.value = {};
+    groupSelectedSizeMap.value = {};
   } else {
     if (fileList.value.length > 0) {
+      if (selectedItemIndex.value >= 0 && selectedItemIndex.value < fileList.value.length) {
+        ensureGroupedFileAtIndex(selectedItemIndex.value);
+      }
       const fallbackIndex = fileList.value.findIndex(item => isRealFileItem(item));
       const targetIndex =
         selectedItemIndex.value >= 0 &&

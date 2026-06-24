@@ -9,7 +9,7 @@ use crate::t_face;
 use crate::t_image;
 use crate::t_sqlite::{
     ACamera, AFile, AFolder, ALens, ALocation, ATag, ATagFileState, ATagSelectionCount, AThumb,
-    ATimeLine, Album, ImageSearchParams, Person, QueryParams, SmartQueryParams,
+    ATimeLine, Album, GroupedQueryResult, ImageSearchParams, Person, QueryParams, SmartQueryParams,
 };
 use crate::t_storage;
 use crate::t_utils;
@@ -682,6 +682,34 @@ pub fn get_query_files(params: QueryParams, offset: i64, limit: i64) -> Result<V
         .map_err(|e| format!("Error while getting query files: {}", e))
 }
 
+/// Get grouped render rows for a normal query.
+/// The result includes group header rows, file item rows, group metadata, and row counts for virtual scrolling.
+#[tauri::command]
+pub fn get_grouped_query_rows(
+    params: QueryParams,
+    offset: i64,
+    limit: i64,
+) -> Result<GroupedQueryResult, String> {
+    AFile::get_grouped_query_rows(&params, offset, limit)
+        .map_err(|e| format!("Error while getting grouped query rows: {}", e))
+}
+
+/// Get all file ids in one group for a normal query.
+/// Used by the group header checkbox so selecting a group is not limited to loaded rows.
+#[tauri::command]
+pub fn get_group_file_ids(params: QueryParams, group_id: String) -> Result<Vec<i64>, String> {
+    AFile::get_group_file_ids(&params, &group_id)
+        .map_err(|e| format!("Error while getting group file ids: {}", e))
+}
+
+/// Get all file ids in the current normal query.
+/// Used by Select All to support large virtualized result sets without loading every file object.
+#[tauri::command]
+pub fn get_query_file_ids(params: QueryParams) -> Result<Vec<i64>, String> {
+    AFile::get_query_file_ids(&params)
+        .map_err(|e| format!("Error while getting query file ids: {}", e))
+}
+
 #[tauri::command]
 pub fn get_query_file_position(params: QueryParams, file_id: i64) -> Result<Option<i64>, String> {
     AFile::get_query_file_position(&params, file_id)
@@ -704,6 +732,34 @@ pub fn get_smart_query_time_line(params: SmartQueryParams) -> Result<Vec<ATimeLi
 pub fn get_smart_query_files(params: SmartQueryParams, offset: i64, limit: i64) -> Result<Vec<AFile>, String> {
     AFile::get_smart_query_files(&params, offset, limit)
         .map_err(|e| format!("Error while getting smart query files: {}", e))
+}
+
+/// Get grouped render rows for a smart query.
+/// The result includes group header rows, file item rows, group metadata, and row counts for virtual scrolling.
+#[tauri::command]
+pub fn get_smart_grouped_query_rows(
+    params: SmartQueryParams,
+    offset: i64,
+    limit: i64,
+) -> Result<GroupedQueryResult, String> {
+    AFile::get_smart_grouped_query_rows(&params, offset, limit)
+        .map_err(|e| format!("Error while getting smart grouped query rows: {}", e))
+}
+
+/// Get all file ids in one group for a smart query.
+/// Used by the group header checkbox so selecting a group is not limited to loaded rows.
+#[tauri::command]
+pub fn get_smart_group_file_ids(params: SmartQueryParams, group_id: String) -> Result<Vec<i64>, String> {
+    AFile::get_smart_group_file_ids(&params, &group_id)
+        .map_err(|e| format!("Error while getting smart group file ids: {}", e))
+}
+
+/// Get all file ids in the current smart query.
+/// Used by Select All to support large virtualized result sets without loading every file object.
+#[tauri::command]
+pub fn get_smart_query_file_ids(params: SmartQueryParams) -> Result<Vec<i64>, String> {
+    AFile::get_smart_query_file_ids(&params)
+        .map_err(|e| format!("Error while getting smart query file ids: {}", e))
 }
 
 #[tauri::command]

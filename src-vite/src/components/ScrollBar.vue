@@ -32,7 +32,16 @@
           ]"
           :style="{ top: marker.top + '%', transform: 'translateY(-50%)' }"
         >
-          {{ marker.label }}
+          <span
+            v-if="marker.label"
+          >
+            {{ marker.label }}
+          </span>
+          <span
+            v-else
+            class="block h-px rounded-full bg-base-content/30"
+            :class="marker.isLabelMarker ? 'w-2' : 'w-1'"
+          ></span>
         </div>
 
         <!-- Hover Marker -->
@@ -105,7 +114,7 @@ const props = defineProps({
     default: 0
   },
   markers: {
-    type: Array as () => Array<{ year: number | null, month: number | null, date: number | null, position: number }>, 
+    type: Array as () => Array<{ year?: number | null, month?: number | null, date?: number | null, label?: string, position: number }>,
     default: () => []
   },
   selectedIndex: {
@@ -135,6 +144,8 @@ const trackHeight = ref(0);
 // Process markers to show Year/Month changes
 const displayMarkers = computed(() => {
   if (!props.total || props.total === 0 || !props.markers.length) return [];
+
+  const hasLabelMarkers = props.markers.some(marker => marker.label);
   
   const height = trackHeight.value; 
   const minLabelDistance = 12;
@@ -148,6 +159,7 @@ const displayMarkers = computed(() => {
     pixelPos: number;
     showLabel: boolean;
     showTick: boolean;
+    isLabelMarker: boolean;
   }
 
   const candidates: Candidate[] = [];
@@ -159,6 +171,19 @@ const displayMarkers = computed(() => {
     
     const top = Math.min(100, (marker.position / props.total) * 100);
     const currentPixelPos = (top / 100) * height;
+
+    if (hasLabelMarkers) {
+      candidates.push({
+        label: '',
+        top: top,
+        type: 'month',
+        pixelPos: currentPixelPos,
+        showLabel: false,
+        showTick: true,
+        isLabelMarker: true
+      });
+      continue;
+    }
     
     const year = marker.year;
     const month = marker.month;
@@ -170,7 +195,8 @@ const displayMarkers = computed(() => {
         type: 'year',
         pixelPos: currentPixelPos,
         showLabel: true,
-        showTick: true
+        showTick: true,
+        isLabelMarker: false
       });
       lastYear = year;
       lastMonth = month;
@@ -181,7 +207,8 @@ const displayMarkers = computed(() => {
         type: 'month',
         pixelPos: currentPixelPos,
         showLabel: true,
-        showTick: true
+        showTick: true,
+        isLabelMarker: false
       });
       lastMonth = month;
     }
@@ -258,7 +285,8 @@ const displayMarkers = computed(() => {
       top: item.top,
       isYear: item.type === 'year',
       pixelPos: item.pixelPos,
-      showTick: item.showTick
+      showTick: item.showTick,
+      isLabelMarker: item.isLabelMarker
     }));
 });
 
@@ -439,7 +467,9 @@ function findMarkerForIndex(index: number) {
   return res;
 }
 
-function formatDate(marker: { year: number | null, month: number | null, date: number | null }) {
+function formatDate(marker: { year?: number | null, month?: number | null, date?: number | null, label?: string }) {
+  if (marker.label) return marker.label;
+
   const y = marker.year;
   const m = marker.month;
   const d = marker.date;

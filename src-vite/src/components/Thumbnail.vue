@@ -2,9 +2,9 @@
   <div
     :class="[
       'border-2 rounded-box flex flex-col items-center cursor-pointer group',
-      isTransitionDisabled ? 'transition-none' : 'transition-all ease-in-out duration-300 ',
+      isTransitionDisabled ? 'transition-none' : 'transition-[background-color,color] ease-in-out duration-150 ',
       config.settings.grid.style === 0 ? 'p-1 w-fit h-fit' : 'w-full h-full',
-      isActive && !isTransitionDisabled
+      isActive
         ? (isContentActive ? 'border-primary' : 'border-primary/50')
         : 'border-transparent',
       config.settings.grid.style === 0 && isSelected ? 'bg-base-100 hover:bg-base-100' : 'hover:bg-base-100/30 hover:text-base-content ',
@@ -220,11 +220,15 @@ const thumbnailSrc = ref(props.file.thumbnail || '');
 const isThumbnailLoaded = ref(false);
 let thumbnailRetryCount = 0;
 
-watch(() => props.file.thumbnail, (src = '') => {
-  thumbnailSrc.value = src;
-  isThumbnailLoaded.value = false;
-  thumbnailRetryCount = 0;
-});
+watch(
+  () => [props.file?.id, props.file?.thumbnail],
+  ([, src]) => {
+    thumbnailSrc.value = String(src || '');
+    isThumbnailLoaded.value = false;
+    thumbnailRetryCount = 0;
+  },
+  { immediate: true },
+);
 
 function handleThumbnailLoad() {
   isThumbnailLoaded.value = true;

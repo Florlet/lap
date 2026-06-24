@@ -851,6 +851,10 @@ pub struct QueryParams {
     pub start_date: i64,
     pub end_date: i64,
     pub calendar_sort: i64,     // 0=taken asc … 5=modified desc (sort / 2 → column)
+    #[serde(default)]
+    pub folder_sort: i64,       // 0=name asc, 1=name desc, 2=date asc, 3=date desc
+    #[serde(default)]
+    pub category_sort: i64,     // 0=name asc, 1=name desc, 2=count asc, 3=count desc
     pub make: String,
     pub model: String,
     pub lens_make: String,
@@ -870,6 +874,8 @@ pub struct QueryParams {
     pub gps_min_lon: Option<f64>,
     #[serde(default)]
     pub gps_max_lon: Option<f64>,
+    #[serde(default)]
+    pub group_by: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -892,6 +898,14 @@ pub struct SmartQueryParams {
     pub rules: Vec<SmartRule>,
     pub sort_type: i64,
     pub sort_order: i64,
+    #[serde(default)]
+    pub calendar_sort: i64,
+    #[serde(default)]
+    pub folder_sort: i64,
+    #[serde(default)]
+    pub category_sort: i64,
+    #[serde(default)]
+    pub group_by: i64,
 }
 
 fn default_smart_query_version() -> i32 {
@@ -901,6 +915,62 @@ fn default_smart_query_version() -> i32 {
 fn default_smart_query_match() -> String {
     "all".to_string()
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupedQueryResult {
+    pub rows: Vec<GroupedQueryRow>,
+    pub groups: Vec<GroupedQueryGroup>,
+    pub total_item_count: i64,
+    pub total_row_count: i64,
+    pub total_size: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupedQueryGroup {
+    pub group_id: String,
+    pub label: String,
+    pub count: i64,
+    pub size: i64,
+    pub row_index: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum GroupedQueryRow {
+    #[serde(rename_all = "camelCase")]
+    Group {
+        row_id: String,
+        group_id: String,
+        label: String,
+        count: i64,
+        size: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Item {
+        row_id: String,
+        group_id: String,
+        file_index: i64,
+        file: AFile,
+    },
+}
+
+#[derive(Debug, Clone)]
+struct QueryGroup {
+    id: String,
+    label: String,
+    count: i64,
+    size: i64,
+}
+
+const GROUP_BY_FOLDER_PATH: i64 = 1;
+const GROUP_BY_DATE_DAY: i64 = 2;
+const GROUP_BY_DATE_MONTH: i64 = 3;
+const GROUP_BY_RATING: i64 = 4;
+const GROUP_BY_LOCATION: i64 = 5;
+const GROUP_BY_CAMERA: i64 = 6;
+const GROUP_BY_LENS: i64 = 7;
 
 /// Define the AI image search parameters struct
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -2404,6 +2474,314 @@ impl AFile {
         Self::query_files(&query, &final_params)
     }
 
+    fn group_key_and_sort_expr(group_by: i64, calendar_sort: i64) -> Option<(String, String)> {
+        let date_col = match calendar_sort / 2 {
+            1 => "a.created_at",
+            2 => "a.modified_at",
+            _ => "a.taken_date",
+        };
+        match group_by {
+            GROUP_BY_FOLDER_PATH => {
+                Some((
+                    "COALESCE(b.path, 'unknown-folder')".to_string(),
+                    "COALESCE(b.modified_at, b.created_at, 0)".to_string(),
+                ))
+            }
+            GROUP_BY_DATE_DAY => {
+                let day_bucket = format!("strftime('%s', date({date_col}, 'unixepoch', 'localtime'), 'utc')");
+                Some((
+                    format!("CASE WHEN {date_col} IS NULL THEN 'unknown-date' ELSE CAST({day_bucket} AS TEXT) END"),
+                    "0".to_string(),
+                ))
+            }
+            GROUP_BY_DATE_MONTH => {
+                let month_bucket = format!("strftime('%s', date({date_col}, 'unixepoch', 'localtime', 'start of month'), 'utc')");
+                Some((
+                    format!("CASE WHEN {date_col} IS NULL THEN 'unknown-month' ELSE CAST({month_bucket} AS TEXT) END"),
+                    "0".to_string(),
+                ))
+            }
+            GROUP_BY_RATING => Some((
+                "CAST(COALESCE(a.rating, 0) AS TEXT)".to_string(),
+                "0".to_string(),
+            )),
+            GROUP_BY_LOCATION => Some((
+                "CASE WHEN COALESCE(a.geo_name, a.geo_admin1, a.geo_cc, '') = '' THEN 'unknown-location' ELSE COALESCE(a.geo_name, a.geo_admin1, a.geo_cc) END".to_string(),
+                "COALESCE(a.geo_cc, '')".to_string(),
+            )),
+            GROUP_BY_CAMERA => Some((
+                "CASE WHEN TRIM(COALESCE(a.e_make, '') || ' ' || COALESCE(a.e_model, '')) = '' THEN 'unknown-camera' ELSE TRIM(COALESCE(a.e_make, '') || ' ' || COALESCE(a.e_model, '')) END".to_string(),
+                "COALESCE(a.e_model, '')".to_string(),
+            )),
+            GROUP_BY_LENS => Some((
+                "CASE WHEN COALESCE(a.e_lens_model, '') = '' THEN 'unknown-lens' ELSE a.e_lens_model END".to_string(),
+                "COALESCE(a.e_lens_model, '')".to_string(),
+            )),
+            _ => None,
+        }
+    }
+
+    fn group_order_clause_values(group_by: i64, folder_sort: i64, calendar_sort: i64, category_sort: i64) -> String {
+        match group_by {
+            GROUP_BY_DATE_DAY | GROUP_BY_DATE_MONTH => {
+                let dir = if calendar_sort % 2 == 1 { "DESC" } else { "ASC" };
+                format!("CAST(group_id AS INTEGER) {}, label COLLATE NOCASE ASC", dir)
+            }
+            GROUP_BY_FOLDER_PATH => match folder_sort {
+                1 => "label COLLATE NOCASE DESC".to_string(),
+                2 => "MAX(group_sort) ASC, label COLLATE NOCASE ASC".to_string(),
+                3 => "MAX(group_sort) DESC, label COLLATE NOCASE ASC".to_string(),
+                _ => "label COLLATE NOCASE ASC".to_string(),
+            },
+            GROUP_BY_RATING | GROUP_BY_LOCATION | GROUP_BY_CAMERA | GROUP_BY_LENS => match category_sort {
+                1 => "MAX(group_sort) COLLATE NOCASE DESC, label COLLATE NOCASE DESC".to_string(),
+                2 => "COUNT(*) ASC, label COLLATE NOCASE ASC".to_string(),
+                3 => "COUNT(*) DESC, label COLLATE NOCASE ASC".to_string(),
+                _ => "MAX(group_sort) COLLATE NOCASE ASC, label COLLATE NOCASE ASC".to_string(),
+            },
+            _ => "group_id ASC, label COLLATE NOCASE ASC".to_string(),
+        }
+    }
+
+    fn group_order_clause(params: &QueryParams) -> String {
+        Self::group_order_clause_values(params.group_by, params.folder_sort, params.calendar_sort, params.category_sort)
+    }
+
+    fn smart_group_order_clause(params: &SmartQueryParams) -> String {
+        Self::group_order_clause_values(params.group_by, params.folder_sort, params.calendar_sort, params.category_sort)
+    }
+
+    fn query_groups(params: &QueryParams) -> Result<Vec<QueryGroup>, String> {
+        let Some((group_id_expr, sort_expr)) = Self::group_key_and_sort_expr(params.group_by, params.calendar_sort) else {
+            return Ok(Vec::new());
+        };
+        let (joins, where_clause, sql_params) = Self::build_search_query_parts(params);
+        let sql = format!(
+            "SELECT group_id, group_id AS label, COUNT(*), COALESCE(SUM(size), 0)
+             FROM (
+                SELECT DISTINCT a.id, a.size, {group_id_expr} AS group_id, {sort_expr} AS group_sort
+                FROM afiles a
+                LEFT JOIN afolders b ON a.folder_id = b.id
+                LEFT JOIN albums c ON b.album_id = c.id
+                {joins}{where_clause}
+             )
+             GROUP BY group_id
+             ORDER BY {}",
+            Self::group_order_clause(params)
+        );
+        let final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        let conn = open_conn()?;
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(&final_params[..], |row| {
+                Ok(QueryGroup {
+                    id: row.get(0)?,
+                    label: row.get(1)?,
+                    count: row.get(2)?,
+                    size: row.get(3)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut groups = Vec::new();
+        for group in rows {
+            groups.push(group.map_err(|e| e.to_string())?);
+        }
+        Ok(groups)
+    }
+
+    fn get_query_files_in_group(
+        params: &QueryParams,
+        group_id: &str,
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<Self>, String> {
+        if limit <= 0 {
+            return Ok(Vec::new());
+        }
+        let Some((group_id_expr, _)) = Self::group_key_and_sort_expr(params.group_by, params.calendar_sort) else {
+            return Ok(Vec::new());
+        };
+        let (joins, where_clause, mut sql_params) = Self::build_search_query_parts(params);
+
+        let mut query = Self::build_base_query();
+        query.push_str(&joins);
+        query.push_str(&where_clause);
+        if where_clause.is_empty() {
+            query.push_str(&format!(" WHERE {} = ?", group_id_expr));
+        } else {
+            query.push_str(&format!(" AND {} = ?", group_id_expr));
+        }
+        sql_params.push(Box::new(group_id.to_string()));
+
+        query.push_str(" GROUP BY a.id");
+        query.push_str(&format!(" ORDER BY {}", Self::build_order_clause(params)));
+        query.push_str(" LIMIT ? OFFSET ?");
+
+        let mut final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        final_params.push(&limit);
+        final_params.push(&offset);
+        Self::query_files(&query, &final_params)
+    }
+
+    fn build_grouped_query_result<F>(
+        groups: Vec<QueryGroup>,
+        offset: i64,
+        limit: i64,
+        mut get_files_in_group: F,
+    ) -> Result<GroupedQueryResult, String>
+    where
+        F: FnMut(&QueryGroup, i64, i64) -> Result<Vec<Self>, String>,
+    {
+        let total_item_count = groups.iter().map(|group| group.count).sum::<i64>();
+        let total_size = groups.iter().map(|group| group.size).sum::<i64>();
+        let total_row_count = total_item_count + groups.len() as i64;
+        let mut grouped_query_groups = Vec::with_capacity(groups.len());
+        let mut group_row_cursor = 0_i64;
+        for group in &groups {
+            grouped_query_groups.push(GroupedQueryGroup {
+                group_id: group.id.clone(),
+                label: group.label.clone(),
+                count: group.count,
+                size: group.size,
+                row_index: group_row_cursor,
+            });
+            group_row_cursor += group.count + 1;
+        }
+
+        let start = offset.max(0);
+        let end = if limit <= 0 {
+            start
+        } else {
+            (start + limit).min(total_row_count)
+        };
+        let mut rows = Vec::new();
+        let mut row_cursor = 0_i64;
+        let mut file_index_cursor = 0_i64;
+
+        for group in groups {
+            let header_row = row_cursor;
+            let file_rows_start = header_row + 1;
+            let file_rows_end = file_rows_start + group.count;
+
+            if header_row >= start && header_row < end {
+                rows.push(GroupedQueryRow::Group {
+                    row_id: format!("group-row-{}", group.id),
+                    group_id: group.id.clone(),
+                    label: group.label.clone(),
+                    count: group.count,
+                    size: group.size,
+                });
+            }
+
+            let file_overlap_start = start.max(file_rows_start);
+            let file_overlap_end = end.min(file_rows_end);
+            if file_overlap_start < file_overlap_end {
+                let group_file_offset = file_overlap_start - file_rows_start;
+                let group_file_limit = file_overlap_end - file_overlap_start;
+                let files = get_files_in_group(&group, group_file_offset, group_file_limit)?;
+                for (index, file) in files.into_iter().enumerate() {
+                    let file_index = file_index_cursor + group_file_offset + index as i64;
+                    let file_id = file.id.unwrap_or(file_index);
+                    rows.push(GroupedQueryRow::Item {
+                        row_id: format!("item-row-{}", file_id),
+                        group_id: group.id.clone(),
+                        file_index,
+                        file,
+                    });
+                }
+            }
+
+            row_cursor = file_rows_end;
+            file_index_cursor += group.count;
+            if row_cursor >= end {
+                break;
+            }
+        }
+
+        Ok(GroupedQueryResult {
+            rows,
+            groups: grouped_query_groups,
+            total_item_count,
+            total_row_count,
+            total_size,
+        })
+    }
+
+    pub fn get_grouped_query_rows(
+        params: &QueryParams,
+        offset: i64,
+        limit: i64,
+    ) -> Result<GroupedQueryResult, String> {
+        let groups = Self::query_groups(params)?;
+        Self::build_grouped_query_result(groups, offset, limit, |group, group_file_offset, group_file_limit| {
+            Self::get_query_files_in_group(params, &group.id, group_file_offset, group_file_limit)
+        })
+    }
+
+    pub fn get_group_file_ids(params: &QueryParams, group_id: &str) -> Result<Vec<i64>, String> {
+        let Some((group_id_expr, _)) = Self::group_key_and_sort_expr(params.group_by, params.calendar_sort) else {
+            return Ok(Vec::new());
+        };
+        let (joins, where_clause, mut sql_params) = Self::build_search_query_parts(params);
+        let mut query = format!(
+            "SELECT a.id
+             FROM afiles a
+             LEFT JOIN afolders b ON a.folder_id = b.id
+             LEFT JOIN albums c ON b.album_id = c.id
+             {joins}{where_clause}"
+        );
+        if where_clause.is_empty() {
+            query.push_str(&format!(" WHERE {} = ?", group_id_expr));
+        } else {
+            query.push_str(&format!(" AND {} = ?", group_id_expr));
+        }
+        sql_params.push(Box::new(group_id.to_string()));
+        query.push_str(" GROUP BY a.id");
+        query.push_str(&format!(" ORDER BY {}", Self::build_order_clause(params)));
+
+        let final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        let conn = open_conn()?;
+        let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(&final_params[..], |row| row.get::<_, i64>(0))
+            .map_err(|e| e.to_string())?;
+
+        let mut ids = Vec::new();
+        for id in rows {
+            ids.push(id.map_err(|e| e.to_string())?);
+        }
+        Ok(ids)
+    }
+
+    pub fn get_query_file_ids(params: &QueryParams) -> Result<Vec<i64>, String> {
+        let (joins, where_clause, sql_params) = Self::build_search_query_parts(params);
+        let mut query = format!(
+            "SELECT a.id
+             FROM afiles a
+             LEFT JOIN afolders b ON a.folder_id = b.id
+             LEFT JOIN albums c ON b.album_id = c.id
+             {joins}{where_clause}"
+        );
+        if params.person_id > 0 {
+            query.push_str(" GROUP BY a.id");
+        }
+        query.push_str(&format!(" ORDER BY {}", Self::build_order_clause(params)));
+
+        let final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        let conn = open_conn()?;
+        let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(&final_params[..], |row| row.get::<_, i64>(0))
+            .map_err(|e| e.to_string())?;
+
+        let mut ids = Vec::new();
+        for id in rows {
+            ids.push(id.map_err(|e| e.to_string())?);
+        }
+        Ok(ids)
+    }
+
     fn build_order_clause_values(sort_type: i64, sort_order: i64) -> String {
         let dir = if sort_order == 1 {
             "DESC"
@@ -2923,6 +3301,162 @@ impl AFile {
         final_params.push(&limit);
         final_params.push(&offset);
         Self::query_files(&query, &final_params)
+    }
+
+    fn query_smart_groups(params: &SmartQueryParams) -> Result<Vec<QueryGroup>, String> {
+        let Some((group_id_expr, sort_expr)) = Self::group_key_and_sort_expr(params.group_by, params.calendar_sort) else {
+            return Ok(Vec::new());
+        };
+        let (joins, where_clause, sql_params, _needs_group) = Self::build_smart_query_parts(params)?;
+        let sql = format!(
+            "SELECT group_id, group_id AS label, COUNT(*), COALESCE(SUM(size), 0)
+             FROM (
+                SELECT DISTINCT a.id, a.size, {group_id_expr} AS group_id, {sort_expr} AS group_sort
+                FROM afiles a
+                LEFT JOIN afolders b ON a.folder_id = b.id
+                LEFT JOIN albums c ON b.album_id = c.id
+                {joins}{where_clause}
+             )
+             GROUP BY group_id
+             ORDER BY {}",
+            Self::smart_group_order_clause(params)
+        );
+        let final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        let conn = open_conn()?;
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(&final_params[..], |row| {
+                Ok(QueryGroup {
+                    id: row.get(0)?,
+                    label: row.get(1)?,
+                    count: row.get(2)?,
+                    size: row.get(3)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut groups = Vec::new();
+        for group in rows {
+            groups.push(group.map_err(|e| e.to_string())?);
+        }
+        Ok(groups)
+    }
+
+    fn get_smart_query_files_in_group(
+        params: &SmartQueryParams,
+        group_id: &str,
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<Self>, String> {
+        if limit <= 0 {
+            return Ok(Vec::new());
+        }
+        let Some((group_id_expr, _)) = Self::group_key_and_sort_expr(params.group_by, params.calendar_sort) else {
+            return Ok(Vec::new());
+        };
+        let (joins, where_clause, mut sql_params, _needs_group) = Self::build_smart_query_parts(params)?;
+
+        let mut query = Self::build_base_query();
+        query.push_str(&joins);
+        query.push_str(&where_clause);
+        if where_clause.is_empty() {
+            query.push_str(&format!(" WHERE {} = ?", group_id_expr));
+        } else {
+            query.push_str(&format!(" AND {} = ?", group_id_expr));
+        }
+        sql_params.push(Box::new(group_id.to_string()));
+
+        query.push_str(" GROUP BY a.id");
+        query.push_str(&format!(
+            " ORDER BY {}",
+            Self::build_order_clause_values(params.sort_type, params.sort_order)
+        ));
+        query.push_str(" LIMIT ? OFFSET ?");
+
+        let mut final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        final_params.push(&limit);
+        final_params.push(&offset);
+        Self::query_files(&query, &final_params)
+    }
+
+    pub fn get_smart_grouped_query_rows(
+        params: &SmartQueryParams,
+        offset: i64,
+        limit: i64,
+    ) -> Result<GroupedQueryResult, String> {
+        let groups = Self::query_smart_groups(params)?;
+        Self::build_grouped_query_result(groups, offset, limit, |group, group_file_offset, group_file_limit| {
+            Self::get_smart_query_files_in_group(params, &group.id, group_file_offset, group_file_limit)
+        })
+    }
+
+    pub fn get_smart_group_file_ids(params: &SmartQueryParams, group_id: &str) -> Result<Vec<i64>, String> {
+        let Some((group_id_expr, _)) = Self::group_key_and_sort_expr(params.group_by, params.calendar_sort) else {
+            return Ok(Vec::new());
+        };
+        let (joins, where_clause, mut sql_params, _needs_group) = Self::build_smart_query_parts(params)?;
+        let mut query = format!(
+            "SELECT a.id
+             FROM afiles a
+             LEFT JOIN afolders b ON a.folder_id = b.id
+             LEFT JOIN albums c ON b.album_id = c.id
+             {joins}{where_clause}"
+        );
+        if where_clause.is_empty() {
+            query.push_str(&format!(" WHERE {} = ?", group_id_expr));
+        } else {
+            query.push_str(&format!(" AND {} = ?", group_id_expr));
+        }
+        sql_params.push(Box::new(group_id.to_string()));
+        query.push_str(" GROUP BY a.id");
+        query.push_str(&format!(
+            " ORDER BY {}",
+            Self::build_order_clause_values(params.sort_type, params.sort_order)
+        ));
+
+        let final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        let conn = open_conn()?;
+        let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(&final_params[..], |row| row.get::<_, i64>(0))
+            .map_err(|e| e.to_string())?;
+
+        let mut ids = Vec::new();
+        for id in rows {
+            ids.push(id.map_err(|e| e.to_string())?);
+        }
+        Ok(ids)
+    }
+
+    pub fn get_smart_query_file_ids(params: &SmartQueryParams) -> Result<Vec<i64>, String> {
+        let (joins, where_clause, sql_params, needs_group) = Self::build_smart_query_parts(params)?;
+        let mut query = format!(
+            "SELECT a.id
+             FROM afiles a
+             LEFT JOIN afolders b ON a.folder_id = b.id
+             LEFT JOIN albums c ON b.album_id = c.id
+             {joins}{where_clause}"
+        );
+        if needs_group {
+            query.push_str(" GROUP BY a.id");
+        }
+        query.push_str(&format!(
+            " ORDER BY {}",
+            Self::build_order_clause_values(params.sort_type, params.sort_order)
+        ));
+
+        let final_params: Vec<&dyn ToSql> = sql_params.iter().map(|p| p.as_ref()).collect();
+        let conn = open_conn()?;
+        let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(&final_params[..], |row| row.get::<_, i64>(0))
+            .map_err(|e| e.to_string())?;
+
+        let mut ids = Vec::new();
+        for id in rows {
+            ids.push(id.map_err(|e| e.to_string())?);
+        }
+        Ok(ids)
     }
 
     pub fn get_smart_query_file_position(

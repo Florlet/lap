@@ -1080,27 +1080,6 @@
         "렌즈",
         "설정"
       ],
-      "section_grouping": "그룹화",
-      "group_by": "그룹 기준",
-      "group_by_hint": "그리드 항목을 섹션으로 정리합니다",
-      "group_unknown_folder": "알 수 없는 폴더",
-      "group_by_options": [
-        "없음",
-        "날짜(일)",
-        "날짜(월)",
-        "날짜(연도)",
-        "폴더 경로",
-        "파일 유형",
-        "평점",
-        "카메라",
-        "위치"
-      ],
-      "group_order": "그룹 순서",
-      "group_order_options": [
-        "자동",
-        "오름차순",
-        "내림차순"
-      ],
       "filmstrip_view": {
         "title": "필름스트립",
         "enable_filmstrip": "필름스트립 보기 활성화",

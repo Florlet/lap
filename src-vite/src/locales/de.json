@@ -1080,27 +1080,6 @@
         "Objektiv",
         "Einstellungen"
       ],
-      "section_grouping": "Gruppierung",
-      "group_by": "Gruppieren nach",
-      "group_by_hint": "Rasterelemente in Abschnitte gliedern",
-      "group_unknown_folder": "Unbekannter Ordner",
-      "group_by_options": [
-        "Keine",
-        "Datum (Tag)",
-        "Datum (Monat)",
-        "Datum (Jahr)",
-        "Ordnerpfad",
-        "Dateityp",
-        "Bewertung",
-        "Kamera",
-        "Ort"
-      ],
-      "group_order": "Gruppenreihenfolge",
-      "group_order_options": [
-        "Automatisch",
-        "Aufsteigend",
-        "Absteigend"
-      ],
       "filmstrip_view": {
         "title": "Filmstreifen",
         "enable_filmstrip": "Filmstreifenansicht aktivieren",

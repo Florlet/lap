@@ -1,7 +1,7 @@
 <template>
   <div
     ref="containerRef"
-    class="w-full h-full" 
+    class="w-full h-full"
     :class="{ 
       'pointer-events-none': uiStore.inputStack.length > 0,
     }"
@@ -34,11 +34,49 @@
       @scroll="onScroll"
     >
       <div
+        v-if="isGroupRow(item)"
+        class="w-full h-12 flex items-center gap-1 px-2 text-base-content/70 select-none"
+      >
+        <input
+          v-if="selectMode"
+          type="checkbox"
+          class="checkbox checkbox-xs border-base-content/30"
+          :checked="getGroupSelectionState(item).checked"
+          :indeterminate.prop="getGroupSelectionState(item).indeterminate"
+          :disabled="isGroupSelectionLoading(item)"
+          @change="(event) => $emit('group-select-toggled', item, (event.target as HTMLInputElement).checked)"
+        />
+        <span v-if="selectMode && isGroupSelectionLoading(item)" class="loading loading-spinner loading-xs text-primary"></span>
+        <component :is="getGroupIcon()" class="w-4 h-4 shrink-0 text-base-content/70" />
+        <div v-if="isFolderPathGroup()" class="breadcrumbs p-0 min-h-0 min-w-0 overflow-hidden text-sm font-medium">
+          <ul class="min-w-0 flex-nowrap overflow-hidden">
+            <li
+              v-for="(seg, idx) in getGroupTitleSegments(item)"
+              :key="`${idx}-${seg}`"
+              class="min-w-0 max-w-full overflow-hidden"
+            >
+              <span
+                :class="[
+                  'block truncate',
+                  idx < getGroupTitleSegments(item).length - 1 ? 'max-w-[12rem] text-base-content/70' : ''
+                ]"
+              >
+                {{ seg }}
+              </span>
+            </li>
+          </ul>
+        </div>
+        <span v-else class="min-w-0 truncate text-sm font-medium">{{ item.label }}</span>
+        <span class="shrink-0 text-xs text-base-content/30">({{ Number(item.count || 0).toLocaleString() }})</span>
+      </div>
+      <div
+        v-else
         class="w-full h-full flex items-center justify-center overflow-hidden"
-        @pointerdown="onItemPointerDown($event, getFileIndex(item, index))"
+        @pointerdown="onItemPointerDown($event, getFileIndex(item, index), getFileItem(item))"
       >
         <Thumbnail
           v-if="getFileItem(item) && !getFileItem(item).isPlaceholder"
+          :key="getThumbnailKey(item, index)"
           :id="'item-' + getFileIndex(item, index)"
           :file="getFileItem(item)"
           :is-selected="selectMode ? Boolean(getFileItem(item).isSelected) : getFileIndex(item, index) === selectedItemIndex"
@@ -52,8 +90,36 @@
         <div v-else class="w-full h-full bg-base-200/70"></div>
       </div>
     </VirtualScroll>
+    <div
+      v-if="activeStickyGroup"
+      class="pointer-events-none absolute left-0 right-0 top-12 z-20 h-12 bg-base-100/95 backdrop-blur-sm"
+    >
+      <div class="w-full h-12 flex items-center gap-1 px-2 text-base-content/70 select-none shadow-sm">
+        <component :is="getGroupIcon()" class="w-4 h-4 shrink-0 text-base-content/70" />
+        <div v-if="isFolderPathGroup()" class="breadcrumbs p-0 min-h-0 min-w-0 overflow-hidden text-sm font-medium">
+          <ul class="min-w-0 flex-nowrap overflow-hidden">
+            <li
+              v-for="(seg, idx) in getGroupTitleSegments(activeStickyGroup)"
+              :key="`sticky-${idx}-${seg}`"
+              class="min-w-0 max-w-full overflow-hidden"
+            >
+              <span
+                :class="[
+                  'block truncate',
+                  idx < getGroupTitleSegments(activeStickyGroup).length - 1 ? 'max-w-[12rem] text-base-content/70' : ''
+                ]"
+              >
+                {{ seg }}
+              </span>
+            </li>
+          </ul>
+        </div>
+        <span v-else class="min-w-0 truncate text-sm font-medium">{{ activeStickyGroup.label }}</span>
+        <span class="shrink-0 text-xs text-base-content/30">({{ Number(activeStickyGroup.count || 0).toLocaleString() }})</span>
+      </div>
+    </div>
     <!-- Empty State / Loading -->
-    <div v-else class="absolute inset-0 flex flex-col items-center justify-center">
+    <div v-if="fileList.length === 0" class="absolute inset-0 flex flex-col items-center justify-center">
       <div class="text-base-content/30 flex flex-col items-center gap-2 text-center px-4">
         <template v-if="showDelayedLoading">
           <span class="loading loading-dots loading-lg text-primary"></span>
@@ -84,7 +150,27 @@ import { useUIStore } from '@/stores/uiStore';
 import { config } from '@/common/config';
 import Thumbnail from '@/components/Thumbnail.vue';
 import VirtualScroll from '@/components/VirtualScroll.vue';
+import {
+  GROUP_BY_FOLDER_PATH,
+  GROUP_BY_DATE_DAY,
+  GROUP_BY_DATE_MONTH,
+  GROUP_BY_RATING,
+  GROUP_BY_LOCATION,
+  GROUP_BY_CAMERA,
+  GROUP_BY_LENS,
+} from '@/common/grouping';
 import { calculateJustifiedLayout, calculateLinearRowLayout, calculateLinearColumnLayout, calculateMasonryLayout, type Geometry } from '@/common/layout';
+import { formatFolderBreadcrumb, isWithinRootPath } from '@/common/utils';
+import {
+  IconCalendarDay,
+  IconCalendarMonth,
+  IconCameraAperture,
+  IconFile,
+  IconFiles,
+  IconFolder,
+  IconLocation,
+  IconStar,
+} from '@/common/icons';
 
 const props = withDefaults(defineProps<{
   selectedItemIndex: number;
@@ -97,6 +183,10 @@ const props = withDefaults(defineProps<{
   contentReady?: boolean;
   emptyMessage?: string;
   layoutVersion?: number;
+  groupBy?: number;
+  groupSelectedCounts?: Record<string, number>;
+  groupSelectionLoading?: Record<string, boolean>;
+  folderGroupRoots?: Array<{ path: string; name?: string }>;
 }>(), {
   selectedItemIndex: -1,
   timelineData: () => [],
@@ -107,6 +197,10 @@ const props = withDefaults(defineProps<{
   contentReady: false,
   emptyMessage: '',
   layoutVersion: 0,
+  groupBy: 0,
+  groupSelectedCounts: () => ({}),
+  groupSelectionLoading: () => ({}),
+  folderGroupRoots: () => [],
 });
 
 const emit = defineEmits([
@@ -115,6 +209,7 @@ const emit = defineEmits([
   'item-select-toggled',
   'item-action',
   'date-group-select',
+  'group-select-toggled',
   'request-scroll',
   'visible-range-update',
   'scroll',
@@ -131,6 +226,8 @@ const containerRef = ref<HTMLElement | null>(null);
 const scroller = ref<any>(null);
 const columnCount = ref(4);
 const containerWidth = ref(0);
+const localScrollTop = ref(0);
+const groupHeaderHeight = 48;
 let pendingPointerDrag: {
   pointerId: number;
   index: number;
@@ -147,14 +244,15 @@ function clearPointerDragListeners() {
   document.removeEventListener('pointercancel', onDocumentPointerUp, true);
 }
 
-function onItemPointerDown(event: PointerEvent, index: number) {
+function onItemPointerDown(event: PointerEvent, index: number, file: any) {
+  if (index < 0) return;
   const target = event.target as HTMLElement;
   if (
     event.button !== 0
     || event.pointerType === 'touch'
     || target.closest('button, input, a, [role="button"]')
-    || !props.fileList[index]
-    || props.fileList[index].isPlaceholder
+    || !file
+    || file.isPlaceholder
   ) return;
   const itemElement = document.getElementById(`item-${index}`);
   const itemRect = itemElement?.getBoundingClientRect();
@@ -214,6 +312,102 @@ function isGeometryGridStyle(style: number) {
 }
 
 const renderItems = computed(() => props.fileList);
+const hasGroupRows = computed(() => renderItems.value.some(item => isGroupRow(item)));
+const fileIndexToRowIndex = computed(() => {
+  const map = new Map<number, number>();
+  renderItems.value.forEach((item, rowIndex) => {
+    if (!isGroupRow(item)) {
+      const fileIndex = getFileIndex(item, rowIndex);
+      if (fileIndex >= 0) map.set(fileIndex, rowIndex);
+    }
+  });
+  return map;
+});
+const rowIndexToFileIndex = computed(() => {
+  const map = new Map<number, number>();
+  renderItems.value.forEach((item, rowIndex) => {
+    if (!isGroupRow(item)) {
+      const fileIndex = getFileIndex(item, rowIndex);
+      if (fileIndex >= 0) map.set(rowIndex, fileIndex);
+    }
+  });
+  return map;
+});
+
+const groupedLayoutGeometryResult = computed(() => {
+  if (!hasGroupRows.value || renderItems.value.length === 0 || containerWidth.value <= 0) {
+    return { boxes: [], contentSize: 0 };
+  }
+
+  const { style, size } = config.settings.grid;
+  const boxes: Geometry[] = new Array(renderItems.value.length);
+
+  if (!isGeometryGridStyle(style)) {
+    let y = 0;
+    let col = 0;
+
+    renderItems.value.forEach((item, rowIndex) => {
+      if (isGroupRow(item)) {
+        if (col > 0) {
+          y += itemHeight.value;
+          col = 0;
+        }
+        boxes[rowIndex] = { x: 0, y, width: containerWidth.value, height: groupHeaderHeight };
+        y += groupHeaderHeight;
+        return;
+      }
+
+      boxes[rowIndex] = {
+        x: col * itemWidth.value,
+        y,
+        width: itemWidth.value,
+        height: itemHeight.value,
+      };
+      col += 1;
+      if (col >= columnCount.value) {
+        y += itemHeight.value;
+        col = 0;
+      }
+    });
+
+    if (col > 0) y += itemHeight.value;
+    return { boxes, contentSize: y };
+  }
+
+  let y = 0;
+  let groupFiles: any[] = [];
+  let groupRowIndices: number[] = [];
+
+  const flushGroup = () => {
+    if (groupFiles.length === 0) return;
+    const result = style === 3
+      ? calculateMasonryLayout(groupFiles, containerWidth.value, size, 0)
+      : calculateJustifiedLayout(groupFiles, containerWidth.value, size, 0);
+    result.boxes.forEach((box, index) => {
+      boxes[groupRowIndices[index]] = {
+        ...box,
+        y: box.y + y,
+      };
+    });
+    y += result.containerHeight;
+    groupFiles = [];
+    groupRowIndices = [];
+  };
+
+  renderItems.value.forEach((item, rowIndex) => {
+    if (isGroupRow(item)) {
+      flushGroup();
+      boxes[rowIndex] = { x: 0, y, width: containerWidth.value, height: groupHeaderHeight };
+      y += groupHeaderHeight;
+      return;
+    }
+    groupFiles.push(getFileItem(item));
+    groupRowIndices.push(rowIndex);
+  });
+  flushGroup();
+
+  return { boxes, contentSize: y };
+});
 
 const layoutGeometryResult = computed(() => {
   if (props.fileList.length === 0) {
@@ -221,6 +415,10 @@ const layoutGeometryResult = computed(() => {
   }
 
   const { style, size, showFilmStrip } = config.settings.grid;
+
+  if (hasGroupRows.value) {
+    return groupedLayoutGeometryResult.value;
+  }
 
   if (showFilmStrip) {
     if (isGeometryGridStyle(style)) {
@@ -249,6 +447,7 @@ const layoutGeometryResult = computed(() => {
 const layoutGeometry = computed(() => layoutGeometryResult.value.boxes);
 const layoutContentHeight = computed(() => layoutGeometryResult.value.contentSize);
 const usesGeometryLayout = computed(() =>
+  hasGroupRows.value ||
   isGeometryGridStyle(config.settings.grid.style)
 );
 const virtualScrollGeometry = computed(() =>
@@ -257,6 +456,34 @@ const virtualScrollGeometry = computed(() =>
 const virtualScrollContentHeight = computed(() =>
   usesGeometryLayout.value ? layoutContentHeight.value : undefined
 );
+const groupHeaderEntries = computed(() => {
+  if (!hasGroupRows.value) return [];
+  const entries: Array<{ y: number; item: any }> = [];
+  renderItems.value.forEach((item, rowIndex) => {
+    if (!isGroupRow(item)) return;
+    const box = layoutGeometry.value[rowIndex];
+    if (!box) return;
+    entries.push({ y: box.y, item });
+  });
+  return entries;
+});
+const activeStickyGroup = computed(() => {
+  if (!hasGroupRows.value || config.settings.grid.showFilmStrip || localScrollTop.value <= 0) return null;
+  const entries = groupHeaderEntries.value;
+  let low = 0;
+  let high = entries.length - 1;
+  let activeIndex = -1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (entries[mid].y <= localScrollTop.value) {
+      activeIndex = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return activeIndex >= 0 ? entries[activeIndex].item : null;
+});
 
 const isLayoutTransitioning = ref(false);
 const startGridSize = ref(0);
@@ -451,6 +678,7 @@ function onUpdate(startIndex: number, endIndex: number) {
 }
 
 function onScroll(e: Event) {
+  localScrollTop.value = (e.target as HTMLElement)?.scrollTop || 0;
   emit('scroll', e);
 }
 
@@ -484,7 +712,7 @@ function scrollToItem(index: number, center = false) {
   if (!scroller.value) return;
   
   const el = scroller.value.$el;
-  const displayIndex = index;
+  const displayIndex = fileIndexToRowIndex.value.get(index) ?? index;
 
   const renderedItem = center ? containerRef.value?.querySelector(`#item-${index}`) : null;
   if (renderedItem && !virtualScrollGeometry.value) {
@@ -578,7 +806,20 @@ function scrollToItem(index: number, center = false) {
 function scrollToPosition(scrollTop: number) {
   if (scroller.value && !config.settings.grid.showFilmStrip) {
     scroller.value.$el.scrollTop = scrollTop;
+    localScrollTop.value = scrollTop;
   }
+}
+
+function scrollToRowIndex(rowIndex: number) {
+  const box = layoutGeometry.value[rowIndex];
+  if (box) {
+    scrollToPosition(box.y);
+    return;
+  }
+  if (!scroller.value || config.settings.grid.showFilmStrip) return;
+  const nextScrollTop = Math.max(0, rowIndex) * itemHeight.value;
+  scroller.value.$el.scrollTop = nextScrollTop;
+  localScrollTop.value = nextScrollTop;
 }
 
 function getColumnCount() {
@@ -600,7 +841,7 @@ function getNextItemIndex(currentIndex: number, direction: 'up' | 'down'): numbe
     return -1;
   }
 
-  const currentDisplayIndex = currentIndex;
+  const currentDisplayIndex = fileIndexToRowIndex.value.get(currentIndex) ?? currentIndex;
 
   const currentBox = layoutGeometry.value[currentDisplayIndex];
   if (!currentBox) return currentIndex;
@@ -614,11 +855,13 @@ function getNextItemIndex(currentIndex: number, direction: 'up' | 'down'): numbe
   layoutGeometry.value.forEach((box, displayIndex) => {
     if (direction === 'down') {
       if (box.y > currentY + 1) { // +1 for tolerance
-         candidates.push({ index: displayIndex, box, diffY: box.y - currentY });
+         const fileIndex = rowIndexToFileIndex.value.get(displayIndex);
+         if (fileIndex !== undefined) candidates.push({ index: fileIndex, box, diffY: box.y - currentY });
       }
     } else {
       if (box.y < currentY - 1) { // -1 for tolerance
-         candidates.push({ index: displayIndex, box, diffY: currentY - box.y });
+         const fileIndex = rowIndexToFileIndex.value.get(displayIndex);
+         if (fileIndex !== undefined) candidates.push({ index: fileIndex, box, diffY: currentY - box.y });
       }
     }
   });
@@ -648,16 +891,88 @@ function getNextItemIndex(currentIndex: number, direction: 'up' | 'down'): numbe
 }
 
 function getFileItem(item: any) {
-  return item;
+  return isGroupRow(item) ? null : (item?.type === 'item' ? item.file : item);
 }
 
 function getFileIndex(item: any, displayIndex: number) {
-  return displayIndex;
+  if (isGroupRow(item)) return -1;
+  return Number(item?.file_index ?? displayIndex);
+}
+
+function getThumbnailKey(item: any, displayIndex: number) {
+  const file = getFileItem(item);
+  return `${getFileIndex(item, displayIndex)}:${file?.id || ''}`;
+}
+
+function isGroupRow(item: any) {
+  return item?.type === 'group';
+}
+
+function getGroupSelectionState(item: any) {
+  const groupId = String(item?.group_id || '');
+  const selectedCount = Number(props.groupSelectedCounts[groupId] || 0);
+  const count = Number(item?.count || 0);
+  return {
+    checked: count > 0 && selectedCount >= count,
+    indeterminate: selectedCount > 0 && selectedCount < count,
+  };
+}
+
+function isGroupSelectionLoading(item: any) {
+  return Boolean(props.groupSelectionLoading[String(item?.group_id || '')]);
+}
+
+function getGroupIcon() {
+  switch (Number(props.groupBy || 0)) {
+    case GROUP_BY_FOLDER_PATH:
+      return IconFolder;
+    case GROUP_BY_DATE_DAY:
+      return IconCalendarDay;
+    case GROUP_BY_DATE_MONTH:
+      return IconCalendarMonth;
+    case GROUP_BY_RATING:
+      return IconStar;
+    case GROUP_BY_LOCATION:
+      return IconLocation;
+    case GROUP_BY_CAMERA:
+      return IconCameraAperture;
+    case GROUP_BY_LENS:
+      return IconCameraAperture;
+    default:
+      return IconFiles;
+  }
+}
+
+function isFolderPathGroup() {
+  return Number(props.groupBy || 0) === GROUP_BY_FOLDER_PATH;
+}
+
+function getGroupTitleSegments(item: any) {
+  const label = getFolderGroupLabel(item);
+  if (!label) return [];
+  if (label.includes(' > ')) {
+    return label.split(' > ').map(part => part.trim()).filter(Boolean);
+  }
+  const normalized = label.replace(/\\/g, '/');
+  return normalized.split('/').map(part => part.trim()).filter(Boolean);
+}
+
+function getFolderGroupLabel(item: any) {
+  const folderPath = String(item?.label || '').trim();
+  if (!folderPath || folderPath === 'Unknown folder') return folderPath;
+
+  const root = [...props.folderGroupRoots]
+    .filter(root => root.path && isWithinRootPath(folderPath, root.path))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+  if (!root) return folderPath;
+
+  return formatFolderBreadcrumb(folderPath, root.path, root.name || '');
 }
 
 defineExpose({
   getColumnCount,
   scrollToPosition,
+  scrollToRowIndex,
   getScrollTop,
   centerItem,
   refreshLayout: updateLayout,

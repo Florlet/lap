@@ -1080,27 +1080,6 @@
         "Lens",
         "Capture settings"
       ],
-      "section_grouping": "Grouping",
-      "group_by": "Group by",
-      "group_by_hint": "Organize grid items into sections",
-      "group_unknown_folder": "Unknown folder",
-      "group_by_options": [
-        "None",
-        "Date (Day)",
-        "Date (Month)",
-        "Date (Year)",
-        "Folder path",
-        "File type",
-        "Rating",
-        "Camera",
-        "Location"
-      ],
-      "group_order": "Group order",
-      "group_order_options": [
-        "Auto",
-        "Ascending",
-        "Descending"
-      ],
       "filmstrip_view": {
         "title": "Filmstrip",
         "enable_filmstrip": "Enable filmstrip view",

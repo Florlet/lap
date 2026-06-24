@@ -1080,27 +1080,6 @@
         "Lente",
         "Ajustes captura"
       ],
-      "section_grouping": "Agrupación",
-      "group_by": "Agrupar por",
-      "group_by_hint": "Organiza los elementos de la cuadrícula en secciones",
-      "group_unknown_folder": "Carpeta desconocida",
-      "group_by_options": [
-        "Ninguno",
-        "Fecha (día)",
-        "Fecha (mes)",
-        "Fecha (año)",
-        "Ruta de carpeta",
-        "Tipo de archivo",
-        "Calificación",
-        "Cámara",
-        "Ubicación"
-      ],
-      "group_order": "Orden de grupos",
-      "group_order_options": [
-        "Automático",
-        "Ascendente",
-        "Descendente"
-      ],
       "filmstrip_view": {
         "title": "Tira de película",
         "enable_filmstrip": "Activar vista de tira de película",

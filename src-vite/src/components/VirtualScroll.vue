@@ -240,6 +240,14 @@ watch(totalCount, () => {
     emitUpdate();
 });
 
+watch(
+  () => props.items,
+  () => {
+    nextTick(emitUpdate);
+  },
+  { flush: 'post' },
+);
+
 function findGeometryAnchor(
   geometry: { x: number, y: number, width: number, height: number }[],
   viewportStart: number,
