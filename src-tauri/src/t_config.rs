@@ -135,6 +135,8 @@ pub struct LibraryPanelState {
     pub item: String,
     #[serde(default, alias = "smart_id")]
     pub smart_id: Option<String>,
+    #[serde(default = "default_ratings_expanded", alias = "ratings_expanded")]
+    pub ratings_expanded: bool,
     #[serde(default = "default_subjects_expanded", alias = "subjects_expanded")]
     pub subjects_expanded: bool,
 }
@@ -147,11 +149,16 @@ fn default_subjects_expanded() -> bool {
     true
 }
 
+fn default_ratings_expanded() -> bool {
+    true
+}
+
 impl Default for LibraryPanelState {
     fn default() -> Self {
         Self {
             item: default_library_item(),
             smart_id: None,
+            ratings_expanded: default_ratings_expanded(),
             subjects_expanded: default_subjects_expanded(),
         }
     }

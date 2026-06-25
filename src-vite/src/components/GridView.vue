@@ -921,6 +921,7 @@ function getGroupIcon() {
     case GROUP.DAY:
       return IconCalendarDay;
     case GROUP.MONTH:
+    case GROUP.YEAR:
       return IconCalendarMonth;
     case GROUP.RATING:
       return IconStar;

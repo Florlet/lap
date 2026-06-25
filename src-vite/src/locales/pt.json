@@ -4,17 +4,17 @@
     "library": "Biblioteca",
     "album": "Álbuns",
     "search": "Pesquisar",
-    "rating": "Avaliação",
+    "rating": "Avaliações",
     "tag": "Tags",
     "calendar": "Calendário",
-    "location": "Local",
+    "location": "Locais",
     "people": "Pessoas",
     "camera": "Câmeras",
     "map": "Mapa",
     "settings": "Ajustes"
   },
   "collection": {
-    "title": "Coleção",
+    "title": "Coleções",
     "add": "Adicionar coleção",
     "expand": "Expandir",
     "collapse": "Recolher",
@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "Todos os arquivos",
-    "recently_added": "Adicionados recentemente",
     "on_this_day": "Neste dia"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "Avaliações",
     "unrated": "Sem classificação",
+    "all_rated": "Todos avaliados",
     "rated": "Avaliado",
     "mixed": "Vários",
     "clear_rating": "Limpar classificação",
@@ -531,10 +531,10 @@
       "time_desc": "Tempo desc"
     },
     "camera_panel": {
-      "camera_title": "Câmera",
-      "lens_title": "Lente",
-      "switch_to_camera": "Mudar para câmera",
-      "switch_to_lens": "Mudar para lente"
+      "camera_title": "Câmeras",
+      "lens_title": "Lentes",
+      "switch_to_camera": "Mudar para câmeras",
+      "switch_to_lens": "Mudar para lentes"
     },
     "search": {
       "clear_history": "Limpar histórico"

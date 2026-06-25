@@ -4,17 +4,17 @@
     "library": "Bibliothek",
     "album": "Alben",
     "search": "Suche",
-    "rating": "Bewertung",
+    "rating": "Bewertungen",
     "tag": "Tags",
     "calendar": "Kalender",
-    "location": "Ort",
+    "location": "Orte",
     "people": "Personen",
     "camera": "Kameras",
     "map": "Karte",
     "settings": "Optionen"
   },
   "collection": {
-    "title": "Sammlung",
+    "title": "Sammlungen",
     "add": "Sammlung hinzufügen",
     "expand": "Ausklappen",
     "collapse": "Einklappen",
@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "Alle Dateien",
-    "recently_added": "Kürzlich hinzugefügt",
     "on_this_day": "An diesem Tag"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "Bewertungen",
     "unrated": "Unbewertet",
+    "all_rated": "Alle bewerteten",
     "rated": "Bewertet",
     "mixed": "Verschieden",
     "clear_rating": "Bewertung löschen",
@@ -531,10 +531,10 @@
       "time_desc": "Zeit Ab"
     },
     "camera_panel": {
-      "camera_title": "Kamera",
-      "lens_title": "Objektiv",
-      "switch_to_camera": "Zu Kamera wechseln",
-      "switch_to_lens": "Zu Objektiv wechseln"
+      "camera_title": "Kameras",
+      "lens_title": "Objektive",
+      "switch_to_camera": "Zu Kameras wechseln",
+      "switch_to_lens": "Zu Objektiven wechseln"
     },
     "search": {
       "clear_history": "Suchverlauf löschen"

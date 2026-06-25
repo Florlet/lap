@@ -114,7 +114,7 @@
             <!-- Component panel (flex-1 to fill remaining space) -->
             <div
               class="min-h-0 flex-1 overflow-hidden"
-              :class="libConfig.activePane === 'collection' && config.main.sidebarIndex !== SIDEBAR.LIBRARY ? 'sidebar-pane-inactive' : ''"
+              :class="libConfig.activePane === 'collection' ? 'sidebar-pane-inactive' : ''"
               @mousedown.capture="activateMainPanel"
             >
               <component ref="panelRef" 
@@ -131,8 +131,11 @@
             ></div>
             <CollectionTray
               v-if="showBottomCollectionTray"
-              class="overflow-hidden transition-[height] duration-200 ease-out"
-              :class="config.collectionTray.expanded ? '' : 'h-10'"
+              :class="[
+                'overflow-hidden',
+                isDraggingCollectionSplitter ? '' : 'transition-[height] duration-200 ease-out',
+                config.collectionTray.expanded ? '' : 'h-10',
+              ]"
               :style="collectionTrayStyle"
               :expanded="config.collectionTray.expanded"
               @toggle-expanded="toggleCollectionTray"
@@ -199,7 +202,6 @@ import Library from '@/components/Library.vue';
 import AlbumList from '@/components/AlbumList.vue';
 import SmartAlbumList from '@/components/SmartAlbumList.vue';
 import ImageSearch from '@/components/ImageSearch.vue';
-import Rating from '@/components/Rating.vue';
 import Tag from '@/components/Tag.vue';
 import Calendar from '@/components/Calendar.vue';
 import Location from '@/components/Location.vue';
@@ -216,7 +218,6 @@ import ManageLibraries from '@/components/ManageLibraries.vue';
 import iconLogo from '@/assets/images/icon.png';
 
 import {
-  IconStar,
   IconTag,
   IconLocation,
   IconPerson,
@@ -241,7 +242,7 @@ const checkLibraryEmpty = async () => {
     const albums = await invoke<any[]>('get_all_albums');
     libraryEmpty.value = (albums?.length ?? 0) === 0;
     if (libraryEmpty.value) {
-      config.main.sidebarIndex = SIDEBAR.LIBRARY;
+      config.main.sidebarIndex = SIDEBAR.ALBUM;
     }
   } catch {
     libraryEmpty.value = false;
@@ -361,7 +362,6 @@ const buttons = computed(() =>  [
   { index: SIDEBAR.LIBRARY, icon: IconStack, component: Library, text: localeMsg.value.sidebar.library },
   { index: SIDEBAR.ALBUM, icon: IconFolders, component: AlbumList, text: localeMsg.value.sidebar.album, props: { selectionSource: 'album' } },
   { index: SIDEBAR.SMART_ALBUM, icon: IconBolt, component: SmartAlbumList, text: localeMsg.value.album.smart_album_list },
-  { index: SIDEBAR.RATING, icon: IconStar, component: Rating, text: localeMsg.value.rating.title },
   { index: SIDEBAR.SEARCH, icon: IconSearch, component: ImageSearch, text: localeMsg.value.sidebar.search },
   { index: SIDEBAR.CALENDAR, icon: IconCalendarDay, component: Calendar, text: localeMsg.value.sidebar.calendar },
   { index: SIDEBAR.TAG, icon: IconTag, component: Tag, text: localeMsg.value.sidebar.tag },
@@ -377,7 +377,7 @@ const activeSidebarButton = computed(() =>
 
 const visibleButtons = computed(() =>
   buttons.value
-    .map((item) => ({ ...item, disabled: libraryEmpty.value && item.index !== SIDEBAR.LIBRARY }))
+    .map((item) => ({ ...item, disabled: libraryEmpty.value && item.index !== SIDEBAR.ALBUM }))
     .filter(item => !item.hidden)
     .sort((a, b) => a.index - b.index)
 );
@@ -604,7 +604,7 @@ const onManageLibrariesUpdated = async () => {
 // click sidebar
 function clickSidebar(index: number) {
   activateMainPanel();
-  if (libraryEmpty.value && index !== SIDEBAR.LIBRARY) return;
+  if (libraryEmpty.value && index !== SIDEBAR.ALBUM) return;
   if (index === SIDEBAR.MAP) {
     // map view has no filter panel - give it the full content area
     showPanel.value = false;
@@ -655,8 +655,7 @@ const collectionTrayStyle = computed(() => {
 
 const showBottomCollectionTray = computed(() =>
   !libraryEmpty.value &&
-  config.settings.showCollections &&
-  config.main.sidebarIndex !== SIDEBAR.LIBRARY
+  config.settings.showCollections
 );
 
 function toggleCollectionTray() {

@@ -16,10 +16,11 @@ export const useLibraryStore = defineStore('libraryStore', {
     /** @type {'main' | 'collection'} */
     activePane: 'main',
 
-    /** @type {{ item: 'all-files' | 'recently-added' | 'favorites' | 'subjects' | 'on-this-day', smartId: string | null, subjectsExpanded: boolean }} */
+    /** @type {{ item: 'all-files' | 'favorites' | 'ratings' | 'subjects' | 'on-this-day', smartId: string | null, ratingsExpanded: boolean, subjectsExpanded: boolean }} */
     library: {
       item: LIB_ITEM.ALL,
       smartId: null,
+      ratingsExpanded: true,
       subjectsExpanded: true,
     },
 

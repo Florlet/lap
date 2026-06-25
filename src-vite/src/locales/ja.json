@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "すべてのファイル",
-    "recently_added": "最近追加",
     "on_this_day": "この日"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "評価",
     "unrated": "未評価",
+    "all_rated": "すべての評価済み",
     "rated": "評価済み",
     "mixed": "複数",
     "clear_rating": "評価をクリア",

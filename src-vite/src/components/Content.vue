@@ -626,7 +626,7 @@ import { config, libConfig } from '@/common/config';
 import { getShortcutLabel, matchesShortcut, ShortcutActionId, ShortcutPlatform } from '@/common/shortcuts';
 import { getSmartTagById, SMART_TAG_SEARCH_THRESHOLD } from '@/common/smartTags';
 import { getAlbumScanState, getAlbumScanIcon, shouldAnimateAlbumScanIcon } from '@/common/scanStatus';
-import { GROUP, LIB_ITEM, SIDEBAR } from '@/common/constants';
+import { DATE_SORT, GROUP, LIB_ITEM, RATE, SIDEBAR } from '@/common/constants';
 import { isWin, isMac, isLinux, setTheme, separator,
          formatFileSize, formatDate, getCalendarDateRange, formatFolderBreadcrumb, getThumbnailDataUrl, getAssetSrc, getPreviewUrl,
          getCachedThumbnailDataUrl,
@@ -660,7 +660,6 @@ import {
   IconTag,
   IconSmartTag,
   IconBolt,
-  IconHistory,
   IconLocation,
   IconCameraAperture,
   IconLeft,
@@ -685,8 +684,10 @@ import {
   IconPhotoAll,
   IconStack,
   IconStar,
+  IconStarFilled,
   IconSimilar,
   IconCamera,
+  IconHeartFilled,
 } from '@/common/icons';
 
 const thumbnailPlaceholder = new URL('@/assets/images/image-file.png', import.meta.url).href;
@@ -923,6 +924,9 @@ function createViewBackup() {
 
 function getAutoGroupByForCurrentView() {
   switch (Number(config.main.sidebarIndex)) {
+    case SIDEBAR.LIBRARY:
+      if (libConfig.library.item === LIB_ITEM.TODAY) return GROUP.YEAR;
+      return libConfig.library.item === LIB_ITEM.RATINGS && libConfig.rating.item === RATE.ALL ? GROUP.RATING : GROUP.NONE;
     case SIDEBAR.ALBUM:
       return GROUP.FOLDER;
     case SIDEBAR.SMART_ALBUM:
@@ -987,15 +991,36 @@ function formatDateGroupLabel(groupBy: number, label: string) {
       return formatDate(year, month, date, localeMsg.value.format.date_long);
     case GROUP.MONTH:
       return formatDate(year, month, 1, localeMsg.value.format.month);
+    case GROUP.YEAR:
+      return formatDate(year, 1, 1, localeMsg.value.format.year);
     default:
       return rawLabel;
   }
 }
 
+function ratingLabelKey(rating: number) {
+  const keyMap: Record<number, string> = {
+    5: 'five_stars',
+    4: 'four_stars',
+    3: 'three_stars',
+    2: 'two_stars',
+    1: 'one_star',
+  };
+  return keyMap[rating] || '';
+}
+
+function formatRatingGroupLabel(label: string) {
+  const rating = Number(label || 0);
+  if (rating === RATE.UNRATED) return localeMsg.value.rating.unrated;
+  const key = ratingLabelKey(rating);
+  return key ? localeMsg.value.rating[key] : label || '';
+}
+
 function formatGroupLabel(label: string) {
   const groupBy = Number(activeGroupBy.value || 0);
-  if (groupBy === GROUP.DAY || groupBy === GROUP.MONTH) return formatDateGroupLabel(groupBy, label);
+  if (groupBy === GROUP.DAY || groupBy === GROUP.MONTH || groupBy === GROUP.YEAR) return formatDateGroupLabel(groupBy, label);
   if (groupBy === GROUP.FOLDER) return formatFolderGroupLabel(label);
+  if (groupBy === GROUP.RATING) return formatRatingGroupLabel(label);
   return label || '';
 }
 
@@ -1003,11 +1028,14 @@ function getGroupingQueryParams() {
   const baseParams = currentQuerySource.value === 'smart' && currentSmartQueryParams.value
     ? currentSmartQueryParams.value
     : currentQueryParams.value;
+  const calendarSort = config.main.sidebarIndex === SIDEBAR.LIBRARY && libConfig.library.item === LIB_ITEM.TODAY
+    ? DATE_SORT.TAKEN_DESC
+    : Number(config.settings.calendarSort || 0);
   return {
     ...baseParams,
     groupBy: activeGroupBy.value,
     folderSort: Number(config.settings.folderSort || 0),
-    calendarSort: Number(config.settings.calendarSort || 0),
+    calendarSort,
     categorySort: Number(config.settings.categorySort || 0),
   };
 }
@@ -2292,16 +2320,15 @@ const currentTitleIcon = computed(() => {
           case SIDEBAR.LIBRARY:
             switch (libConfig.library.item) {
               case LIB_ITEM.ALL: return IconPhotoAll;
-              case LIB_ITEM.FAV: return IconHeart;
+              case LIB_ITEM.FAV: return IconHeartFilled;
+              case LIB_ITEM.RATINGS: return libConfig.rating.item > 0 || libConfig.rating.item === RATE.ALL ? IconStarFilled : IconStar;
               case LIB_ITEM.SUBJECTS: return IconSmartTag;
-              case LIB_ITEM.RECENT: return IconHistory;
               case LIB_ITEM.TODAY: return IconCalendarDay;
               default: return IconPhotoAll;
             }
           case SIDEBAR.ALBUM:
               return libConfig.album.selected || config.settings.showSubfolderFiles ? IconFolders : IconFolder;
           case SIDEBAR.SMART_ALBUM: return IconBolt;
-          case SIDEBAR.RATING: return IconStar;
           case SIDEBAR.SEARCH: return IconPhotoSearch;
           case SIDEBAR.CALENDAR: return config.calendar.isMonthly ? IconCalendarMonth : IconCalendarDay;
           case SIDEBAR.TAG: return IconTag;
@@ -5277,13 +5304,26 @@ async function updateContent(force = false) {
         contentTitle.value = localeMsg.value.favorite.files;
         getFileList({ isFavorite: true }, requestId);
         break;
-      case LIB_ITEM.RECENT:
-        contentTitle.value = localeMsg.value.library.recently_added;
-        getFileList({ sortType: 1, sortOrder: 1 }, requestId);
-        break;
       case LIB_ITEM.TODAY:
         contentTitle.value = localeMsg.value.library.on_this_day;
-        getFileList({ startDate: -1, endDate: -1 }, requestId);
+        getFileList({ startDate: -1, endDate: -1, calendarSort: DATE_SORT.TAKEN_DESC }, requestId);
+        break;
+      case LIB_ITEM.RATINGS:
+        if (libConfig.rating.item === RATE.ALL) {
+          contentTitle.value = localeMsg.value.rating.all_rated || localeMsg.value.rating.rated;
+          getFileList({ rating: RATE.ALL }, requestId);
+        } else if (libConfig.rating.item === RATE.UNRATED) {
+          contentTitle.value = localeMsg.value.rating.unrated;
+          getFileList({ rating: RATE.UNRATED }, requestId);
+        } else if ((libConfig.rating.item || 0) > 0) {
+          const rating = Number(libConfig.rating.item || 0);
+          const key = ratingLabelKey(rating);
+          contentTitle.value = key ? localeMsg.value.rating[key] : `${rating}★`;
+          getFileList({ rating }, requestId);
+        } else {
+          contentTitle.value = localeMsg.value.rating.title;
+          showEmptyContent(requestId);
+        }
         break;
       case LIB_ITEM.SUBJECTS: {
         const smartId = libConfig.library.smartId;
@@ -5395,27 +5435,6 @@ async function updateContent(force = false) {
         contentTitle.value = "";
         showEmptyContent(requestId);
       }
-    } else {
-      contentTitle.value = "";
-      showEmptyContent(requestId);
-    }
-  }
-  else if(newIndex === SIDEBAR.RATING) {
-    if (libConfig.rating.item === 0) {
-        contentTitle.value = localeMsg.value.rating.unrated;
-        getFileList({ rating: 0 }, requestId);
-    } else if ((libConfig.rating.item || 0) > 0) {
-        const keyMap: Record<number, string> = {
-          5: 'five_stars',
-          4: 'four_stars',
-          3: 'three_stars',
-          2: 'two_stars',
-          1: 'one_star',
-        };
-        const rating = Number(libConfig.rating.item || 0);
-        const key = keyMap[rating] || '';
-        contentTitle.value = key ? localeMsg.value.favorite[key] : `${rating}★`;
-        getFileList({ rating }, requestId);
     } else {
       contentTitle.value = "";
       showEmptyContent(requestId);

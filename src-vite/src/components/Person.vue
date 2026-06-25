@@ -39,18 +39,12 @@
     </div>
 
     <div class="sidebar-panel-header">
-      <div role="tablist" class="sidebar-header-tabs">
-        <button
-          role="tab"
-          :class="['sidebar-header-tab', activeTab === 'people' ? 'tab-active' : '']"
-          @click="activeTab = 'people'"
-        >
-          {{ localeMsg.sidebar.people }}
-        </button>
-        <span class="px-1.5 h-5 inline-flex items-center rounded-box text-[10px] font-semibold tracking-[0.08em] text-warning border border-warning/30 bg-warning/10 cursor-default">
-          BETA
-        </span>
-      </div>
+      <span class="sidebar-panel-header-title flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+        {{ titlebar }}
+      </span>
+      <span class="px-1.5 h-5 inline-flex items-center rounded-box text-[10px] font-semibold tracking-[0.08em] text-warning border border-warning/30 bg-warning/10 cursor-default">
+        BETA
+      </span>
 
       <ContextMenu :menuItems="personPanelMenuItems" :iconMenu="IconMore" :smallIcon="true" />
     </div>
@@ -203,10 +197,6 @@ const emit = defineEmits(['editDataChanged']);
 /// i18n
 const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
-
-
-//tabs
-const activeTab = ref<'people' | 'album'>('people');
 
 // persons
 const allPersons = ref<any[]>([]);

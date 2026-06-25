@@ -1,7 +1,7 @@
 <template>
   <section
     data-collection-tray-root="true"
-    class="collection-tray min-h-0 flex flex-col"
+    class="collection-tray min-h-0 flex flex-col rounded-box bg-base-300/70 border border-base-content/5 shadow-sm"
     :class="libConfig.activePane === 'collection' ? '' : 'sidebar-pane-inactive'"
   >
     <div class="sidebar-panel-header cursor-pointer" @click="$emit('toggle-expanded')">
@@ -12,15 +12,16 @@
         {{ $t('collection.drop_title_hint') }}
       </span>
       <TButton
+        v-if="expanded"
         :icon="IconAdd"
         :buttonSize="'small'"
         :tooltip="$t('collection.add')"
+        :disabled="collections.length >= MAX_COLLECTIONS"
         @click.stop="addCollection"
       />
       <TButton
         :icon="expanded ? IconArrowDown : IconArrowUp"
         :buttonSize="'small'"
-        :tooltip="expanded ? $t('collection.collapse') : $t('collection.expand')"
         @click.stop="$emit('toggle-expanded')"
       />
     </div>
@@ -44,7 +45,7 @@
           ]"
           @click="selectCollection(collection)"
         >
-          <IconBookmark class="mx-1 w-5 h-5 shrink-0" />
+          <IconBookmarks class="mx-1 w-5 h-5 shrink-0" />
           <input
             v-if="renamingId === collection.id"
             ref="renameInputRef"
@@ -96,7 +97,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { listen } from '@tauri-apps/api/event';
 import { useI18n } from 'vue-i18n';
 import { libConfig } from '@/common/config';
-import { IconAdd, IconArrowDown, IconArrowUp, IconEdit, IconMore, IconBookmark, IconTrash } from '@/common/icons';
+import { IconAdd, IconArrowDown, IconArrowUp, IconEdit, IconMore, IconBookmarks, IconTrash } from '@/common/icons';
 import ContextMenu from '@/components/ContextMenu.vue';
 import TButton from '@/components/TButton.vue';
 
@@ -110,6 +111,7 @@ defineProps({
 defineEmits(['toggle-expanded']);
 
 const { t } = useI18n();
+const MAX_COLLECTIONS = 10;
 
 type Collection = {
   id: string;
@@ -157,6 +159,7 @@ function selectCollection(collection: Collection) {
 }
 
 async function addCollection() {
+  if (collections.value.length >= MAX_COLLECTIONS) return;
   const collection: Collection = {
     id: crypto.randomUUID?.() || `${Date.now()}`,
     name: `Collection ${collections.value.length + 1}`,

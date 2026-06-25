@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "所有文件",
-    "recently_added": "最近添加",
     "on_this_day": "历史上的今天"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "评分",
     "unrated": "未评分",
+    "all_rated": "全部已评分",
     "rated": "已评分",
     "mixed": "多种",
     "clear_rating": "清除评分",

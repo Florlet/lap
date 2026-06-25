@@ -203,7 +203,7 @@
             <!-- Path -->
             <div class="flex items-center text-[11px] text-base-content/45 h-6">{{ $t('file_info.folder') }}</div>
             <div class="group/field flex items-center gap-1 min-w-0 min-h-6">
-              <IconFolderExpanded class="w-3.5 h-3.5 shrink-0 text-base-content/70" />
+              <IconFolder class="w-3.5 h-3.5 shrink-0 text-base-content/70" />
               <div ref="folderBreadcrumbContainerRef" class="relative min-w-0 flex-1 overflow-hidden">
                 <div class="flex items-center whitespace-nowrap text-[12px] font-medium text-base-content/75">
                   <template v-if="folderBreadcrumbStartIndex > 0">
@@ -489,7 +489,7 @@ import {
 import { 
   IconClose, IconLocation, IconArrowDown, IconArrowUp, IconCameraAperture, 
   IconFile, IconFolderSearch, IconEdit,
-  IconFolderExpanded,
+  IconFolder,
   IconPhoto,
   IconRotate,
   IconVideo,

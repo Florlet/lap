@@ -4,17 +4,17 @@
     "library": "Library",
     "album": "Albums",
     "search": "Search",
-    "rating": "Rating",
+    "rating": "Ratings",
     "tag": "Tags",
     "calendar": "Calendar",
-    "location": "Location",
+    "location": "Locations",
     "people": "People",
     "camera": "Cameras",
     "map": "Map",
     "settings": "Settings"
   },
   "collection": {
-    "title": "Collection",
+    "title": "Collections",
     "add": "Add collection",
     "expand": "Expand",
     "collapse": "Collapse",
@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "All files",
-    "recently_added": "Recently Added",
     "on_this_day": "On this day"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "Ratings",
     "unrated": "Unrated",
+    "all_rated": "All rated",
     "rated": "Rated",
     "mixed": "Various",
     "clear_rating": "Clear rating",
@@ -531,10 +531,10 @@
       "time_desc": "Time desc"
     },
     "camera_panel": {
-      "camera_title": "Camera",
-      "lens_title": "Lens",
-      "switch_to_camera": "Switch to Camera",
-      "switch_to_lens": "Switch to Lens"
+      "camera_title": "Cameras",
+      "lens_title": "Lenses",
+      "switch_to_camera": "Switch to Cameras",
+      "switch_to_lens": "Switch to Lenses"
     },
     "search": {
       "clear_history": "Clear search history"

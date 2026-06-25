@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "모든 파일",
-    "recently_added": "최근 추가됨",
     "on_this_day": "과거의 오늘"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "평점",
     "unrated": "별점 없음",
+    "all_rated": "모든 평점 있음",
     "rated": "평점 있음",
     "mixed": "여러 값",
     "clear_rating": "별점 지우기",

@@ -1,7 +1,16 @@
 <template>
     <!-- albums -->
+    <div v-if="isMainPane" class="sidebar-panel-header">
+      <span class="sidebar-panel-header-title flex-1">{{ $t('album.album_list') }}</span>
+      <TButton
+        :icon="IconAdd"
+        :buttonSize="'small'"
+        :tooltip="$t('menu.album.add')"
+        @click="clickNewAlbum"
+      />
+    </div>
+
     <ul
-      v-if="albums.length > 0"
       ref="albumListRootRef"
       tabindex="0"
       data-album-list-root="true"
@@ -10,20 +19,9 @@
       @mousedown.capture="focusAlbumListRoot"
       @drop.stop
     >
-      
-      <!-- title -->
-      <div v-if="isMainPane" class="sidebar-panel-header">
-        <span class="sidebar-panel-header-title flex-1">{{ $t('album.album_list') }}</span>
-        <TButton
-          :icon="IconAdd"
-          :buttonSize="'small'"
-          :tooltip="$t('menu.album.add')"
-          @click="clickNewAlbum"
-        />
-      </div>
-
       <!-- drag to change albums' display order -->
       <VueDraggable
+        v-if="albums.length > 0"
         v-model="albums"
         :disabled="!isMainPane"
         group="album-folder"
@@ -171,6 +169,9 @@
         </li>
       </VueDraggable>
 
+      <li v-else class="sidebar-empty text-sm">
+        <span class="text-center">{{ $t('tooltip.not_found.albums') }}</span>
+      </li>
     </ul>
 
     <!-- edit album information -->

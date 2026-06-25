@@ -79,13 +79,13 @@ const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 const cameraTitle = computed(() =>
   config.camera.isCamera
-    ? (localeMsg.value.camera_panel?.camera_title || localeMsg.value.file_info?.camera || 'Camera')
-    : (localeMsg.value.camera_panel?.lens_title || localeMsg.value.file_info?.lens || 'Lens')
+    ? localeMsg.value.menu.camera_panel?.camera_title
+    : localeMsg.value.menu.camera_panel?.lens_title
 );
 const cameraToggleTooltip = computed(() =>
   config.camera.isCamera
-    ? (localeMsg.value.camera_panel?.switch_to_lens || 'Switch to Lens')
-    : (localeMsg.value.camera_panel?.switch_to_camera || 'Switch to Camera')
+    ? localeMsg.value.menu.camera_panel?.switch_to_lens
+    : localeMsg.value.menu.camera_panel?.switch_to_camera
 );
 
 const cameras = ref<any[]>([]);

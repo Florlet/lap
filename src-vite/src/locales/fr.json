@@ -4,10 +4,10 @@
     "library": "Bibliothèque",
     "album": "Albums",
     "search": "Recherche",
-    "rating": "Note",
+    "rating": "Notes",
     "tag": "Tags",
     "calendar": "Calendrier",
-    "location": "Lieu",
+    "location": "Lieux",
     "people": "Personnes",
     "camera": "Appareils",
     "map": "Carte",
@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "Tous les fichiers",
-    "recently_added": "Ajoutés récemment",
     "on_this_day": "Ce jour-là"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "Notes",
     "unrated": "Sans note",
+    "all_rated": "Tous les éléments notés",
     "rated": "Noté",
     "mixed": "Divers",
     "clear_rating": "Effacer la note",
@@ -531,10 +531,10 @@
       "time_desc": "Temps décrois"
     },
     "camera_panel": {
-      "camera_title": "Appareil photo",
-      "lens_title": "Objectif",
-      "switch_to_camera": "Passer à l appareil",
-      "switch_to_lens": "Passer à l objectif"
+      "camera_title": "Appareils",
+      "lens_title": "Objectifs",
+      "switch_to_camera": "Passer aux appareils",
+      "switch_to_lens": "Passer aux objectifs"
     },
     "search": {
       "clear_history": "Effacer historique"

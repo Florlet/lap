@@ -4,13 +4,12 @@ export const SIDEBAR = {
   ALBUM: 1,
   SMART_ALBUM: 2,
   SEARCH: 3,
-  RATING: 4,
-  TAG: 5,
-  CALENDAR: 6,
-  PERSON: 7,
-  LOCATION: 8,
-  CAMERA: 9,
-  MAP: 10,
+  TAG: 4,
+  CALENDAR: 5,
+  PERSON: 6,
+  LOCATION: 7,
+  CAMERA: 8,
+  MAP: 9,
 } as const;
 
 export type Sidebar = (typeof SIDEBAR)[keyof typeof SIDEBAR];
@@ -20,11 +19,23 @@ export const LIB_ITEM = {
   ALL: 'all-files',
   FAV: 'favorites',
   TODAY: 'on-this-day',
-  RECENT: 'recently-added',
+  RATINGS: 'ratings',
   SUBJECTS: 'subjects',
 } as const;
 
 export type LibItem = (typeof LIB_ITEM)[keyof typeof LIB_ITEM];
+
+// rating filter enum
+export const RATE = {
+  ALL: -2,
+  NONE: -1,
+  UNRATED: 0,
+} as const;
+
+// date sort enum
+export const DATE_SORT = {
+  TAKEN_DESC: 1,
+} as const;
 
 // group by enum
 export const GROUP = {
@@ -36,6 +47,7 @@ export const GROUP = {
   LOCATION: 5,
   CAMERA: 6,
   LENS: 7,
+  YEAR: 8,
 } as const;
 
 export type Group = (typeof GROUP)[keyof typeof GROUP];

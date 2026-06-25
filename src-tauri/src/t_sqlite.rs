@@ -971,6 +971,7 @@ const GROUP_BY_RATING: i64 = 4;
 const GROUP_BY_LOCATION: i64 = 5;
 const GROUP_BY_CAMERA: i64 = 6;
 const GROUP_BY_LENS: i64 = 7;
+const GROUP_BY_DATE_YEAR: i64 = 8;
 
 /// Define the AI image search parameters struct
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -2388,7 +2389,9 @@ impl AFile {
             conditions.push("a.is_favorite = 1".to_string());
         }
 
-        if params.rating == 0 {
+        if params.rating == -2 {
+            conditions.push("a.rating > 0".to_string());
+        } else if params.rating == 0 {
             conditions.push("(a.rating = 0 OR a.rating IS NULL)".to_string());
         } else if params.rating > 0 {
             conditions.push("a.rating = ?".to_string());
@@ -2501,6 +2504,13 @@ impl AFile {
                     "0".to_string(),
                 ))
             }
+            GROUP_BY_DATE_YEAR => {
+                let year_bucket = format!("strftime('%s', date({date_col}, 'unixepoch', 'localtime', 'start of year'), 'utc')");
+                Some((
+                    format!("CASE WHEN {date_col} IS NULL THEN 'unknown-year' ELSE CAST({year_bucket} AS TEXT) END"),
+                    "0".to_string(),
+                ))
+            }
             GROUP_BY_RATING => Some((
                 "CAST(COALESCE(a.rating, 0) AS TEXT)".to_string(),
                 "0".to_string(),
@@ -2523,7 +2533,7 @@ impl AFile {
 
     fn group_order_clause_values(group_by: i64, folder_sort: i64, calendar_sort: i64, category_sort: i64) -> String {
         match group_by {
-            GROUP_BY_DATE_DAY | GROUP_BY_DATE_MONTH => {
+            GROUP_BY_DATE_DAY | GROUP_BY_DATE_MONTH | GROUP_BY_DATE_YEAR => {
                 let dir = if calendar_sort % 2 == 1 { "DESC" } else { "ASC" };
                 format!("CAST(group_id AS INTEGER) {}, label COLLATE NOCASE ASC", dir)
             }
@@ -2533,7 +2543,8 @@ impl AFile {
                 3 => "MAX(group_sort) DESC, label COLLATE NOCASE ASC".to_string(),
                 _ => "label COLLATE NOCASE ASC".to_string(),
             },
-            GROUP_BY_RATING | GROUP_BY_LOCATION | GROUP_BY_CAMERA | GROUP_BY_LENS => match category_sort {
+            GROUP_BY_RATING => "CAST(group_id AS INTEGER) DESC".to_string(),
+            GROUP_BY_LOCATION | GROUP_BY_CAMERA | GROUP_BY_LENS => match category_sort {
                 1 => "MAX(group_sort) COLLATE NOCASE DESC, label COLLATE NOCASE DESC".to_string(),
                 2 => "COUNT(*) ASC, label COLLATE NOCASE ASC".to_string(),
                 3 => "COUNT(*) DESC, label COLLATE NOCASE ASC".to_string(),
@@ -4227,13 +4238,13 @@ impl AThumb {
                         "heic" | "heif" | "hif" => {
                             // heic/heif/hif
                             #[cfg(target_os = "macos")]
-                            match t_image::get_heic_thumbnail_with_sips(file_path, thumbnail_size) {
+                            let res = match t_image::get_heic_thumbnail_with_sips(file_path, thumbnail_size) {
                                 Ok(Some(data)) => (Some(data), 0),
                                 Ok(None) => (None, 1), // empty thumb
                                 Err(_) => (None, 1),   // error
-                            }
+                            };
                             #[cfg(all(not(target_os = "macos"), lap_has_libheif))]
-                            match crate::t_heif::get_heif_thumbnail(
+                            let res = match crate::t_heif::get_heif_thumbnail(
                                 file_path,
                                 orientation,
                                 thumbnail_size,
@@ -4241,9 +4252,9 @@ impl AThumb {
                                 Ok(Some(data)) => (Some(data), 0),
                                 Ok(None) => (None, 1), // empty thumb
                                 Err(_) => (None, 1),   // error
-                            }
+                            };
                             #[cfg(all(not(target_os = "macos"), not(lap_has_libheif)))]
-                            match t_video::get_video_thumbnail_sync(
+                            let res = match t_video::get_video_thumbnail_sync(
                                 file_path,
                                 thumbnail_size,
                                 known_duration,
@@ -4252,7 +4263,8 @@ impl AThumb {
                                 Ok(Some(data)) => (Some(data), 0),
                                 Ok(None) => (None, 1), // empty thumb
                                 Err(_) => (None, 1),   // error
-                            }
+                            };
+                            res
                         }
                         _ => {
                             // other images

@@ -5,59 +5,122 @@
       <span class="sidebar-panel-header-title flex-1">{{ titlebar }}</span>
     </div>
 
-    <div
-      v-for="item in libraryItems"
-      :key="item.id"
-      :class="[
-        'sidebar-item mb-2',
-        libConfig.library.item === item.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
-      ]"
-      @click="selectItem(item.id)"
-    >
-      <component :is="item.icon" class="mx-1 w-5 h-5 shrink-0" />
-      <div class="sidebar-item-label">
-        <span>{{ item.label }}</span>
-      </div>
-      <div class="ml-auto flex items-center">
-        <span v-if="item.count && item.count > 0" class="px-1 text-xs text-base-content/30">
-          {{ item.count.toLocaleString() }}
-        </span>
-      </div>
-    </div>
-
-    <div class="sidebar-panel-header cursor-pointer" @click="toggleSubjects">
-      <span class="sidebar-panel-header-title flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-        {{ localeMsg.subject.title }}
-      </span>
-      <TButton
-        :icon="libConfig.library.subjectsExpanded ? IconArrowDown : IconArrowUp"
-        :buttonSize="'small'"
-        @click.stop="toggleSubjects"
-      />
-    </div>
-
-    <ul v-if="libConfig.library.subjectsExpanded" class="mb-2">
-      <li v-for="item in smartTagItems" :key="item.id">
-        <div
-          :class="[
-            'sidebar-item group border-2 border-transparent',
-            libConfig.library.item === LIB_ITEM.SUBJECTS && libConfig.library.smartId === item.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
-          ]"
-          @click="selectSmartTag(item.id)"
-        >
-          <IconSmartTag class="mx-1 w-5 h-5 shrink-0" />
-          <span class="sidebar-item-label">{{ item.label }}</span>
+    <div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+      <div
+        v-for="item in libraryItems"
+        :key="item.id"
+        :class="[
+          'sidebar-item',
+          libConfig.library.item === item.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
+        ]"
+        @click="selectItem(item.id)"
+      >
+        <component :is="item.icon" class="mx-1 w-5 h-5 shrink-0" />
+        <div class="sidebar-item-label">
+          <span>{{ item.label }}</span>
         </div>
-      </li>
-    </ul>
+        <div class="ml-auto flex items-center">
+          <span v-if="item.count && item.count > 0" class="px-1 text-xs text-base-content/30">
+            {{ item.count.toLocaleString() }}
+          </span>
+        </div>
+      </div>
 
-    <CollectionTray
-      v-if="config.settings.showCollections"
-      class="overflow-hidden"
-      :class="config.collectionTray.expanded ? '' : 'h-10'"
-      :expanded="config.collectionTray.expanded"
-      @toggle-expanded="toggleCollectionTray"
-    />
+      <div class="sidebar-panel-header cursor-pointer" @click="toggleRatings">
+        <span class="sidebar-panel-header-title flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+          {{ localeMsg.rating.title }}
+        </span>
+        <TButton
+          :icon="libConfig.library.ratingsExpanded ? IconArrowDown : IconArrowUp"
+          :buttonSize="'small'"
+          @click.stop="toggleRatings"
+        />
+      </div>
+
+      <ul v-if="libConfig.library.ratingsExpanded" class="mb-2">
+        <li>
+          <div
+            :class="[
+              'sidebar-item group border-2 border-transparent',
+              libConfig.library.item === LIB_ITEM.RATINGS && libConfig.rating.item === RATE.ALL ? 'sidebar-item-selected' : 'sidebar-item-hover',
+            ]"
+            @click="selectRating(RATE.ALL)"
+          >
+            <IconRight
+              :class="[
+                'p-1 w-6 h-6 shrink-0 transition-transform',
+                ratedExpanded ? 'rotate-90' : '',
+              ]"
+              @click.stop="toggleRated"
+            />
+            <IconStarFilled class="mx-1 w-5 h-5 shrink-0" />
+            <span class="sidebar-item-label">{{ localeMsg.rating.all_rated || localeMsg.rating.rated }}</span>
+            <span v-if="ratedCount" class="sidebar-item-count ml-auto">{{ ratedCount.toLocaleString() }}</span>
+          </div>
+        </li>
+        <template v-if="ratedExpanded">
+          <li v-for="rating in [5, 4, 3, 2, 1]" :key="rating" class="pl-4">
+            <div
+              :class="[
+                'sidebar-item sidebar-item-compact group border-2 border-transparent ml-3',
+                libConfig.library.item === LIB_ITEM.RATINGS && libConfig.rating.item === rating ? 'sidebar-item-selected' : 'sidebar-item-hover',
+              ]"
+              @click="selectRating(rating)"
+            >
+              <div class="mx-1 flex items-center gap-0.5">
+                <IconStarFilled
+                  v-for="index in rating"
+                  :key="index"
+                  class="w-5 h-5 shrink-0"
+                />
+              </div>
+              <span v-if="ratingCounts[rating]" class="text-[10px] tabular-nums text-base-content/30 ml-auto">
+                ({{ ratingCounts[rating].toLocaleString() }})
+              </span>
+            </div>
+          </li>
+        </template>
+        <li>
+          <div
+            :class="[
+              'sidebar-item group border-2 border-transparent',
+              libConfig.library.item === LIB_ITEM.RATINGS && libConfig.rating.item === RATE.UNRATED ? 'sidebar-item-selected' : 'sidebar-item-hover',
+            ]"
+            @click="selectRating(RATE.UNRATED)"
+          >
+            <IconStar class="mx-1 w-5 h-5 shrink-0" />
+            <span class="sidebar-item-label">{{ localeMsg.rating.unrated }}</span>
+            <span v-if="unratedCount" class="sidebar-item-count ml-auto">{{ unratedCount.toLocaleString() }}</span>
+          </div>
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-header cursor-pointer" @click="toggleSubjects">
+        <span class="sidebar-panel-header-title flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+          {{ localeMsg.subject.title }}
+        </span>
+        <TButton
+          :icon="libConfig.library.subjectsExpanded ? IconArrowDown : IconArrowUp"
+          :buttonSize="'small'"
+          @click.stop="toggleSubjects"
+        />
+      </div>
+
+      <ul v-if="libConfig.library.subjectsExpanded" class="mb-2">
+        <li v-for="item in smartTagItems" :key="item.id">
+          <div
+            :class="[
+              'sidebar-item group border-2 border-transparent',
+              libConfig.library.item === LIB_ITEM.SUBJECTS && libConfig.library.smartId === item.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
+            ]"
+            @click="selectSmartTag(item.id)"
+          >
+            <IconSmartTag class="mx-1 w-5 h-5 shrink-0" />
+            <span class="sidebar-item-label">{{ item.label }}</span>
+          </div>
+        </li>
+      </ul>
+    </div>
 
   </div>
 
@@ -66,13 +129,12 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { config, libConfig } from '@/common/config';
-import { LIB_ITEM, type LibItem } from '@/common/constants';
+import { libConfig } from '@/common/config';
+import { LIB_ITEM, RATE, type LibItem } from '@/common/constants';
 
-import { IconPhotoAll, IconHeart, IconCalendarDay, IconHistory, IconArrowDown, IconArrowUp, IconSmartTag } from '@/common/icons';
+import { IconPhotoAll, IconHeartFilled, IconCalendarDay, IconArrowDown, IconArrowUp, IconRight, IconSmartTag, IconStar, IconStarFilled, IconHistory } from '@/common/icons';
 import { getQueryCountAndSum, getTotalCountAndSum } from '@/common/api';
 import { SMART_TAG_CATEGORIES } from '@/common/smartTags';
-import CollectionTray from '@/components/CollectionTray.vue';
 import TButton from '@/components/TButton.vue';
 
 const props = defineProps({
@@ -86,16 +148,27 @@ const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
 const totalCount = ref(0);
 const favoriteCount = ref(0);
+const todayCount = ref(0);
+const unratedCount = ref(0);
+const ratedExpanded = ref(true);
+const ratingCounts = ref<Record<number, number>>({
+  1: 0,
+  2: 0,
+  3: 0,
+  4: 0,
+  5: 0,
+});
+const ratedCount = computed(() => Object.values(ratingCounts.value).reduce((sum, count) => sum + count, 0));
 
-const buildQueryParams = ({ isFavorite = false, rating = -1 } = {}) => ({
+const buildQueryParams = ({ isFavorite = false, rating = RATE.NONE, startDate = 0, endDate = 0 } = {}) => ({
   searchFileType: 0,
   sortType: 0,
   sortOrder: 0,
   searchFileName: "",
   searchAllSubfolders: "",
   searchFolder: "",
-  startDate: 0,
-  endDate: 0,
+  startDate,
+  endDate,
   calendarSort: 0,
   make: "",
   model: "",
@@ -119,20 +192,14 @@ const libraryItems = computed(() => [
   {
     id: LIB_ITEM.FAV,
     label: localeMsg.value.favorite.files,
-    icon: IconHeart,
+    icon: IconHeartFilled,
     count: favoriteCount.value,
   },
   {
     id: LIB_ITEM.TODAY,
     label: localeMsg.value.library.on_this_day,
-    icon: IconCalendarDay,
-    count: 0,
-  },
-  {
-    id: LIB_ITEM.RECENT,
-    label: localeMsg.value.library.recently_added,
     icon: IconHistory,
-    count: 0,
+    count: todayCount.value,
   },
 ]);
 
@@ -156,13 +223,44 @@ const refreshFavoriteCount = async () => {
   favoriteCount.value = result ? Number(result[0]) : 0;
 };
 
+const refreshTodayCount = async () => {
+  const result = await getQueryCountAndSum(buildQueryParams({ startDate: -1, endDate: -1 }));
+  todayCount.value = result ? Number(result[0]) : 0;
+};
+
+const refreshRatingCounts = async () => {
+  const unrated = await getQueryCountAndSum(buildQueryParams({ rating: 0 }));
+  unratedCount.value = unrated ? Number(unrated[0]) : 0;
+
+  const entries = await Promise.all(
+    [1, 2, 3, 4, 5].map(async (rating) => {
+      const result = await getQueryCountAndSum(buildQueryParams({ rating }));
+      return [rating, result ? Number(result[0]) : 0] as const;
+    }),
+  );
+
+  ratingCounts.value = Object.fromEntries(entries) as Record<number, number>;
+};
+
 function selectItem(item: LibItem) {
   libConfig.library.item = item;
 }
 
 function toggleSubjects() {
-  libConfig.library.item = LIB_ITEM.SUBJECTS;
   libConfig.library.subjectsExpanded = !libConfig.library.subjectsExpanded;
+}
+
+function toggleRatings() {
+  libConfig.library.ratingsExpanded = !libConfig.library.ratingsExpanded;
+}
+
+function toggleRated() {
+  ratedExpanded.value = !ratedExpanded.value;
+}
+
+function selectRating(rating: number) {
+  libConfig.library.item = LIB_ITEM.RATINGS;
+  libConfig.rating.item = rating;
 }
 
 function selectSmartTag(smartId: string) {
@@ -170,13 +268,11 @@ function selectSmartTag(smartId: string) {
   libConfig.library.smartId = smartId;
 }
 
-function toggleCollectionTray() {
-  config.collectionTray.expanded = !config.collectionTray.expanded;
-}
-
 onMounted(async () => {
   await refreshTotalCount();
   await refreshFavoriteCount();
+  await refreshTodayCount();
+  await refreshRatingCounts();
 });
 
 </script>

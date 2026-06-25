@@ -15,7 +15,7 @@
             'btn-sm hover:bg-base-100/30': buttonSize === 'medium',
             'btn-lg hover:bg-base-100/30': buttonSize === 'large',
             'bg-base-100/30': selected,
-            'btn-disabled pointer-events-none text-base-content/30 hover:text-base-content/30': disabled,
+            'pointer-events-none cursor-default text-base-content/30 hover:text-base-content/30': disabled,
           }
         ]"
         role="button"
@@ -33,7 +33,8 @@
               'w-4 h-4': buttonSize === 'small',
               'w-5 h-5': buttonSize === 'medium',
               'w-6 h-6': buttonSize === 'large',
-              'text-primary': selected,
+              'text-primary': selected && !disabled,
+              'text-base-content/30': disabled,
             }
           ]"
           :style="iconStyle"
@@ -44,7 +45,8 @@
           :class="[
             textClasses,
             {
-              'text-primary': selected,
+              'text-primary': selected && !disabled,
+              'text-base-content/30': disabled,
             }
           ]"
         >

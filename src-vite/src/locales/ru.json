@@ -4,17 +4,17 @@
     "library": "Библиотека",
     "album": "Альбомы",
     "search": "Поиск",
-    "rating": "Оценка",
+    "rating": "Оценки",
     "tag": "Теги",
     "calendar": "Календарь",
-    "location": "Место",
+    "location": "Места",
     "people": "Люди",
     "camera": "Камеры",
     "map": "Карта",
     "settings": "Настройки"
   },
   "collection": {
-    "title": "Коллекция",
+    "title": "Коллекции",
     "add": "Добавить коллекцию",
     "expand": "Развернуть",
     "collapse": "Свернуть",
@@ -26,7 +26,6 @@
   },
   "library": {
     "all_files": "Все файлы",
-    "recently_added": "Недавно добавленные",
     "on_this_day": "В этот день"
   },
   "album": {
@@ -209,6 +208,7 @@
   "rating": {
     "title": "Оценки",
     "unrated": "Без оценки",
+    "all_rated": "Все оцененные",
     "rated": "Оценено",
     "mixed": "Разные",
     "clear_rating": "Сбросить оценку",
@@ -531,10 +531,10 @@
       "time_desc": "Время Убыв"
     },
     "camera_panel": {
-      "camera_title": "Камера",
-      "lens_title": "Объектив",
-      "switch_to_camera": "На камеру",
-      "switch_to_lens": "На объектив"
+      "camera_title": "Камеры",
+      "lens_title": "Объективы",
+      "switch_to_camera": "Переключить на камеры",
+      "switch_to_lens": "Переключить на объективы"
     },
     "search": {
       "clear_history": "Очистить историю"
