@@ -688,6 +688,7 @@ import {
   IconSimilar,
   IconCamera,
   IconHeartFilled,
+  IconHistory,
 } from '@/common/icons';
 
 const thumbnailPlaceholder = new URL('@/assets/images/image-file.png', import.meta.url).href;
@@ -2323,7 +2324,7 @@ const currentTitleIcon = computed(() => {
               case LIB_ITEM.FAV: return IconHeartFilled;
               case LIB_ITEM.RATINGS: return libConfig.rating.item > 0 || libConfig.rating.item === RATE.ALL ? IconStarFilled : IconStar;
               case LIB_ITEM.SUBJECTS: return IconSmartTag;
-              case LIB_ITEM.TODAY: return IconCalendarDay;
+              case LIB_ITEM.TODAY: return IconHistory;
               default: return IconPhotoAll;
             }
           case SIDEBAR.ALBUM:
