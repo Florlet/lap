@@ -28,7 +28,13 @@
     "drop_here": "Dateien hier ablegen",
     "drop_action": "Hinzufügen",
     "drop_title_hint": "Zum Hinzufügen ablegen",
-    "empty_drop_hint": "Ziehen Sie Elemente in die Sammlung, um sie hinzuzufügen."
+    "empty_drop_hint": "Ziehen Sie Elemente in die Sammlung, um sie hinzuzufügen.",
+    "added_toast": "{count} Datei(en) zur Sammlung hinzugefügt",
+    "already_exists_toast": "{count} Datei(en) bereits in der Sammlung",
+    "clear": "Leeren",
+    "clear_confirm_title": "Sammlung leeren",
+    "clear_confirm_message": "Alle Dateien aus \"{name}\" entfernen? Die Dateien selbst werden nicht gelöscht.",
+    "clear_confirm_ok": "Leeren"
   },
   "library": {
     "all_files": "Alle Dateien",

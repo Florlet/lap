@@ -756,9 +756,20 @@ pub fn reorder_collections(items: Vec<ACollectionOrder>) -> Result<usize, String
     ACollection::reorder(items).map_err(|e| format!("Error while reordering collections: {}", e))
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionAddResult {
+    pub added: usize,
+    pub skipped: usize,
+}
+
 #[tauri::command]
-pub fn add_files_to_collection(collection_id: i64, file_ids: Vec<i64>) -> Result<usize, String> {
+pub fn add_files_to_collection(
+    collection_id: i64,
+    file_ids: Vec<i64>,
+) -> Result<CollectionAddResult, String> {
     ACollection::add_files(collection_id, file_ids)
+        .map(|(added, skipped)| CollectionAddResult { added, skipped })
         .map_err(|e| format!("Error while adding files to collection: {}", e))
 }
 

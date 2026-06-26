@@ -28,7 +28,13 @@
     "drop_here": "ここにファイルをドロップ",
     "drop_action": "追加",
     "drop_title_hint": "ドロップして追加",
-    "empty_drop_hint": "アイテムをコレクションにドラッグして追加します。"
+    "empty_drop_hint": "アイテムをコレクションにドラッグして追加します。",
+    "added_toast": "{count} 件のファイルをコレクションに追加しました",
+    "already_exists_toast": "{count} 件のファイルはすでにコレクションにあります",
+    "clear": "クリア",
+    "clear_confirm_title": "コレクションをクリア",
+    "clear_confirm_message": "\"{name}\" からすべてのファイルを削除しますか？ファイル自体は削除されません。",
+    "clear_confirm_ok": "クリア"
   },
   "library": {
     "all_files": "すべてのファイル",

@@ -1012,19 +1012,61 @@ impl ACollection {
         Ok(changed)
     }
 
-    pub fn add_files(collection_id: i64, file_ids: Vec<i64>) -> Result<usize, String> {
-        let unique_file_ids: HashSet<i64> = file_ids.into_iter().filter(|id| *id > 0).collect();
+    pub fn add_files(collection_id: i64, file_ids: Vec<i64>) -> Result<(usize, usize), String> {
+        let unique_file_ids: Vec<i64> = file_ids
+            .into_iter()
+            .filter(|id| *id > 0)
+            .collect::<HashSet<i64>>()
+            .into_iter()
+            .collect();
         if unique_file_ids.is_empty() {
-            return Ok(0);
+            return Ok((0, 0));
         }
 
         let mut conn = open_conn()?;
         Self::ensure_exists(&conn, collection_id)?;
+
+        // Find which file ids already exist in this collection
+        let placeholders = unique_file_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let existing_sql = format!(
+            "SELECT file_id FROM acollections_files WHERE collection_id = ?1 AND file_id IN ({})",
+            placeholders
+        );
+        let mut params_for_existing: Vec<Box<dyn rusqlite::types::ToSql>> =
+            vec![Box::new(collection_id)];
+        for id in &unique_file_ids {
+            params_for_existing.push(Box::new(*id));
+        }
+        let existing: HashSet<i64> = {
+            let mut stmt = conn.prepare(&existing_sql).map_err(|e| e.to_string())?;
+            let param_refs: Vec<&dyn rusqlite::types::ToSql> =
+                params_for_existing.iter().map(|p| p.as_ref()).collect();
+            let rows = stmt
+                .query_map(&param_refs[..], |row| row.get::<_, i64>(0))
+                .map_err(|e| e.to_string())?;
+            let mut set = HashSet::new();
+            for row in rows {
+                set.insert(row.map_err(|e| e.to_string())?);
+            }
+            set
+        };
+
+        let new_file_ids: Vec<i64> = unique_file_ids
+            .iter()
+            .filter(|id| !existing.contains(id))
+            .copied()
+            .collect();
+        let skipped = unique_file_ids.len() - new_file_ids.len();
+
+        if new_file_ids.is_empty() {
+            return Ok((0, skipped));
+        }
+
         let tx = conn.transaction().map_err(|e| e.to_string())?;
         let now = Self::now_ts();
-        let mut changed = 0;
-        for file_id in unique_file_ids {
-            changed += tx
+        let mut added = 0;
+        for file_id in new_file_ids {
+            added += tx
                 .execute(
                     "INSERT OR IGNORE INTO acollections_files (collection_id, file_id, added_at)
                     SELECT ?1, id, ?3 FROM afiles WHERE id = ?2",
@@ -1038,7 +1080,7 @@ impl ACollection {
         )
         .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
-        Ok(changed)
+        Ok((added, skipped))
     }
 
     pub fn remove_files(collection_id: i64, file_ids: Vec<i64>) -> Result<usize, String> {

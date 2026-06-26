@@ -28,7 +28,13 @@
     "drop_here": "Solte arquivos aqui",
     "drop_action": "Adicionar",
     "drop_title_hint": "Soltar para adicionar",
-    "empty_drop_hint": "Arraste itens para a coleção para adicioná-los."
+    "empty_drop_hint": "Arraste itens para a coleção para adicioná-los.",
+    "added_toast": "{count} arquivo(s) adicionado(s) à coleção",
+    "already_exists_toast": "{count} arquivo(s) já na coleção",
+    "clear": "Limpar",
+    "clear_confirm_title": "Limpar coleção",
+    "clear_confirm_message": "Remover todos os arquivos de \"{name}\"? Os arquivos em si não serão excluídos.",
+    "clear_confirm_ok": "Limpar"
   },
   "library": {
     "all_files": "Todos os arquivos",

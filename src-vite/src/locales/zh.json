@@ -28,7 +28,13 @@
     "drop_here": "将文件拖放到这里",
     "drop_action": "添加",
     "drop_title_hint": "拖放以添加",
-    "empty_drop_hint": "将项目拖到收藏集中以添加。"
+    "empty_drop_hint": "将项目拖到收藏集中以添加。",
+    "added_toast": "已添加 {count} 个文件到合集",
+    "already_exists_toast": "{count} 个文件已在合集中",
+    "clear": "清空",
+    "clear_confirm_title": "清空合集",
+    "clear_confirm_message": "移除 \"{name}\" 中的所有文件？文件本身不会被删除。",
+    "clear_confirm_ok": "清空"
   },
   "library": {
     "all_files": "所有文件",

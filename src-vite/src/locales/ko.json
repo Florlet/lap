@@ -28,7 +28,13 @@
     "drop_here": "여기에 파일 드롭",
     "drop_action": "추가",
     "drop_title_hint": "추가하려면 드롭",
-    "empty_drop_hint": "항목을 컬렉션으로 드래그하여 추가하세요."
+    "empty_drop_hint": "항목을 컬렉션으로 드래그하여 추가하세요.",
+    "added_toast": "{count}개 파일을 컬렉션에 추가했습니다",
+    "already_exists_toast": "{count}개 파일이 이미 컬렉션에 있습니다",
+    "clear": "비우기",
+    "clear_confirm_title": "컬렉션 비우기",
+    "clear_confirm_message": "\"{name}\"에서 모든 파일을 제거하시겠습니까? 파일 자체는 삭제되지 않습니다.",
+    "clear_confirm_ok": "비우기"
   },
   "library": {
     "all_files": "모든 파일",

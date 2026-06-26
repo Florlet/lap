@@ -101,28 +101,37 @@
       @ok="confirmDelete"
       @cancel="deleteTarget = null"
     />
+    <MessageBox
+      v-if="clearTarget"
+      :title="$t('collection.clear_confirm_title')"
+      :message="$t('collection.clear_confirm_message', { name: clearTarget.name })"
+      :OkText="$t('collection.clear_confirm_ok')"
+      :cancelText="$t('msgbox.cancel')"
+      @ok="confirmClear"
+      @cancel="clearTarget = null"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { emit as tauriEmit, listen } from '@tauri-apps/api/event';
 import { useI18n } from 'vue-i18n';
 import { libConfig } from '@/common/config';
-import { createCollection, deleteCollection as deleteCollectionApi, listCollections, renameCollection } from '@/common/api';
-import { IconAdd, IconArrowDown, IconArrowUp, IconEdit, IconMore, IconBookmarks, IconTrash } from '@/common/icons';
+import { clearCollection, createCollection, deleteCollection as deleteCollectionApi, listCollections, renameCollection } from '@/common/api';
+import { IconAdd, IconArrowDown, IconArrowUp, IconEdit, IconMore, IconBookmarks, IconRemove, IconTrash } from '@/common/icons';
 import ContextMenu from '@/components/ContextMenu.vue';
 import MessageBox from '@/components/MessageBox.vue';
 import TButton from '@/components/TButton.vue';
 
-defineProps({
+const props = defineProps({
   expanded: {
     type: Boolean,
     required: true,
   },
 });
 
-defineEmits(['toggle-expanded']);
+const emit = defineEmits(['toggle-expanded']);
 
 const { t } = useI18n();
 const MAX_COLLECTIONS = 10;
@@ -141,6 +150,7 @@ const renameValue = ref('');
 const renameInputRef = ref<HTMLInputElement | HTMLInputElement[] | null>(null);
 const isItemDragging = ref(false);
 const deleteTarget = ref<Collection | null>(null);
+const clearTarget = ref<Collection | null>(null);
 let unlistenCollectionFilesDropped: (() => void) | null = null;
 let unlistenContentItemsDragState: (() => void) | null = null;
 let unlistenLibrarySwitched: (() => void) | null = null;
@@ -161,6 +171,15 @@ onMounted(async () => {
     await loadCollections();
   });
 });
+
+watch(
+  () => libConfig.activePane,
+  (pane) => {
+    if (pane === 'main' && props.expanded) {
+      emit('toggle-expanded');
+    }
+  },
+);
 
 onBeforeUnmount(() => {
   unlistenCollectionFilesDropped?.();
@@ -261,6 +280,15 @@ async function confirmDelete() {
   await tauriEmit('refresh-content');
 }
 
+async function confirmClear() {
+  const target = clearTarget.value;
+  if (!target) return;
+  clearTarget.value = null;
+  await clearCollection(target.id);
+  await loadCollections(Number(libConfig.collection.selectedId || 0));
+  await tauriEmit('refresh-content');
+}
+
 function collectionMenuItems(collection: Collection) {
   return [
     {
@@ -268,6 +296,12 @@ function collectionMenuItems(collection: Collection) {
       icon: IconEdit,
       action: () => startRename(collection),
     },
+    {
+      label: t('collection.clear'),
+      disabled: collection.count === 0,
+      action: () => { clearTarget.value = collection; },
+    },
+    { label: "-", action: null },
     {
       label: t('collection.delete'),
       icon: IconTrash,

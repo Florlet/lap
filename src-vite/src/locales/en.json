@@ -28,7 +28,13 @@
     "drop_here": "Drop files here",
     "drop_action": "Add",
     "drop_title_hint": "Drop to add",
-    "empty_drop_hint": "Drag items onto the collection above to add them."
+    "empty_drop_hint": "Drag items onto the collection above to add them.",
+    "added_toast": "{count} file(s) added to collection",
+    "already_exists_toast": "{count} file(s) already in collection",
+    "clear": "Clear",
+    "clear_confirm_title": "Clear collection",
+    "clear_confirm_message": "Remove all files from \"{name}\"? Files themselves will not be deleted.",
+    "clear_confirm_ok": "Clear"
   },
   "library": {
     "all_files": "All files",

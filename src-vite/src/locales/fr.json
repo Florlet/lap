@@ -28,7 +28,13 @@
     "drop_here": "Déposez les fichiers ici",
     "drop_action": "Ajouter",
     "drop_title_hint": "Déposer pour ajouter",
-    "empty_drop_hint": "Faites glisser les éléments dans la collection pour les ajouter."
+    "empty_drop_hint": "Faites glisser les éléments dans la collection pour les ajouter.",
+    "added_toast": "{count} fichier(s) ajouté(s) à la collection",
+    "already_exists_toast": "{count} fichier(s) déjà dans la collection",
+    "clear": "Vider",
+    "clear_confirm_title": "Vider la collection",
+    "clear_confirm_message": "Supprimer tous les fichiers de \"{name}\" ? Les fichiers eux-mêmes ne seront pas supprimés.",
+    "clear_confirm_ok": "Vider"
   },
   "library": {
     "all_files": "Tous les fichiers",

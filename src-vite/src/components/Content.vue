@@ -2165,10 +2165,20 @@ async function clearContentInternalDrag(event?: PointerEvent) {
         targetCollectionId = Number(collection?.id || 0);
       }
       if (targetCollectionId <= 0) return;
-      const addedCount = await addFilesToCollection(targetCollectionId, files.map((file: any) => Number(file.id)).filter((id: number) => id > 0));
+      const result = await addFilesToCollection(targetCollectionId, files.map((file: any) => Number(file.id)).filter((id: number) => id > 0));
+      if (result) {
+        const added = Number(result.added || 0);
+        const skipped = Number(result.skipped || 0);
+        if (added > 0) {
+          toast.success(t('collection.added_toast', { count: added }));
+        }
+        if (skipped > 0) {
+          toast.info(t('collection.already_exists_toast', { count: skipped }));
+        }
+      }
       await tauriEmit('collection-files-dropped', {
         collectionId: targetCollectionId,
-        count: Number(addedCount || 0),
+        count: Number(result?.added || 0),
         fileIds: files.map((file: any) => file.id),
       });
       if (libConfig.activePane === 'collection' && Number(libConfig.collection.selectedId || 0) === targetCollectionId) {
@@ -7206,7 +7216,7 @@ function normalizeFileTypeMask(mask: number): number {
 
 const emptyFilesMessage = computed(() => {
   if (currentQuerySource.value === 'collection') {
-    return `${localeMsg.value.collection.empty_content}\n${localeMsg.value.collection.drop_here}`;
+    return `${localeMsg.value.collection.empty_content}`;
   }
   const notFound = localeMsg.value.tooltip.not_found;
   const mask = normalizeFileTypeMask(Number(config.search.fileType || 0));

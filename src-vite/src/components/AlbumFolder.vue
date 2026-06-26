@@ -18,7 +18,7 @@
         :data-file-drop-album-id="albumId"
         :class="[
           'p-1 h-8 flex items-center rounded-box whitespace-nowrap cursor-pointer group border-2',
-          !selection.selected.value && selection.folderPath.value === child.path && !isRenamingFolder ? `${isMainSourceActive ? 'text-primary' : 'text-base-content/70'} bg-base-100 hover:bg-base-100 border-transparent` : 'hover:text-base-content hover:bg-base-100/30 border-transparent',
+          !selection.selected.value && selection.folderPath.value === child.path && !isRenamingFolder ? `${isMainSourceActive ? 'text-primary' : 'text-base-content/70 bg-base-100/30 hover:bg-base-100/30'} bg-base-100 hover:bg-base-100 border-transparent` : 'hover:text-base-content hover:bg-base-100/30 border-transparent',
         ]"
         @click="clickFolder(albumId, child)"
         @dblclick="expandFolder(child)"
