@@ -35,7 +35,7 @@
     >
       <div
         v-if="isGroupRow(item)"
-        class="w-full h-12 flex items-center gap-1 px-2 text-base-content/70 select-none"
+        class="w-full h-12 flex items-center gap-1 px-2 text-base-content/70 select-none bg-base-100/5 rounded-box"
       >
         <input
           v-if="selectMode"
@@ -47,27 +47,15 @@
           @change="(event) => $emit('group-select-toggled', item, (event.target as HTMLInputElement).checked)"
         />
         <span v-if="selectMode && isGroupSelectionLoading(item)" class="loading loading-spinner loading-xs text-primary"></span>
-        <component :is="getGroupIcon()" class="w-4 h-4 shrink-0 text-base-content/70" />
-        <div v-if="isFolderPathGroup()" class="breadcrumbs p-0 min-h-0 min-w-0 overflow-hidden text-sm font-medium">
-          <ul class="min-w-0 flex-nowrap overflow-hidden">
-            <li
-              v-for="(seg, idx) in getGroupTitleSegments(item)"
-              :key="`${idx}-${seg}`"
-              class="min-w-0 max-w-full overflow-hidden"
-            >
-              <span
-                :class="[
-                  'block truncate',
-                  idx < getGroupTitleSegments(item).length - 1 ? 'max-w-48 text-base-content/70' : ''
-                ]"
-              >
-                {{ seg }}
-              </span>
-            </li>
-          </ul>
-        </div>
-        <span v-else class="min-w-0 truncate text-sm font-medium">{{ item.label }}</span>
-        <span class="shrink-0 text-xs text-base-content/30">({{ Number(item.count || 0).toLocaleString() }})</span>
+        <component :is="getGroupIcon()" class="w-4 h-4 shrink-0 text-base-content/30" />
+        <Breadcrumb
+          v-if="isFolderPathGroup()"
+          :items="getFolderGroupBreadcrumbItems(item)"
+          disabled
+          class="min-w-0 flex-1 overflow-hidden"
+        />
+        <span v-else class="min-w-0 flex-1 truncate text-sm text-base-content/30">{{ item.label }}</span>
+        <span class="badge badge-xs shrink-0 text-xs  bg-base-100 text-base-content/30">{{ Number(item.count || 0).toLocaleString() }}</span>
       </div>
       <div
         v-else
@@ -91,34 +79,6 @@
         <div v-else class="w-full h-full bg-base-200/70"></div>
       </div>
     </VirtualScroll>
-    <div
-      v-if="activeStickyGroup"
-      class="pointer-events-none absolute left-0 right-0 top-12 z-20 h-12 bg-base-100/95 backdrop-blur-sm"
-    >
-      <div class="w-full h-12 flex items-center gap-1 px-2 text-base-content/70 select-none shadow-sm">
-        <component :is="getGroupIcon()" class="w-4 h-4 shrink-0 text-base-content/70" />
-        <div v-if="isFolderPathGroup()" class="breadcrumbs p-0 min-h-0 min-w-0 overflow-hidden text-sm font-medium">
-          <ul class="min-w-0 flex-nowrap overflow-hidden">
-            <li
-              v-for="(seg, idx) in getGroupTitleSegments(activeStickyGroup)"
-              :key="`sticky-${idx}-${seg}`"
-              class="min-w-0 max-w-full overflow-hidden"
-            >
-              <span
-                :class="[
-                  'block truncate',
-                  idx < getGroupTitleSegments(activeStickyGroup).length - 1 ? 'max-w-48 text-base-content/70' : ''
-                ]"
-              >
-                {{ seg }}
-              </span>
-            </li>
-          </ul>
-        </div>
-        <span v-else class="min-w-0 truncate text-sm font-medium">{{ activeStickyGroup.label }}</span>
-        <span class="shrink-0 text-xs text-base-content/30">({{ Number(activeStickyGroup.count || 0).toLocaleString() }})</span>
-      </div>
-    </div>
     <!-- Empty State / Loading -->
     <div v-if="fileList.length === 0" class="absolute inset-0 flex flex-col items-center justify-center">
       <div class="text-base-content/30 flex flex-col items-center gap-2 text-center px-4">
@@ -153,7 +113,8 @@ import Thumbnail from '@/components/Thumbnail.vue';
 import VirtualScroll from '@/components/VirtualScroll.vue';
 import { GROUP } from '@/common/constants';
 import { calculateJustifiedLayout, calculateLinearRowLayout, calculateLinearColumnLayout, calculateMasonryLayout, type Geometry } from '@/common/layout';
-import { formatFolderBreadcrumb, isWithinRootPath } from '@/common/utils';
+import { buildFolderBreadcrumbs, formatFolderBreadcrumb, isWithinRootPath } from '@/common/utils';
+import Breadcrumb from '@/components/Breadcrumb.vue';
 import {
   IconCalendarDay,
   IconCalendarMonth,
@@ -221,7 +182,6 @@ const containerRef = ref<HTMLElement | null>(null);
 const scroller = ref<any>(null);
 const columnCount = ref(4);
 const containerWidth = ref(0);
-const localScrollTop = ref(0);
 const groupHeaderHeight = computed(() => 48 * Number(config.settings.scale || 1));
 let pendingPointerDrag: {
   pointerId: number;
@@ -451,35 +411,6 @@ const virtualScrollGeometry = computed(() =>
 const virtualScrollContentHeight = computed(() =>
   usesGeometryLayout.value ? layoutContentHeight.value : undefined
 );
-const groupHeaderEntries = computed(() => {
-  if (!hasGroupRows.value) return [];
-  const entries: Array<{ y: number; item: any }> = [];
-  renderItems.value.forEach((item, rowIndex) => {
-    if (!isGroupRow(item)) return;
-    const box = layoutGeometry.value[rowIndex];
-    if (!box) return;
-    entries.push({ y: box.y, item });
-  });
-  return entries;
-});
-const activeStickyGroup = computed(() => {
-  if (!hasGroupRows.value || config.settings.grid.showFilmStrip || localScrollTop.value <= 0) return null;
-  const entries = groupHeaderEntries.value;
-  let low = 0;
-  let high = entries.length - 1;
-  let activeIndex = -1;
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (entries[mid].y <= localScrollTop.value) {
-      activeIndex = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return activeIndex >= 0 ? entries[activeIndex].item : null;
-});
-
 const isLayoutTransitioning = ref(false);
 const startGridSize = ref(0);
 let layoutTransitionTimer: ReturnType<typeof setTimeout> | null = null;
@@ -673,7 +604,6 @@ function onUpdate(startIndex: number, endIndex: number) {
 }
 
 function onScroll(e: Event) {
-  localScrollTop.value = (e.target as HTMLElement)?.scrollTop || 0;
   emit('scroll', e);
 }
 
@@ -801,7 +731,6 @@ function scrollToItem(index: number, center = false) {
 function scrollToPosition(scrollTop: number) {
   if (scroller.value && !config.settings.grid.showFilmStrip) {
     scroller.value.$el.scrollTop = scrollTop;
-    localScrollTop.value = scrollTop;
   }
 }
 
@@ -814,7 +743,6 @@ function scrollToRowIndex(rowIndex: number) {
   if (!scroller.value || config.settings.grid.showFilmStrip) return;
   const nextScrollTop = Math.max(0, rowIndex) * itemHeight.value;
   scroller.value.$el.scrollTop = nextScrollTop;
-  localScrollTop.value = nextScrollTop;
 }
 
 function getColumnCount() {
@@ -951,6 +879,24 @@ function getGroupTitleSegments(item: any) {
   }
   const normalized = label.replace(/\\/g, '/');
   return normalized.split('/').map(part => part.trim()).filter(Boolean);
+}
+
+function getFolderGroupBreadcrumbItems(item: any) {
+  const folderPath = String(item?.label || '').trim();
+  if (!folderPath || folderPath === 'Unknown folder') return [];
+
+  const root = [...props.folderGroupRoots]
+    .filter(root => root.path && isWithinRootPath(folderPath, root.path))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+
+  if (root) {
+    return buildFolderBreadcrumbs(folderPath, root.path, root.name || '');
+  }
+
+  return getGroupTitleSegments(item).map((label, index, segments) => ({
+    label,
+    path: segments.slice(0, index + 1).join('/'),
+  }));
 }
 
 function getFolderGroupLabel(item: any) {

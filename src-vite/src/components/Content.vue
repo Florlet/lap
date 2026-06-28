@@ -24,7 +24,7 @@
     <!-- title bar -->
     <div
       v-if="!showWelcomeContent"
-      class="absolute top-0 left-0 right-0 px-2 h-12 flex flex-row flex-nowrap items-center justify-between bg-base-300/80 backdrop-blur-md z-30 overflow-hidden"
+      class="absolute top-0 left-0 right-0 px-2 h-12 flex flex-row flex-nowrap items-center justify-between bg-base-300 z-30 overflow-hidden"
       data-tauri-drag-region
     >
       <!-- title -->
@@ -42,31 +42,14 @@
           :class="{ 'cursor-pointer text-primary': tempViewMode !== 'none' }" 
           @click="handleTitleClick"
         />
-        <div class="overflow-hidden min-w-0 flex-1">
-          <div v-if="contentTitle" class="breadcrumbs p-0 min-h-0 overflow-hidden">
-            <ul class="min-w-0 flex-nowrap overflow-hidden" data-tauri-drag-region>
-              <li v-for="(seg, idx) in titleSegments" :key="idx" class="min-w-0 max-w-full overflow-hidden">
-                <a
-                  v-if="idx < titleSegments.length - 1"
-                  :class="[
-                    'block max-w-[16rem] truncate cursor-pointer transition-colors',
-                    tempViewMode === 'album' ? 'text-primary' : 'text-base-content/70 hover:text-primary',
-                  ]"
-                  @mousedown.stop
-                  @click.stop="handleBreadcrumbClick(idx)"
-                >{{ seg }}</a>
-                <span
-                  v-else
-                  :class="[
-                    'block truncate',
-                    { 'cursor-pointer text-primary': tempViewMode !== 'none' }
-                  ]"
-                  @click="handleTitleClick"
-                >{{ seg }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
+        <Breadcrumb
+          v-if="contentTitle"
+          :items="titleBreadcrumbItems"
+          :highlight="tempViewMode !== 'none'"
+          size="large"
+          class="min-w-0 overflow-hidden"
+          @navigate="handleTitleBreadcrumbNavigate"
+        />
       </div>
 
       <!-- toolbar -->
@@ -649,6 +632,7 @@ import MoveTo from '@/components/MoveTo.vue';
 import TButton from '@/components/TButton.vue';
 import TaggingDialog from '@/components/TaggingDialog.vue';
 import FileInfo from '@/components/FileInfo.vue';
+import Breadcrumb from '@/components/Breadcrumb.vue';
 import DedupPane from '@/components/DedupPane.vue';
 import SelectionPanel from '@/components/SelectionPanel.vue';
 import FileConflictDialog from '@/components/FileConflictDialog.vue';
@@ -715,6 +699,25 @@ const titleSegments = computed(() => {
   const parts = contentTitle.value.split(' > ');
   return parts.length > 1 ? parts : [contentTitle.value];
 });
+
+const titleBreadcrumbItems = computed(() =>
+  titleSegments.value.map((label, index) => ({
+    label,
+    path: String(index),
+  }))
+);
+
+function handleTitleBreadcrumbNavigate(path: string) {
+  const segmentIndex = Number(path);
+  if (!Number.isInteger(segmentIndex)) return;
+
+  if (segmentIndex === titleSegments.value.length - 1) {
+    handleTitleClick();
+    return;
+  }
+
+  handleBreadcrumbClick(segmentIndex);
+}
 
 function handleBreadcrumbClick(segmentIndex: number) {
   if (tempViewMode.value === 'album') {

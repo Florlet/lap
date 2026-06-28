@@ -85,7 +85,7 @@ html, body {
 }
 
 @utility sidebar-panel-header-title {
-  @apply h-5 font-bold mr-auto uppercase text-xs tracking-wide;
+  @apply font-bold mr-auto uppercase text-xs tracking-wide leading-none;
 }
 
 @utility sidebar-panel-action {

@@ -175,7 +175,7 @@ const hasRealSelectedFile = computed(() => {
   return !!file && !file.isPlaceholder;
 });
 const containerClass = computed(() => {
-  const base = 'px-2 h-8 flex items-center justify-between text-sm cursor-default bg-base-300/80 backdrop-blur-md';
+  const base = 'px-2 h-8 flex items-center justify-between text-sm cursor-default bg-base-300';
   if (props.isEmbedded) return base;
   return `${base} absolute bottom-0 left-0 right-0 z-30`;
 });

@@ -1,4 +1,5 @@
 <template>
+  <div class="sidebar-panel min-h-0">
     <!-- albums -->
     <div v-if="isMainPane" class="sidebar-panel-header">
       <span class="sidebar-panel-header-title flex-1">{{ $t('album.album_list') }}</span>
@@ -14,7 +15,7 @@
       ref="albumListRootRef"
       tabindex="0"
       data-album-list-root="true"
-      class="flex-1 overflow-x-hidden overflow-y-auto rounded-box select-none outline-none"
+      class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-box select-none outline-none"
       @keydown="handleLocalAlbumListKeyDown"
       @mousedown.capture="focusAlbumListRoot"
       @drop.stop
@@ -201,7 +202,7 @@
       @ok="clickRemoveAlbum"
       @cancel="showRemoveAlbumMsgbox = false"
     />
-
+  </div>
 </template>
 
 <script setup lang="ts">
