@@ -191,6 +191,7 @@
                 :group-selection-loading="groupSelectionLoading"
                 :folder-group-roots="folderGroupRoots"
                 :query-source="currentQuerySource"
+                :dedup-statuses="dedupStatuses"
                 @item-clicked="handleItemClicked"
                 @item-dblclicked="handleItemDblClicked"
                 @item-select-toggled="handleItemSelectToggled"
@@ -395,6 +396,7 @@
             @select-file="handleDedupSelectFile"
             @preview-file="handleDedupPreviewFile"
             @trash-selected-duplicates="handleDedupTrashSelectedDuplicates"
+            @dedup-status-updated="dedupStatuses = $event"
           />
           <SelectionPanel
             v-else-if="selectMode"
@@ -608,7 +610,7 @@ import { getAlbum, getAllAlbums, recountAlbum, getQueryCountAndSum, getQueryTime
          updateFileInfo, importFile, importUrl, importFileBytes, getDragPayload, importClipboard, addFileToDb, checkFileExists, cancelIndexing as cancelIndexingApi, selectFolder, getFacesForFile, listenFaceIndexProgress,
          openFileWithApp, getAppConfig, getIndexRecoveryInfo, clearIndexRecoveryInfo, setLastSelectedItemIndex,
          dedupDeleteSelected, getQueryFilePosition, getFolderSearchExcluded,
-         listCollections, createCollection, addFilesToCollection, removeFilesFromCollection, getCollectionCountAndSum, getCollectionFiles, getCollectionFileIds } from '@/common/api';
+         listCollections, createCollection, addFilesToCollection, removeFilesFromCollection, getCollectionCountAndSum, getCollectionFiles, getCollectionFileIds, fetchFolder } from '@/common/api';
 import { config, libConfig } from '@/common/config';
 import { getShortcutLabel, matchesShortcut, ShortcutActionId, ShortcutPlatform } from '@/common/shortcuts';
 import { getSmartTagById, SMART_TAG_SEARCH_THRESHOLD } from '@/common/smartTags';
@@ -860,6 +862,7 @@ const selectedFiles = computed(() => {
   return selectMode.value ? getActionableSelectedItems() : [];
 });
 const groupedModeActive = ref(false);
+const selectedFolderHasChildren = ref(true);
 const gridRows = computed(() => groupedModeActive.value ? groupedRows.value : fileList.value);
 const groupFileIdsCache = new Map<string, number[]>();
 const groupedTimelineGroups = ref<any[]>([]);
@@ -939,7 +942,10 @@ function getAutoGroupByForCurrentView() {
       if (libConfig.library.item === LIB_ITEM.TODAY) return GROUP.YEAR;
       return libConfig.library.item === LIB_ITEM.RATINGS && libConfig.rating.item === RATE.ALL ? GROUP.RATING : GROUP.NONE;
     case SIDEBAR.ALBUM:
-      return GROUP.FOLDER;
+      return !libConfig.album.selected
+        && (!config.settings.showSubfolderFiles || !selectedFolderHasChildren.value)
+        ? GROUP.NONE
+        : GROUP.FOLDER;
     case SIDEBAR.SMART_ALBUM:
       return GROUP.NONE; // Smart album: disabled
     case SIDEBAR.CALENDAR:
@@ -1412,6 +1418,7 @@ const dedupReclaimBytes = ref(0);
 const dedupTrashGroupKey = ref('');
 const dedupDeleteFileIds = ref<number[]>([]);
 const dedupPaneRef = ref<InstanceType<typeof DedupPane> | null>(null);
+const dedupStatuses = ref<Record<number, 'keep' | 'dup'>>({});
 const showCommentMsgbox = ref(false);
 const commentInputText = computed(() => {
   if (selectMode.value) {
@@ -5574,6 +5581,9 @@ async function updateContent(force = false) {
             });
             contentTitle.value = formatFolderBreadcrumb(folderPath, album.path);
             const folderId = Number(libConfig.album.folderId || 0);
+            const folderNode = await fetchFolder(folderPath, false, config.settings.folderSort);
+            if (requestId !== currentContentRequestId) return;
+            selectedFolderHasChildren.value = Boolean(folderNode?.children?.length);
             const folderQueryParams = () => config.settings.showSubfolderFiles
               ? { searchAllSubfolders: folderPath }
               : { searchFolder: folderPath };
@@ -6637,6 +6647,7 @@ const onTrashFile = async () => {
       );
     }
 
+    await refreshGroupedRowsAfterDelete(deletedFileIds);
     await refreshAffectedAlbums(Array.from(affectedAlbumIds));
     await refreshLibraryTotalCount();
 
@@ -6711,6 +6722,12 @@ function removeFromFileList(index: number = 0) {
   } else {
     selectedItemIndex.value = -1;
   }
+}
+
+async function refreshGroupedRowsAfterDelete(fileIds: number[]) {
+  if (!groupedModeActive.value || fileIds.length === 0) return;
+  pendingRestoreScrollTop.value = gridViewRef.value?.getScrollTop() ?? null;
+  await initializeGroupedFileList(currentContentRequestId);
 }
 
 // update the file info from the file

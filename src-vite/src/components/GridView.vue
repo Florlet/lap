@@ -71,6 +71,7 @@
           :is-active="getFileIndex(item, index) === selectedItemIndex"
           :select-mode="selectMode"
           :query-source="querySource"
+          :dedup-status="dedupStatuses[Number(getFileItem(item).id)]"
           @clicked="(modifiers) => $emit('item-clicked', getFileIndex(item, index), modifiers)"
           @dblclicked="(modifiers) => $emit('item-dblclicked', getFileIndex(item, index), modifiers)"
           @select-toggled="(shiftKey) => $emit('item-select-toggled', getFileIndex(item, index), shiftKey)"
@@ -142,6 +143,7 @@ const props = withDefaults(defineProps<{
   groupSelectionLoading?: Record<string, boolean>;
   folderGroupRoots?: Array<{ path: string; name?: string }>;
   querySource?: string;
+  dedupStatuses?: Record<number, 'keep' | 'dup'>;
 }>(), {
   selectedItemIndex: -1,
   timelineData: () => [],
@@ -157,6 +159,7 @@ const props = withDefaults(defineProps<{
   groupSelectionLoading: () => ({}),
   folderGroupRoots: () => [],
   querySource: '',
+  dedupStatuses: () => ({}),
 });
 
 const emit = defineEmits([

@@ -77,7 +77,7 @@
         <div
           v-for="badge in statusBadges"
           :key="badge.key"
-          :class="['thumb-badge', badge.highlight ? 'thumb-badge-highlight' : 'thumb-badge-muted']"
+          class="thumb-badge thumb-badge-muted"
         >
           <template v-if="badge.icons?.length">
             <div class="flex items-center gap-0.5">
@@ -93,12 +93,32 @@
           <component
             v-else-if="badge.icon"
             :is="badge.icon"
-            class="h-3.5 w-3.5 shrink-0"
+            :class="['h-3.5 w-3.5 shrink-0', badge.iconClass]"
             :style="badge.iconStyle"
           />
           <span v-if="badge.label" class="leading-none">
             {{ badge.label }}
           </span>
+        </div>
+      </div>
+
+      <!-- video duration and dedup badges -->
+      <div
+        v-if="videoDurationBadge || dedupStatus"
+        class="pointer-events-none absolute left-0.5 bottom-0.5 z-10 flex items-center gap-1"
+      >
+        <div
+          v-if="videoDurationBadge"
+          class="thumb-badge thumb-badge-muted text-base-content/50"
+        >
+          {{ videoDurationBadge }}
+        </div>
+        <div
+          v-if="dedupStatus"
+          class="thumb-badge"
+          :class="dedupStatus === 'keep' ? 'text-primary/70' : 'text-error/70'"
+        >
+          {{ dedupStatus === 'keep' ? 'KEEP' : 'DUP' }}
         </div>
       </div>
 
@@ -171,7 +191,6 @@ import {
   IconTag,
   IconRotate,
   IconComment,
-  IconClock,
   IconStarFilled,
 } from '@/common/icons';
 
@@ -194,6 +213,10 @@ const props = defineProps({
   },
   querySource: {
     type: String,
+    default: '',
+  },
+  dedupStatus: {
+    type: String as () => 'keep' | 'dup' | '',
     default: '',
   },
 });
@@ -446,7 +469,7 @@ type ThumbnailBadge = {
     style?: CSSProperties;
   }>;
   label?: string;
-  highlight?: boolean;
+  iconClass?: string;
   iconStyle?: CSSProperties;
 };
 
@@ -455,36 +478,33 @@ const normalizedRotate = computed(() => {
   return rotate < 0 ? rotate + 360 : rotate;
 });
 
+const videoDurationBadge = computed(() => {
+  return props.file?.file_type === 2
+    ? formatDuration(props.file.duration)
+    : '';
+});
+
 const statusBadges = computed<ThumbnailBadge[]>(() => {
   const badges: ThumbnailBadge[] = [];
   const rating = Number(props.file.rating || 0);
-  const isVideo = props.file.file_type === 2;
   const metaIcons: ThumbnailBadge['icons'] = [];
 
   if (props.file.is_favorite) {
     badges.push({
       key: 'favorite',
       icon: IconHeartFilled,
-      highlight: true,
+      iconClass: 'text-error',
       label: rating > 0 ? `${rating}` : undefined,
     });
   } else if (rating > 0) {
     badges.push({
       key: 'rating',
       icon: IconStarFilled,
+      iconClass: 'text-warning',
       label: `${rating}`,
-      highlight: true,
     });
   }
   
-  if (isVideo) {
-    badges.push({
-      key: 'duration',
-      // icon: IconClock,
-      label: formatDuration(props.file.duration),
-    });
-  }
-
   if (props.file.has_tags) {
     metaIcons.push({
       icon: IconTag,

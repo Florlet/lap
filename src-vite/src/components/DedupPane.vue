@@ -250,6 +250,7 @@ const emit = defineEmits<{
   'select-file': [fileId: number];
   'preview-file': [fileId: number];
   'trash-selected-duplicates': [groupId: string, fileIds: number[], reclaimableBytes: number];
+  'dedup-status-updated': [statuses: Record<number, 'keep' | 'dup'>];
 }>();
 
 const selectedDupIdsByGroup = ref<Map<number, Set<number>>>(new Map());
@@ -287,6 +288,16 @@ const activeGroup = computed(() => {
 });
 const visibleDuplicateGroups = computed(() => duplicateGroups.value.slice(0, DEDUP_THUMBNAIL_LIMIT));
 const hiddenDuplicateGroupCount = computed(() => Math.max(0, duplicateGroups.value.length - DEDUP_THUMBNAIL_LIMIT));
+
+function emitDedupStatuses() {
+  const statuses: Record<number, 'keep' | 'dup'> = {};
+  for (const group of rawGroups.value) {
+    for (const item of group.items || []) {
+      statuses[Number(item.file_id)] = item.is_keep === 1 ? 'keep' : 'dup';
+    }
+  }
+  emit('dedup-status-updated', statuses);
+}
 
 const selectedDeleteCount = computed(() => {
   if (!activeGroup.value) return 0;
@@ -348,6 +359,7 @@ async function setKeep(groupId: number, fileId: number) {
     is_keep: Number(item.file_id) === fileId ? 1 : 0,
   }));
   rawGroups.value[groupIndex] = { ...group, items };
+  emitDedupStatuses();
 
   const selectedIds = getDupSelectedSet(groupId);
   selectedIds.delete(fileId);
@@ -427,6 +439,7 @@ function applyDeletedFiles(groupId: number, deletedFileIds: number[]) {
       const nextGroup = rawGroups.value[groupIndex] || rawGroups.value[groupIndex - 1];
       selectedGroupId.value = nextGroup ? Number(nextGroup.id) : null;
     }
+    emitDedupStatuses();
     return;
   }
 
@@ -436,6 +449,7 @@ function applyDeletedFiles(groupId: number, deletedFileIds: number[]) {
     file_count: remainingItems.length,
     total_size: remainingItems.length * fileSize,
   };
+  emitDedupStatuses();
 }
 
 function formatDedupFolderPath(file: any): string {
@@ -543,6 +557,7 @@ async function fetchGroups(preferredGroupId: number | null = null) {
     await hydrateAlbumRootPaths(normalized);
     await hydrateGroupThumbnails(normalized, nextSelectedGroupId);
     rawGroups.value = normalized;
+    emitDedupStatuses();
     await refreshOverview();
 
     for (const key of Array.from(selectedDupIdsByGroup.value.keys())) {
@@ -586,6 +601,7 @@ function showDedupScanError() {
   stopDedupStatusPolling();
   dedupPaneGlobalState.lastScanKey = '';
   rawGroups.value = [];
+  emitDedupStatuses();
   selectedGroupId.value = null;
   totalGroupCount.value = 0;
   totalDuplicateFileCount.value = 0;
