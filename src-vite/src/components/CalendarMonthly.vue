@@ -1,6 +1,6 @@
 <template>
 
-  <div class="flex flex-col items-center select-none mx-auto my-1 min-w-48 rounded-box border border-base-content/5">
+  <div class="w-full min-w-60 flex flex-col items-center select-none my-1 rounded-box border border-base-content/5">
 
     <!-- title -->
     <div 
@@ -93,4 +93,3 @@ const clickDate = (year: number, month: number) => {
 };
 
 </script>
-

@@ -15,28 +15,27 @@
     <div ref="scrollable" v-if="Object.keys(calendar_dates).length > 0"
       class="flex-1 flex flex-col overflow-x-hidden overflow-y-auto"
     >
-      <div v-if="!config.calendar.isMonthly" class="mx-auto min-w-48 rounded-box border border-transparent">
-        <div class="px-2 pb-1 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold text-base-content/30">
-          <div v-for="(weekday, idx) in weekdayLabels" :key="`weekday-${idx}`" class="size-6 flex items-center justify-center">
-            {{ weekday }}
-          </div>
-        </div>
-      </div>
-      <div v-for="item in sorted_calendar_items" 
-        :key="item.year"
-        :class="[
-          'flex min-w-48',
-          config.settings.calendarSort % 2 === 0 ? 'flex-col' : 'flex-col-reverse'
-        ]"
+      <div
+        v-if="config.calendar.isMonthly"
+        class="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] items-start gap-2 px-1"
       >
-        <CalendarMonthly v-if="config.calendar.isMonthly"
+        <CalendarMonthly
+          v-for="item in sorted_calendar_items"
+          :key="item.year"
           :year="Number(item.year)" 
           :months="item.months"
         />
-        <CalendarDaily v-else v-for="(dates, month) in item.months" 
-          :year="Number(item.year)" 
-          :month="Number(month)"
-          :dates="dates"
+      </div>
+      <div
+        v-else
+        class="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] items-start gap-2 px-1"
+      >
+        <CalendarDaily
+          v-for="item in sorted_daily_items"
+          :key="`${item.year}-${item.month}`"
+          :year="item.year"
+          :month="item.month"
+          :dates="item.dates"
         />
       </div>
     </div>
@@ -70,7 +69,6 @@ const props = defineProps({
 /// i18n
 const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
-const weekdayLabels = computed(() => localeMsg.value.calendar?.weekdays || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
 const calendarTitle = computed(() =>
   config.calendar.isMonthly
     ? (localeMsg.value.calendar.month_title || localeMsg.value.calendar.month || 'Month')
@@ -105,6 +103,19 @@ const sorted_calendar_items = computed(() => {
     year: year,
     months: dates[year]
   }));
+});
+
+const sorted_daily_items = computed(() => {
+  const ascending = config.settings.calendarSort % 2 === 0;
+  return sorted_calendar_items.value.flatMap(item => {
+    const months = Object.keys(item.months).map(Number);
+    months.sort((a, b) => ascending ? a - b : b - a);
+    return months.map(month => ({
+      year: Number(item.year),
+      month,
+      dates: item.months[month],
+    }));
+  });
 });
 
 onMounted(async () => {

@@ -1,6 +1,6 @@
 <template>
 
-  <div class="flex flex-col items-center mx-auto my-1 min-w-48 rounded-box border border-base-content/5">
+  <div class="w-full min-w-60 flex flex-col items-center my-1 rounded-box border border-base-content/5">
 
     <!-- title -->
     <div 
@@ -11,6 +11,16 @@
       @click="clickDate(year, month, -1)"
     >
       {{ monthTitle }}
+    </div>
+
+    <div class="px-2 pt-2 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold text-base-content/30">
+      <div
+        v-for="(weekday, index) in weekdayLabels"
+        :key="index"
+        class="size-6 flex items-center justify-center"
+      >
+        {{ weekday }}
+      </div>
     </div>
 
     <!-- date list -->
@@ -73,6 +83,7 @@ const props = defineProps({
 /// i18n
 const { locale, messages } = useI18n();
 const localeMsg = computed(() => messages.value[locale.value] as any);
+const weekdayLabels = computed(() => localeMsg.value.calendar?.weekdays || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
 
 // Title of the month
 const monthTitle = computed(() => formatDate(props.year, props.month, 1, localeMsg.value.format.month));
