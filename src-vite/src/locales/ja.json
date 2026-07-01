@@ -1144,6 +1144,17 @@
         "大(320px)",
         "特大(400px)"
       ],
+      "section_view": "表示",
+      "view_background": "背景",
+      "view_background_hint": "{shortcut} で背景を切り替えます",
+      "view_background_options": [
+        "デフォルト",
+        "黒",
+        "ダークグレー",
+        "ミディアムグレー",
+        "ライトグレー",
+        "白"
+      ],
       "section_slideshow": "スライドショー",
       "slide_show_interval": "間隔: {second} 秒",
       "slide_show_transition": "スライドショーの切り替え",
@@ -1210,6 +1221,7 @@
         "zoom_in": "拡大",
         "zoom_out": "縮小",
         "zoom_fit": "実際のサイズ / ウィンドウに合わせる",
+        "cycle_background": "背景を切り替える",
         "toggle_slideshow": "スライドショーの再生 / 一時停止",
         "open_new_window": "新しいウィンドウで表示",
         "open_external_app": "外部アプリで開く",

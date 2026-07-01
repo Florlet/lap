@@ -579,6 +579,7 @@ function handleKeyDown(event: KeyboardEvent) {
   if (
     isSlideShow.value &&
     !matchesShortcut('view.close', event, shortcutPlatform) &&
+    !matchesShortcut('view.cycleBackground', event, shortcutPlatform) &&
     !matchesShortcut('slideshow.toggle', event, shortcutPlatform)
   ) {
     return;
@@ -594,6 +595,13 @@ function handleKeyDown(event: KeyboardEvent) {
   if (matchesShortcut('slideshow.toggle', event, shortcutPlatform)) {
     event.preventDefault();
     clickSlideShow(getActiveFilePane());
+    return;
+  }
+
+  if (matchesShortcut('view.cycleBackground', event, shortcutPlatform)) {
+    event.preventDefault();
+    config.cycleViewBackground();
+    void emit('settings-viewBackground-changed', config.settings.viewBackground);
     return;
   }
 

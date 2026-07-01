@@ -1144,6 +1144,17 @@
         "Grand(320px)",
         "Très Grand(400px)"
       ],
+      "section_view": "Affichage",
+      "view_background": "Arrière-plan",
+      "view_background_hint": "Appuyez sur {shortcut} pour changer d’arrière-plan",
+      "view_background_options": [
+        "Par défaut",
+        "Noir",
+        "Gris foncé",
+        "Gris moyen",
+        "Gris clair",
+        "Blanc"
+      ],
       "section_slideshow": "Diaporama",
       "slide_show_interval": "Intervalle: {second} s",
       "slide_show_transition": "Transition du diaporama",
@@ -1210,6 +1221,7 @@
         "zoom_in": "Zoom avant",
         "zoom_out": "Zoom arrière",
         "zoom_fit": "Taille réelle / Ajuster à la fenêtre",
+        "cycle_background": "Changer d’arrière-plan",
         "toggle_slideshow": "Lire / Mettre en pause le diaporama",
         "open_new_window": "Détacher la fenêtre",
         "open_external_app": "Ouvrir dans une app externe",

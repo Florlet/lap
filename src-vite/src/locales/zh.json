@@ -1144,6 +1144,17 @@
         "大(320px)",
         "特大(400px)"
       ],
+      "section_view": "查看",
+      "view_background": "背景",
+      "view_background_hint": "按 {shortcut} 循环切换背景",
+      "view_background_options": [
+        "默认",
+        "黑色",
+        "深灰色",
+        "中灰色",
+        "浅灰色",
+        "白色"
+      ],
       "section_slideshow": "幻灯片",
       "slide_show_interval": "幻灯片放映间隔: {second} 秒",
       "slide_show_transition": "幻灯片过场",
@@ -1210,6 +1221,7 @@
         "zoom_in": "放大",
         "zoom_out": "缩小",
         "zoom_fit": "切换实际大小 / 适应窗口",
+        "cycle_background": "循环切换背景",
         "toggle_slideshow": "播放 / 暂停幻灯片",
         "open_new_window": "在新窗口中查看",
         "open_external_app": "在外部应用中打开",

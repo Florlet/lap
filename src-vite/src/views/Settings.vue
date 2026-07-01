@@ -276,10 +276,21 @@
             </div>
           </div>
 
-          <!-- slideshow -->
+          <!-- view -->
           <div class="rounded-box p-2 space-y-2 bg-base-300/30 border border-base-content/5 shadow-sm">
             <div class="flex items-center gap-2 text-base-content/30">
-              <span class="font-bold uppercase text-[10px] tracking-widest">{{ $t('settings.image_view.section_slideshow') }}</span>
+              <span class="font-bold uppercase text-[10px] tracking-widest">{{ $t('settings.image_view.section_view') }}</span>
+            </div>
+            <div class="flex items-center justify-between px-1 rounded-box hover:bg-base-100/10 transition-colors duration-200">
+              <div class="flex flex-col gap-0.5 text-sm leading-5">
+                <div>{{ $t('settings.image_view.view_background') }}</div>
+                <div class="text-xs text-base-content/30">
+                  {{ $t('settings.image_view.view_background_hint', { shortcut: cycleBackgroundShortcut }) }}
+                </div>
+              </div>
+              <select class="select select-bordered select-sm min-w-32" v-model="config.settings.viewBackground">
+                <option v-for="option in viewBackgroundOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
             </div>
             <div class="flex items-center justify-between px-1 rounded-box hover:bg-base-100/10 transition-colors duration-200">
               <div class="flex flex-col gap-0.5 text-sm leading-5">
@@ -850,6 +861,14 @@ const navigatorViewSizeOptions = computed(() => {
   return result;
 });
 
+const viewBackgroundOptions = computed(() => {
+  const options = localeMsg.value.settings.image_view.view_background_options;
+  return options.map((label: string, value: number) => ({ label, value }));
+});
+const cycleBackgroundShortcut = computed(() =>
+  getShortcutLabels('view.cycleBackground', shortcutPlatform)[0] || 'Shift+B'
+);
+
 const slideShowTransitionOptions = computed(() => {
   const options = localeMsg.value.settings.image_view.slide_show_transition_options;
   const result = [];
@@ -962,6 +981,7 @@ const shortcutDisplaySections: Array<{ key: string; items: ShortcutDisplayItem[]
       { actionId: 'view.zoomIn', labelKey: 'zoom_in' },
       { actionId: 'view.zoomOut', labelKey: 'zoom_out' },
       { actionId: 'view.zoomFit', labelKey: 'zoom_fit' },
+      { actionId: 'view.cycleBackground', labelKey: 'cycle_background' },
       { actionId: 'slideshow.toggle', labelKey: 'toggle_slideshow' },
     ],
   },
@@ -1336,6 +1356,9 @@ watch(() => config.settings.navigatorViewMode, (newValue) => {
 });
 watch(() => config.settings.navigatorViewSize, (newValue) => {
   emit('settings-navigatorViewSize-changed', newValue);
+});
+watch(() => config.settings.viewBackground, (newValue) => {
+  emit('settings-viewBackground-changed', newValue);
 });
 watch(() => config.settings.slideShowTransition, (newValue) => {
   emit('settings-slideShowTransition-changed', newValue);

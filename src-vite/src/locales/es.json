@@ -1144,6 +1144,17 @@
         "Grande(320px)",
         "Extra Grande(400px)"
       ],
+      "section_view": "Vista",
+      "view_background": "Fondo",
+      "view_background_hint": "Pulsa {shortcut} para cambiar de fondo",
+      "view_background_options": [
+        "Predeterminado",
+        "Negro",
+        "Gris oscuro",
+        "Gris medio",
+        "Gris claro",
+        "Blanco"
+      ],
       "section_slideshow": "Presentación",
       "slide_show_interval": "Intervalo: {second} s",
       "slide_show_transition": "Transición de presentación",
@@ -1210,6 +1221,7 @@
         "zoom_in": "Acercar",
         "zoom_out": "Alejar",
         "zoom_fit": "Alternar tamaño real / ajustar a la ventana",
+        "cycle_background": "Cambiar fondo",
         "toggle_slideshow": "Reproducir / pausar diapositivas",
         "open_new_window": "Ver en nueva ventana",
         "open_external_app": "Abrir en app externa",

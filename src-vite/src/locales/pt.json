@@ -1144,6 +1144,17 @@
         "Grd(320px)",
         "XG(400px)"
       ],
+      "section_view": "Visualização",
+      "view_background": "Fundo",
+      "view_background_hint": "Pressione {shortcut} para alternar o fundo",
+      "view_background_options": [
+        "Padrão",
+        "Preto",
+        "Cinza escuro",
+        "Cinza médio",
+        "Cinza claro",
+        "Branco"
+      ],
       "section_slideshow": "Apresentação",
       "slide_show_interval": "Intervalo: {second} s",
       "slide_show_transition": "Transição da apresentação",
@@ -1210,6 +1221,7 @@
         "zoom_in": "Ampliar",
         "zoom_out": "Reduzir",
         "zoom_fit": "Alternar tamanho real / ajustar à janela",
+        "cycle_background": "Alternar fundo",
         "toggle_slideshow": "Reproduzir / pausar apresentação",
         "open_new_window": "Abrir em nova janela",
         "open_external_app": "Abrir em app externo",

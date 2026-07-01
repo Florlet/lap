@@ -156,6 +156,9 @@ listen('settings-navigatorViewMode-changed', (event) => {
 listen('settings-navigatorViewSize-changed', (event) => {
   config.setNavigatorViewSize(event.payload)
 })
+listen('settings-viewBackground-changed', (event) => {
+  config.setViewBackground(event.payload)
+})
 listen('settings-slideShowTransition-changed', (event) => {
   config.setSlideShowTransition(event.payload)
 })

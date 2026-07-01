@@ -1144,6 +1144,17 @@
         "Бол(320px)",
         "Огр(400px)"
       ],
+      "section_view": "Просмотр",
+      "view_background": "Фон",
+      "view_background_hint": "Нажмите {shortcut}, чтобы переключить фон",
+      "view_background_options": [
+        "По умолчанию",
+        "Чёрный",
+        "Тёмно-серый",
+        "Средне-серый",
+        "Светло-серый",
+        "Белый"
+      ],
       "section_slideshow": "Слайд-шоу",
       "slide_show_interval": "Интервал: {second} сек",
       "slide_show_transition": "Переход слайд-шоу",
@@ -1210,6 +1221,7 @@
         "zoom_in": "Увеличить",
         "zoom_out": "Уменьшить",
         "zoom_fit": "Реальный размер / по размеру окна",
+        "cycle_background": "Переключить фон",
         "toggle_slideshow": "Воспроизвести / пауза слайдшоу",
         "open_new_window": "Открыть в новом окне",
         "open_external_app": "Открыть во внешнем приложении",

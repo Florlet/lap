@@ -54,6 +54,7 @@ export type ShortcutActionId =
   | 'view.zoomInDirectional'
   | 'view.zoomOutDirectional'
   | 'view.zoomFit'
+  | 'view.cycleBackground'
   | 'view.togglePane'
   | 'slideshow.toggle';
 
@@ -360,6 +361,13 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     defaultBindings: [
       { key: ' ', label: 'Space' },
       { key: 'Space', label: 'Space' },
+    ],
+  },
+  {
+    id: 'view.cycleBackground',
+    contexts: ['content', 'media-viewer', 'image-viewer'],
+    defaultBindings: [
+      { code: 'KeyB', modifiers: ['shift'], label: { mac: '⇧B', windows: 'Shift+B', linux: 'Shift+B' } },
     ],
   },
   {

@@ -1,6 +1,7 @@
 <template>
   <div 
     :class="['w-full relative flex flex-col items-center justify-center', toolbarOnly ? '' : 'h-full group']"
+    :style="toolbarOnly ? undefined : viewBackgroundStyle"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
     @contextmenu.prevent
@@ -544,6 +545,10 @@ const effectiveSlideShowIntervalIndex = computed(() => {
 });
 const currentSlideShowIntervalLabel = computed(() => `${getSlideShowInterval(effectiveSlideShowIntervalIndex.value)}s`);
 const slideShowTransitionMode = computed(() => Number(config.settings.slideShowTransition ?? 0));
+const viewBackgroundStyle = computed(() => {
+  const colors = ['transparent', '#000000', '#333333', '#808080', '#d3d3d3', '#ffffff'];
+  return { backgroundColor: colors[Number(config.settings.viewBackground ?? 0)] ?? colors[0] };
+});
 // const ratingButtonTooltip = computed(() => {
 //   const rating = Number(props.file?.rating || 0);
 //   return rating > 0 ? `${localeMsg.value.rating.title}: ${rating}` : localeMsg.value.rating.title;

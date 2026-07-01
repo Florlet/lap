@@ -1144,6 +1144,17 @@
         "Groß(320px)",
         "Extra Groß(400px)"
       ],
+      "section_view": "Ansicht",
+      "view_background": "Hintergrund",
+      "view_background_hint": "Mit {shortcut} zwischen Hintergründen wechseln",
+      "view_background_options": [
+        "Standard",
+        "Schwarz",
+        "Dunkelgrau",
+        "Mittelgrau",
+        "Hellgrau",
+        "Weiß"
+      ],
       "section_slideshow": "Diashow",
       "slide_show_interval": "Intervall: {second} s",
       "slide_show_transition": "Diashow-Übergang",
@@ -1210,6 +1221,7 @@
         "zoom_in": "Vergrößern",
         "zoom_out": "Verkleinern",
         "zoom_fit": "Originalgröße / An Fenster anpassen",
+        "cycle_background": "Hintergrund wechseln",
         "toggle_slideshow": "Diashow starten / pausieren",
         "open_new_window": "In neuem Fenster öffnen",
         "open_external_app": "In externer App öffnen",

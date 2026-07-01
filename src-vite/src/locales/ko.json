@@ -1144,6 +1144,17 @@
         "크게(320px)",
         "아주 크게(400px)"
       ],
+      "section_view": "보기",
+      "view_background": "배경",
+      "view_background_hint": "{shortcut} 키를 눌러 배경 전환",
+      "view_background_options": [
+        "기본값",
+        "검정",
+        "진한 회색",
+        "중간 회색",
+        "연한 회색",
+        "흰색"
+      ],
       "section_slideshow": "슬라이드쇼",
       "slide_show_interval": "간격: {second}초",
       "slide_show_transition": "슬라이드쇼 전환",
@@ -1210,6 +1221,7 @@
         "zoom_in": "확대",
         "zoom_out": "축소",
         "zoom_fit": "실제 크기 / 창 맞춤 전환",
+        "cycle_background": "배경 전환",
         "toggle_slideshow": "슬라이드쇼 재생 / 일시정지",
         "open_new_window": "새 창에서 보기",
         "open_external_app": "외부 앱에서 열기",

@@ -3179,6 +3179,7 @@ function handleLocalKeyDown(event: KeyboardEvent) {
   if (
     isSlideShow.value &&
     !matchesShortcut('view.close', event, shortcutPlatform) &&
+    !matchesShortcut('view.cycleBackground', event, shortcutPlatform) &&
     !matchesShortcut('slideshow.toggle', event, shortcutPlatform)
   ) {
     return;
@@ -3210,6 +3211,13 @@ function handleLocalKeyDown(event: KeyboardEvent) {
   if (matchesShortcut('file.reveal', event, shortcutPlatform)) {
     event.preventDefault();
     revealPath(fileList.value[selectedItemIndex.value].file_path);
+    return;
+  }
+
+  if (getActivePreviewMode() !== 'none' && matchesShortcut('view.cycleBackground', event, shortcutPlatform)) {
+    event.preventDefault();
+    config.cycleViewBackground();
+    void tauriEmit('settings-viewBackground-changed', config.settings.viewBackground);
     return;
   }
 

@@ -1144,6 +1144,17 @@
         "Large(320px)",
         "Extra Large(400px)"
       ],
+      "section_view": "View",
+      "view_background": "Background",
+      "view_background_hint": "Press {shortcut} to cycle backgrounds",
+      "view_background_options": [
+        "Default",
+        "Black",
+        "Dark Gray",
+        "Medium Gray",
+        "Light Gray",
+        "White"
+      ],
       "section_slideshow": "Slideshow",
       "slide_show_interval": "Slide show interval: {second} second(s)",
       "slide_show_transition": "Slide show transition",
@@ -1210,6 +1221,7 @@
         "zoom_in": "Zoom in",
         "zoom_out": "Zoom out",
         "zoom_fit": "Toggle actual size / fit to window",
+        "cycle_background": "Cycle background",
         "toggle_slideshow": "Play / pause slideshow",
         "open_new_window": "View in new window",
         "open_external_app": "Open in external app",
