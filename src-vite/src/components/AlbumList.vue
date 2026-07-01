@@ -756,14 +756,18 @@ const clickAlbum = async (album: Album) => {
     return;
   }
 
-  const isAccessible = await refreshAlbumAccess(album);
-  if (isAccessible && album.is_expanded && !album.children) {
-    const subFolders = await fetchFolder(album.path, false, config.settings.folderSort);
-    if (subFolders) {
-      album.children = [subFolders];
-    }
-  }
   selection.selectAlbum(album);
+  requestAnimationFrame(() => {
+    setTimeout(async () => {
+      const isAccessible = await refreshAlbumAccess(album);
+      if (isAccessible && album.is_expanded && !album.children) {
+        const subFolders = await fetchFolder(album.path, false, config.settings.folderSort);
+        if (subFolders) {
+          album.children = [subFolders];
+        }
+      }
+    }, 0);
+  });
 };
 
 /// dlb click album to select it and expand/collapse its folders

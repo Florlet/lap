@@ -676,21 +676,21 @@ pub fn get_total_count_and_sum() -> Result<(i64, i64), String> {
 
 /// get query count and sum
 #[tauri::command]
-pub fn get_query_count_and_sum(params: QueryParams) -> Result<(i64, i64), String> {
+pub async fn get_query_count_and_sum(params: QueryParams) -> Result<(i64, i64), String> {
     AFile::get_query_count_and_sum(&params)
         .map_err(|e| format!("Error while getting query files count: {}", e))
 }
 
 /// get query time line
 #[tauri::command]
-pub fn get_query_time_line(params: QueryParams) -> Result<Vec<ATimeLine>, String> {
+pub async fn get_query_time_line(params: QueryParams) -> Result<Vec<ATimeLine>, String> {
     AFile::get_query_time_line(&params)
         .map_err(|e| format!("Error while getting query timeline: {}", e))
 }
 
 /// get query file
 #[tauri::command]
-pub fn get_query_files(params: QueryParams, offset: i64, limit: i64) -> Result<Vec<AFile>, String> {
+pub async fn get_query_files(params: QueryParams, offset: i64, limit: i64) -> Result<Vec<AFile>, String> {
     AFile::get_query_files(&params, offset, limit)
         .map_err(|e| format!("Error while getting query files: {}", e))
 }
@@ -698,7 +698,7 @@ pub fn get_query_files(params: QueryParams, offset: i64, limit: i64) -> Result<V
 /// Get grouped render rows for a normal query.
 /// The result includes group header rows, file item rows, group metadata, and row counts for virtual scrolling.
 #[tauri::command]
-pub fn get_grouped_query_rows(
+pub async fn get_grouped_query_rows(
     params: QueryParams,
     offset: i64,
     limit: i64,
@@ -710,7 +710,7 @@ pub fn get_grouped_query_rows(
 /// Get all file ids in one group for a normal query.
 /// Used by the group header checkbox so selecting a group is not limited to loaded rows.
 #[tauri::command]
-pub fn get_group_file_ids(params: QueryParams, group_id: String) -> Result<Vec<i64>, String> {
+pub async fn get_group_file_ids(params: QueryParams, group_id: String) -> Result<Vec<i64>, String> {
     AFile::get_group_file_ids(&params, &group_id)
         .map_err(|e| format!("Error while getting group file ids: {}", e))
 }
@@ -718,13 +718,13 @@ pub fn get_group_file_ids(params: QueryParams, group_id: String) -> Result<Vec<i
 /// Get all file ids in the current normal query.
 /// Used by Select All to support large virtualized result sets without loading every file object.
 #[tauri::command]
-pub fn get_query_file_ids(params: QueryParams) -> Result<Vec<i64>, String> {
+pub async fn get_query_file_ids(params: QueryParams) -> Result<Vec<i64>, String> {
     AFile::get_query_file_ids(&params)
         .map_err(|e| format!("Error while getting query file ids: {}", e))
 }
 
 #[tauri::command]
-pub fn get_query_file_position(params: QueryParams, file_id: i64) -> Result<Option<i64>, String> {
+pub async fn get_query_file_position(params: QueryParams, file_id: i64) -> Result<Option<i64>, String> {
     AFile::get_query_file_position(&params, file_id)
         .map_err(|e| format!("Error while getting query file position: {}", e))
 }
@@ -814,19 +814,19 @@ pub fn get_collection_files(
 }
 
 #[tauri::command]
-pub fn get_smart_query_count_and_sum(params: SmartQueryParams) -> Result<(i64, i64), String> {
+pub async fn get_smart_query_count_and_sum(params: SmartQueryParams) -> Result<(i64, i64), String> {
     AFile::get_smart_query_count_and_sum(&params)
         .map_err(|e| format!("Error while getting smart query files count: {}", e))
 }
 
 #[tauri::command]
-pub fn get_smart_query_time_line(params: SmartQueryParams) -> Result<Vec<ATimeLine>, String> {
+pub async fn get_smart_query_time_line(params: SmartQueryParams) -> Result<Vec<ATimeLine>, String> {
     AFile::get_smart_query_time_line(&params)
         .map_err(|e| format!("Error while getting smart query timeline: {}", e))
 }
 
 #[tauri::command]
-pub fn get_smart_query_files(
+pub async fn get_smart_query_files(
     params: SmartQueryParams,
     offset: i64,
     limit: i64,
@@ -838,7 +838,7 @@ pub fn get_smart_query_files(
 /// Get grouped render rows for a smart query.
 /// The result includes group header rows, file item rows, group metadata, and row counts for virtual scrolling.
 #[tauri::command]
-pub fn get_smart_grouped_query_rows(
+pub async fn get_smart_grouped_query_rows(
     params: SmartQueryParams,
     offset: i64,
     limit: i64,
@@ -850,7 +850,7 @@ pub fn get_smart_grouped_query_rows(
 /// Get all file ids in one group for a smart query.
 /// Used by the group header checkbox so selecting a group is not limited to loaded rows.
 #[tauri::command]
-pub fn get_smart_group_file_ids(
+pub async fn get_smart_group_file_ids(
     params: SmartQueryParams,
     group_id: String,
 ) -> Result<Vec<i64>, String> {
@@ -861,13 +861,13 @@ pub fn get_smart_group_file_ids(
 /// Get all file ids in the current smart query.
 /// Used by Select All to support large virtualized result sets without loading every file object.
 #[tauri::command]
-pub fn get_smart_query_file_ids(params: SmartQueryParams) -> Result<Vec<i64>, String> {
+pub async fn get_smart_query_file_ids(params: SmartQueryParams) -> Result<Vec<i64>, String> {
     AFile::get_smart_query_file_ids(&params)
         .map_err(|e| format!("Error while getting smart query file ids: {}", e))
 }
 
 #[tauri::command]
-pub fn get_smart_query_file_position(
+pub async fn get_smart_query_file_position(
     params: SmartQueryParams,
     file_id: i64,
 ) -> Result<Option<i64>, String> {
@@ -2006,9 +2006,9 @@ pub fn get_image_search_model_status(
 }
 
 #[tauri::command]
-pub fn set_image_search_model(
+pub async fn set_image_search_model(
     app_handle: AppHandle,
-    state: State<t_ai::AiState>,
+    state: State<'_, t_ai::AiState>,
     model: i64,
 ) -> Result<t_ai::ImageSearchModelStatus, String> {
     let mut ai_engine = state.0.lock().unwrap();
@@ -2036,8 +2036,8 @@ pub fn generate_embedding(state: State<t_ai::AiState>, file_id: i64) -> Result<S
 
 // search similar images
 #[tauri::command]
-pub fn search_similar_images(
-    state: State<t_ai::AiState>,
+pub async fn search_similar_images(
+    state: State<'_, t_ai::AiState>,
     params: ImageSearchParams,
 ) -> Result<Vec<AFile>, String> {
     AFile::search_similar_images(&state, params)

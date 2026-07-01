@@ -2326,6 +2326,16 @@ watch(() => props.libraryEmpty, () => {
   libraryChecked.value = true;
 }, { immediate: true });
 
+watch(contentReady, (ready) => {
+  if (!ready || config.main.sidebarIndex !== SIDEBAR.LIBRARY) return;
+  void tauriEmit('library-item-count-updated', {
+    item: libConfig.library.item,
+    rating: libConfig.rating.item,
+    smartId: libConfig.library.smartId,
+    count: totalFileCount.value,
+  });
+});
+
 const showWelcomeContent = computed(() => props.libraryEmpty && libraryChecked.value);
 
 const gridViewLayoutClass = computed(() => {
@@ -2438,6 +2448,12 @@ function scheduleContentRefresh(task: () => void) {
     contentUpdateTimer = null;
     task();
   }, 0);
+}
+
+function waitForContentLoadingPaint() {
+  return new Promise<void>(resolve => {
+    requestAnimationFrame(() => setTimeout(resolve, 0));
+  });
 }
 
 function resetContentViewportState() {
@@ -5487,6 +5503,10 @@ async function updateContent(force = false) {
   clearSelectionForFileListUpdate();
   clearContentRows();
   isLoading.value = true;
+
+  await nextTick();
+  await waitForContentLoadingPaint();
+  if (requestId !== currentContentRequestId) return;
 
   if (libConfig.activePane === 'collection') {
     const collectionId = Number(libConfig.collection.selectedId || 0);

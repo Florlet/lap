@@ -20,7 +20,7 @@
           <span>{{ item.label }}</span>
         </div>
         <div class="ml-auto flex items-center">
-          <span v-if="item.count && item.count > 0" class="px-1 text-xs text-base-content/30">
+          <span v-if="item.count && item.count > 0" class="sidebar-item-count">
             {{ item.count.toLocaleString() }}
           </span>
         </div>
@@ -73,9 +73,7 @@
                     class="w-5 h-5 shrink-0"
                   />
                 </div>
-                <span v-if="ratingCounts[rating]" class="text-[10px] tabular-nums text-base-content/30 ml-auto">
-                  {{ ratingCounts[rating].toLocaleString() }}
-                </span>
+                <span v-if="ratingCounts[rating]" class="sidebar-item-count ml-auto">{{ ratingCounts[rating].toLocaleString() }}</span>
               </div>
             </li>
             <li>
@@ -124,6 +122,7 @@
               >
                 <IconSmartTag class="mx-1 w-5 h-5 shrink-0" />
                 <span class="sidebar-item-label">{{ item.label }}</span>
+                <span v-if="item.count" class="sidebar-item-count ml-auto">{{ item.count.toLocaleString() }}</span>
               </div>
             </li>
           </ul>
@@ -136,8 +135,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { listen } from '@tauri-apps/api/event';
 import { libConfig } from '@/common/config';
 import { LIB_ITEM, RATE, type LibItem } from '@/common/constants';
 
@@ -159,6 +159,9 @@ const totalCount = ref(0);
 const favoriteCount = ref(0);
 const todayCount = ref(0);
 const unratedCount = ref(0);
+const subjectCounts = ref<Record<string, number>>({});
+const ratedCountOverride = ref<number | null>(null);
+let unlistenLibraryItemCount: (() => void) | null = null;
 const ratingCounts = ref<Record<number, number>>({
   1: 0,
   2: 0,
@@ -166,7 +169,10 @@ const ratingCounts = ref<Record<number, number>>({
   4: 0,
   5: 0,
 });
-const ratedCount = computed(() => Object.values(ratingCounts.value).reduce((sum, count) => sum + count, 0));
+const ratedCount = computed(() =>
+  ratedCountOverride.value
+  ?? Object.values(ratingCounts.value).reduce((sum, count) => sum + count, 0)
+);
 
 const buildQueryParams = ({ isFavorite = false, rating = RATE.NONE, startDate = 0, endDate = 0 } = {}) => ({
   searchFileType: 0,
@@ -217,6 +223,7 @@ const smartTagItems = computed(() =>
     return {
       id: item.id,
       label: localeMsg.value.subject.items?.[item.id] || item.id,
+      count: Number(subjectCounts.value[item.id] || 0),
     };
   })
 );
@@ -248,6 +255,7 @@ const refreshRatingCounts = async () => {
   );
 
   ratingCounts.value = Object.fromEntries(entries) as Record<number, number>;
+  ratedCountOverride.value = null;
 };
 
 function selectItem(item: LibItem) {
@@ -298,11 +306,63 @@ function selectSmartTag(smartId: string) {
   libConfig.library.smartId = smartId;
 }
 
+const applyCountUpdate = (payload: any) => {
+    const count = Math.max(0, Number(payload?.count || 0));
+    switch (payload?.item) {
+      case LIB_ITEM.ALL:
+        totalCount.value = count;
+        break;
+      case LIB_ITEM.FAV:
+        favoriteCount.value = count;
+        break;
+      case LIB_ITEM.TODAY:
+        todayCount.value = count;
+        break;
+      case LIB_ITEM.RATINGS: {
+        const rating = Number(payload?.rating);
+        if (rating === RATE.ALL) {
+          ratedCountOverride.value = count;
+        } else if (rating === RATE.UNRATED) {
+          unratedCount.value = count;
+        } else if (rating >= 1 && rating <= 5) {
+          ratedCountOverride.value = null;
+          ratingCounts.value = { ...ratingCounts.value, [rating]: count };
+        }
+        break;
+      }
+      case LIB_ITEM.SUBJECTS: {
+        const smartId = String(payload?.smartId || '');
+        if (smartId) {
+          subjectCounts.value = { ...subjectCounts.value, [smartId]: count };
+        }
+        break;
+      }
+    }
+};
+
 onMounted(async () => {
-  await refreshTotalCount();
-  await refreshFavoriteCount();
-  await refreshTodayCount();
-  await refreshRatingCounts();
+  const pendingUpdates: any[] = [];
+  let initializing = true;
+  unlistenLibraryItemCount = await listen('library-item-count-updated', (event: any) => {
+    if (initializing) {
+      pendingUpdates.push(event.payload);
+    } else {
+      applyCountUpdate(event.payload);
+    }
+  });
+
+  await Promise.all([
+    refreshTotalCount(),
+    refreshFavoriteCount(),
+    refreshTodayCount(),
+    refreshRatingCounts(),
+  ]);
+  initializing = false;
+  pendingUpdates.forEach(applyCountUpdate);
+});
+
+onBeforeUnmount(() => {
+  unlistenLibraryItemCount?.();
 });
 
 </script>

@@ -83,20 +83,23 @@
     <!-- Empty State / Loading -->
     <div v-if="fileList.length === 0" class="absolute inset-0 flex flex-col items-center justify-center">
       <div class="text-base-content/30 flex flex-col items-center gap-2 text-center px-4">
-        <template v-if="showDelayedLoading">
-          <span class="loading loading-dots loading-lg text-primary"></span>
-          <span>{{ $t('tooltip.loading') }}</span>
+        <Transition name="fade" appear>
+          <div v-if="showDelayedLoading" class="flex flex-col items-center gap-2">
+            <span class="loading loading-dots loading-lg text-primary"></span>
+            <span>{{ $t('tooltip.loading') }}</span>
+          </div>
+        </Transition>
+        <template v-if="contentReady">
+          <template v-if="showFolderFiles && folderExcluded">
+            <span>{{ $t('tooltip.not_found.folder_excluded') }}</span>
+            <span class="text-xs">{{ $t('tooltip.not_found.folder_excluded_hint') }}</span>
+          </template>
+          <template v-else-if="showFolderFiles">
+            <span>{{ $t('tooltip.not_found.folder_files') }}</span>
+            <span class="text-xs">{{ $t('tooltip.not_found.folder_files_hint') }}</span>
+          </template>
+          <span v-else class="whitespace-pre-line">{{ emptyMessage || $t('tooltip.not_found.files') }}</span>
         </template>
-        <template v-else-if="!contentReady" />
-        <template v-else-if="showFolderFiles && folderExcluded">
-          <span>{{ $t('tooltip.not_found.folder_excluded') }}</span>
-          <span class="text-xs">{{ $t('tooltip.not_found.folder_excluded_hint') }}</span>
-        </template>
-        <template v-else-if="showFolderFiles">
-          <span>{{ $t('tooltip.not_found.folder_files') }}</span>
-          <span class="text-xs">{{ $t('tooltip.not_found.folder_files_hint') }}</span>
-        </template>
-        <span v-else class="whitespace-pre-line">{{ emptyMessage || $t('tooltip.not_found.files') }}</span>
       </div>
     </div>
 

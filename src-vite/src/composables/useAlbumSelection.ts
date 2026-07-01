@@ -67,13 +67,24 @@ export function useAlbumSelectionProvider(
         }
     });
 
+    let folderRequestId = 0;
+    const currentSelection = () => ({
+        albumId: albumId.value,
+        folderId: folderId.value,
+        folderPath: folderPath.value,
+        selected: selected.value,
+    });
+    let confirmedSelection = currentSelection();
+
     /**
      * Select an album (shows all files in the album)
      */
     const selectAlbum = (album: Album) => {
+        folderRequestId++;
         albumId.value = album.id;
         folderPath.value = album.path;
         selected.value = true;
+        confirmedSelection = currentSelection();
         markAlbumActivated();
     };
 
@@ -82,12 +93,27 @@ export function useAlbumSelectionProvider(
      */
     const selectFolder = async (albumIdVal: number, folder: Folder) => {
         markAlbumActivated();
-        const result = await apiSelectFolder(albumIdVal, folder.path);
-        if (result) {
-            albumId.value = albumIdVal;
+        const requestId = ++folderRequestId;
+        const selectedPath = folder.path;
+        albumId.value = albumIdVal;
+        folderId.value = Number(folder.id || 0) || null;
+        folderPath.value = selectedPath;
+        selected.value = false;
+
+        await new Promise<void>(resolve => {
+            requestAnimationFrame(() => setTimeout(resolve, 0));
+        });
+        const result = await apiSelectFolder(albumIdVal, selectedPath);
+        const selectionIsCurrent = requestId === folderRequestId;
+
+        if (result && selectionIsCurrent) {
             folderId.value = result.id;
-            folderPath.value = result.path;
-            selected.value = false;
+            confirmedSelection = currentSelection();
+        } else if (!result && selectionIsCurrent) {
+            albumId.value = confirmedSelection.albumId;
+            folderId.value = confirmedSelection.folderId;
+            folderPath.value = confirmedSelection.folderPath;
+            selected.value = confirmedSelection.selected;
         }
     };
 
@@ -105,10 +131,12 @@ export function useAlbumSelectionProvider(
      * Reset selection to show all files
      */
     const resetSelection = () => {
+        folderRequestId++;
         albumId.value = 0;
         folderId.value = null;
         folderPath.value = '';
         selected.value = false;
+        confirmedSelection = currentSelection();
     };
 
     // Create the context object
