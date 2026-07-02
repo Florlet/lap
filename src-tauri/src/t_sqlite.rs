@@ -1309,15 +1309,22 @@ impl AFile {
     fn search_exclusion_condition(folder_alias: &str) -> String {
         let sep = std::path::MAIN_SEPARATOR.to_string().replace('\'', "''");
         format!(
-            "NOT EXISTS (
-                SELECT 1 FROM afolders xf
-                WHERE COALESCE(xf.is_excluded_from_search, 0) = 1
-                AND xf.album_id = {folder_alias}.album_id
-                AND (
-                    {folder_alias}.path = xf.path
-                    OR instr({folder_alias}.path, xf.path || '{}') = 1
+            "(CASE
+                WHEN NOT EXISTS (
+                    SELECT 1 FROM afolders
+                    WHERE is_excluded_from_search = 1
                 )
-            )",
+                THEN 1
+                ELSE NOT EXISTS (
+                    SELECT 1 FROM afolders xf
+                    WHERE xf.is_excluded_from_search = 1
+                    AND xf.album_id = {folder_alias}.album_id
+                    AND (
+                        {folder_alias}.path = xf.path
+                        OR instr({folder_alias}.path, xf.path || '{}') = 1
+                    )
+                )
+            END)",
             sep
         )
     }

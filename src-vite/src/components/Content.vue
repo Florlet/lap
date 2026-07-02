@@ -835,6 +835,11 @@ const selectedCount = ref(0);
 const selectedSize = ref(0);  // selected files size
 const selectionChunkSize = computed(() => Number(config.main?.selectionChunkSize) || 200);
 const isRealFileItem = (item: any) => !!item && !item.isPlaceholder && typeof item.id === 'number';
+const isPendingFileItem = (item: any) => !item || item.isPlaceholder;
+
+function createVirtualFileSlots(count: number) {
+  return new Array(Math.max(0, Number(count || 0))).fill(null);
+}
 const isGroupRow = (item: any) => item?.type === 'group';
 const isItemRow = (item: any) => item?.type === 'item';
 const selectedFileIds = markRaw(new Set<number>());
@@ -2630,7 +2635,7 @@ async function hydrateSelectionRange(startIndex: number, endIndex: number) {
 
   const hasPlaceholders = fileList.value
     .slice(start, end + 1)
-    .some(item => item?.isPlaceholder);
+    .some(isPendingFileItem);
   return !hasPlaceholders || await hydrateRangeForSelection(start, end + 1);
 }
 
@@ -2736,7 +2741,7 @@ async function handleDateGroupSelect({ startIndex, endIndex, selected }: { start
   const end = Math.max(start, Math.min(Number(endIndex || start), fileList.value.length));
   if (start >= end) return;
 
-  const needsLoad = fileList.value.slice(start, end).some((f: any) => f?.isPlaceholder);
+  const needsLoad = fileList.value.slice(start, end).some(isPendingFileItem);
   if (needsLoad) {
     await fetchDataRange(start, end);
   }
@@ -4595,7 +4600,13 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
   if (start >= end || requestId !== currentContentRequestId) return;
 
   // Fetch in chunks
-  const chunkSize = selectionChunkSize.value;
+  // Keep normal browsing requests close to the actual viewport size. Large
+  // fixed chunks make the initial "all files" view decode metadata and fetch
+  // thumbnails for many items that are not yet visible.
+  const chunkSize = Math.max(
+    1,
+    Math.min(selectionChunkSize.value, Math.max(32, visibleItemCount.value)),
+  );
   const startChunk = Math.floor(start / chunkSize);
   const endChunk = Math.floor((end - 1) / chunkSize);
   const chunkPromises: Promise<void>[] = [];
@@ -4609,7 +4620,7 @@ async function fetchDataRange(start: number, end: number, reverse = false) {
     // Check if this chunk still contains any placeholders.
     let chunkNeedsLoad = false;
     for (let idx = chunkStart; idx < chunkEnd; idx++) {
-      if (fileList.value[idx]?.isPlaceholder) {
+      if (isPendingFileItem(fileList.value[idx])) {
         chunkNeedsLoad = true;
         break;
       }
@@ -4940,7 +4951,7 @@ async function hydrateRangeForSelection(startIndex: number, endIndex: number) {
       const selectionStart = Math.max(cappedStart, chunkStart);
       const needsLoad = fileList.value
         .slice(selectionStart, chunkEnd)
-        .some(item => item?.isPlaceholder);
+        .some(isPendingFileItem);
       if (!needsLoad) continue;
 
       const loadedFiles = await getCurrentQueryFiles(chunkStart, chunkSize);
@@ -4964,7 +4975,7 @@ async function hydrateRangeForSelection(startIndex: number, endIndex: number) {
           applySelectionDelta(fileList.value[targetIndex], 1);
         }
       }
-      if (fileList.value.slice(selectionStart, chunkEnd).some(item => item?.isPlaceholder)) {
+      if (fileList.value.slice(selectionStart, chunkEnd).some(isPendingFileItem)) {
         return false;
       }
     }
@@ -5211,12 +5222,7 @@ async function getFileList(
       });
       
       // Initialize fileList with placeholders
-      fileList.value = Array.from({ length: totalFileCount.value }).map((_, i) => ({
-        id: 'ph-' + i,
-        isPlaceholder: true,
-        name: '',
-        size: 0,
-      }));
+      fileList.value = createVirtualFileSlots(totalFileCount.value);
       markDedupSourceUpdated(requestId);
       restoreInitialSelectionIfNeeded();
       restoreScrollAfterRefresh();
@@ -5294,12 +5300,7 @@ async function getCollectionFileList(collectionId: number, requestId: number) {
       totalFileSize.value = result[1];
       timelineData.value = [];
 
-      fileList.value = Array.from({ length: totalFileCount.value }).map((_, i) => ({
-        id: 'ph-' + i,
-        isPlaceholder: true,
-        name: '',
-        size: 0,
-      }));
+      fileList.value = createVirtualFileSlots(totalFileCount.value);
       markDedupSourceUpdated(requestId);
       restoreInitialSelectionIfNeeded();
       restoreScrollAfterRefresh();
@@ -5373,12 +5374,7 @@ async function getSmartFileList(smartAlbum: any, requestId: number) {
         }
       });
 
-      fileList.value = Array.from({ length: totalFileCount.value }).map((_, i) => ({
-        id: 'ph-' + i,
-        isPlaceholder: true,
-        name: '',
-        size: 0,
-      }));
+      fileList.value = createVirtualFileSlots(totalFileCount.value);
       markDedupSourceUpdated(requestId);
       restoreInitialSelectionIfNeeded();
       restoreScrollAfterRefresh();
@@ -7360,7 +7356,7 @@ const selectAllInCurrentList = async () => {
     return;
   }
 
-  const hasPlaceholders = fileList.value.some(file => file?.isPlaceholder);
+  const hasPlaceholders = fileList.value.some(isPendingFileItem);
   selectedFileIds.clear();
   if (hasPlaceholders) {
     const ids = await getCurrentQueryFileIds();

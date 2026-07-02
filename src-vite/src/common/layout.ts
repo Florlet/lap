@@ -10,6 +10,13 @@ export interface JustifiedLayoutResult {
     containerHeight: number;
 }
 
+function getAspectRatio(item: any): number {
+    const width = Number(item?.width) > 0 ? Number(item.width) : 100;
+    const height = Number(item?.height) > 0 ? Number(item.height) : 100;
+    const ratio = width / height;
+    return Number(item?.rotate || 0) % 180 !== 0 ? 1 / ratio : ratio;
+}
+
 export function calculateJustifiedLayout(
     items: any[],
     containerWidth: number,
@@ -30,12 +37,7 @@ export function calculateJustifiedLayout(
         // Calculate total aspect ratio of the row
         let totalAspectRatio = 0;
         rowItems.forEach(item => {
-            let w = item.width || 100;
-            let h = item.height || 100;
-            if (item.rotate && item.rotate % 180 !== 0) {
-                [w, h] = [h, w];
-            }
-            totalAspectRatio += w / h;
+            totalAspectRatio += getAspectRatio(item);
         });
 
         // Calculate available width for content (minus spacing)
@@ -54,13 +56,8 @@ export function calculateJustifiedLayout(
 
         // Generate geometry for each item in this row
         let currentX = 0;
-        rowItems.forEach((item, index) => {
-            let w = item.width || 100;
-            let h = item.height || 100;
-            if (item.rotate && item.rotate % 180 !== 0) {
-                [w, h] = [h, w];
-            }
-            const aspectRatio = w / h;
+        rowItems.forEach(item => {
+            const aspectRatio = getAspectRatio(item);
 
             const itemWidth = rowHeight * aspectRatio;
 
@@ -80,13 +77,9 @@ export function calculateJustifiedLayout(
     let currentRowWidth = 0;
 
     items.forEach(item => {
-        let w = item.width || 100;
-        let h = item.height || 100;
-        if (item.rotate && item.rotate % 180 !== 0) {
-            [w, h] = [h, w];
-        }
+        const aspectRatio = getAspectRatio(item);
         // Width if scaled to targetHeight
-        const scaledWidth = (w / h) * targetHeight;
+        const scaledWidth = aspectRatio * targetHeight;
 
         // Check if adding this item exceeds container (roughly)
         // We add spacing only if it's not the first item
@@ -118,20 +111,16 @@ export function calculateJustifiedLayout(
 
             // 1. Break BEFORE adding this item:
             // previous row has `currentRow`.
-            const prevAspect = currentRow.reduce((acc, it) => {
-                let w = it.width || 100;
-                let h = it.height || 100;
-                if (it.rotate && it.rotate % 180 !== 0) {
-                    [w, h] = [h, w];
-                }
-                return acc + w / h;
-            }, 0);
+            const prevAspect = currentRow.reduce(
+                (acc, it) => acc + getAspectRatio(it),
+                0
+            );
             const prevWidthAvail = containerWidth - Math.max(0, currentRow.length - 1) * spacingX;
             const heightIfBreakBefore = prevWidthAvail / prevAspect;
 
             // 2. Break AFTER adding this item (include it):
             const newRow = [...currentRow, item];
-            const newAspect = prevAspect + (w / h);
+            const newAspect = prevAspect + aspectRatio;
             const newWidthAvail = containerWidth - Math.max(0, newRow.length - 1) * spacingX;
             const heightIfBreakAfter = newWidthAvail / newAspect;
 
@@ -188,12 +177,7 @@ export function calculateLinearRowLayout(
     let currentX = 0;
 
     items.forEach(item => {
-        let w = item.width && item.width > 0 ? item.width : 100;
-        let h = item.height && item.height > 0 ? item.height : 100;
-        if (item.rotate && item.rotate % 180 !== 0) {
-            [w, h] = [h, w];
-        }
-        const aspectRatio = w / h;
+        const aspectRatio = getAspectRatio(item);
 
         const itemWidth = targetHeight * aspectRatio;
 
@@ -230,12 +214,7 @@ export function calculateMasonryLayout(
     const boxes: Geometry[] = [];
 
     for (const item of items) {
-        let w = item.width || 100;
-        let h = item.height || 100;
-        if (item.rotate && item.rotate % 180 !== 0) {
-            [w, h] = [h, w];
-        }
-        const itemHeight = columnWidth / (w / h);
+        const itemHeight = columnWidth / getAspectRatio(item);
 
         let shortestCol = 0;
         for (let i = 1; i < columnCount; i++) {
@@ -271,12 +250,7 @@ export function calculateLinearColumnLayout(
     let currentY = 0;
 
     items.forEach(item => {
-        let w = item.width && item.width > 0 ? item.width : 100;
-        let h = item.height && item.height > 0 ? item.height : 100;
-        if (item.rotate && item.rotate % 180 !== 0) {
-            [w, h] = [h, w];
-        }
-        const aspectRatio = w / h;
+        const aspectRatio = getAspectRatio(item);
 
         const itemHeight = targetWidth / aspectRatio;
 

@@ -275,9 +275,12 @@ function isGeometryGridStyle(style: number) {
 }
 
 const renderItems = computed(() => props.fileList);
-const hasGroupRows = computed(() => renderItems.value.some(item => isGroupRow(item)));
+const hasGroupRows = computed(() =>
+  Number(props.groupBy || 0) > 0 || isGroupRow(renderItems.value[0])
+);
 const fileIndexToRowIndex = computed(() => {
   const map = new Map<number, number>();
+  if (!hasGroupRows.value) return map;
   renderItems.value.forEach((item, rowIndex) => {
     if (!isGroupRow(item)) {
       const fileIndex = getFileIndex(item, rowIndex);
@@ -288,6 +291,7 @@ const fileIndexToRowIndex = computed(() => {
 });
 const rowIndexToFileIndex = computed(() => {
   const map = new Map<number, number>();
+  if (!hasGroupRows.value) return map;
   renderItems.value.forEach((item, rowIndex) => {
     if (!isGroupRow(item)) {
       const fileIndex = getFileIndex(item, rowIndex);
@@ -786,12 +790,16 @@ function getNextItemIndex(currentIndex: number, direction: 'up' | 'down'): numbe
   layoutGeometry.value.forEach((box, displayIndex) => {
     if (direction === 'down') {
       if (box.y > currentY + 1) { // +1 for tolerance
-         const fileIndex = rowIndexToFileIndex.value.get(displayIndex);
+         const fileIndex = hasGroupRows.value
+           ? rowIndexToFileIndex.value.get(displayIndex)
+           : displayIndex;
          if (fileIndex !== undefined) candidates.push({ index: fileIndex, box, diffY: box.y - currentY });
       }
     } else {
       if (box.y < currentY - 1) { // -1 for tolerance
-         const fileIndex = rowIndexToFileIndex.value.get(displayIndex);
+         const fileIndex = hasGroupRows.value
+           ? rowIndexToFileIndex.value.get(displayIndex)
+           : displayIndex;
          if (fileIndex !== undefined) candidates.push({ index: fileIndex, box, diffY: currentY - box.y });
       }
     }
