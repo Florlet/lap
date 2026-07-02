@@ -392,6 +392,7 @@
             :selected-file-id="fileList[selectedItemIndex]?.id"
             :dedup-scan-key="dedupScanKey"
             :dedup-query-params="dedupQueryParams"
+            :dedup-collection-id="dedupCollectionId"
             @close="config.rightPanel.show = false"
             @select-file="handleDedupSelectFile"
             @preview-file="handleDedupPreviewFile"
@@ -2393,10 +2394,13 @@ const tempViewMode = ref<'none' | 'similar' | 'album' | 'person'>('none');
 const dedupQueryParams = computed(() => {
   return { ...currentQueryParams.value };
 });
+const dedupCollectionId = computed(() =>
+  currentQuerySource.value === 'collection' ? currentCollectionId.value : null
+);
 
 const dedupScanKey = computed(() => {
   if (dedupSourceVersion.value <= 0) return '';
-  return `query:${JSON.stringify(dedupQueryParams.value)}|version:${dedupSourceVersion.value}`;
+  return `query:${JSON.stringify(dedupQueryParams.value)}|collection:${dedupCollectionId.value ?? ''}|version:${dedupSourceVersion.value}`;
 });
 
 const currentTitleIcon = computed(() => {

@@ -66,6 +66,7 @@ pub fn start_scan(
     app_handle: tauri::AppHandle,
     dedup_state: tauri::State<'_, DedupState>,
     query_params: Option<QueryParams>,
+    collection_id: Option<i64>,
 ) -> Result<(), String> {
     if dedup_state
         .is_scanning
@@ -91,8 +92,13 @@ pub fn start_scan(
     }
 
     std::thread::spawn(move || {
-        let result =
-            scan_and_hash_files(&app_handle, &status_clone, &cancel_flag_clone, query_params);
+        let result = scan_and_hash_files(
+            &app_handle,
+            &status_clone,
+            &cancel_flag_clone,
+            query_params,
+            collection_id,
+        );
 
         let mut final_status = status_clone.lock().unwrap();
         match result {
@@ -122,11 +128,14 @@ fn scan_and_hash_files(
     status_mutex: &Arc<Mutex<DedupScanStatus>>,
     cancel_flag: &Arc<AtomicBool>,
     query_params: Option<QueryParams>,
+    collection_id: Option<i64>,
 ) -> Result<(), String> {
     let mut conn = get_db_conn()?;
-    let has_scope = query_params.is_some();
+    let has_scope = collection_id.is_some() || query_params.is_some();
 
-    let files_to_check = if let Some(params) = query_params.as_ref() {
+    let files_to_check = if let Some(collection_id) = collection_id {
+        get_files_by_collection(collection_id, query_params.as_ref())?
+    } else if let Some(params) = query_params.as_ref() {
         get_files_by_query(params)?
     } else {
         // Step 1: Find suspicious sizes (sizes shared by >1 file)
@@ -353,6 +362,32 @@ fn get_files_by_query(params: &QueryParams) -> Result<Vec<AFile>, String> {
 
     loop {
         let files = AFile::get_query_files(params, offset, chunk_size)?;
+        let fetched = files.len() as i64;
+        if fetched == 0 {
+            break;
+        }
+        all_files.extend(files);
+        if fetched < chunk_size {
+            break;
+        }
+        offset += chunk_size;
+    }
+
+    Ok(all_files)
+}
+
+fn get_files_by_collection(
+    collection_id: i64,
+    params: Option<&QueryParams>,
+) -> Result<Vec<AFile>, String> {
+    let params =
+        params.ok_or_else(|| "Collection dedup query parameters are required".to_string())?;
+    let mut all_files = Vec::new();
+    let mut offset: i64 = 0;
+    let chunk_size: i64 = 2000;
+
+    loop {
+        let files = AFile::get_collection_files(collection_id, params, offset, chunk_size)?;
         let fetched = files.len() as i64;
         if fetched == 0 {
             break;

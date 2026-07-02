@@ -243,6 +243,10 @@ const props = defineProps({
     type: Object as () => Record<string, any> | null,
     default: null,
   },
+  dedupCollectionId: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits<{
@@ -690,7 +694,7 @@ async function triggerBackendDedup(force = false) {
       return;
     }
 
-    await dedupStartScan(props.dedupQueryParams || null);
+    await dedupStartScan(props.dedupQueryParams || null, props.dedupCollectionId);
     dedupPaneGlobalState.lastScanKey = props.dedupScanKey;
 
     const latest = await dedupGetScanStatus();

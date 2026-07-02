@@ -2143,8 +2143,9 @@ pub fn dedup_start_scan(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, crate::t_dedup::DedupState>,
     params: Option<crate::t_sqlite::QueryParams>,
+    collection_id: Option<i64>,
 ) -> Result<(), String> {
-    crate::t_dedup::start_scan(app_handle, state, params)
+    crate::t_dedup::start_scan(app_handle, state, params, collection_id)
 }
 
 #[tauri::command]

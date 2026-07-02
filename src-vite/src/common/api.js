@@ -1718,8 +1718,8 @@ export async function listenIndexProgress(callback) {
 // deduplication
 
 // start deduplication scan
-export async function dedupStartScan(params = null) {
-  return await invoke('dedup_start_scan', { params });
+export async function dedupStartScan(params = null, collectionId = null) {
+  return await invoke('dedup_start_scan', { params, collectionId });
 }
 
 // get deduplication scan status
