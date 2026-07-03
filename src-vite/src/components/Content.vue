@@ -1017,8 +1017,13 @@ function formatDateGroupLabel(groupBy: number, label: string) {
       return formatDate(year, month, date, localeMsg.value.format.date_long);
     case GROUP.MONTH:
       return formatDate(year, month, 1, localeMsg.value.format.month);
-    case GROUP.YEAR:
+    case GROUP.YEAR: {
+      if (config.main.sidebarIndex === SIDEBAR.LIBRARY && libConfig.library.item === LIB_ITEM.TODAY) {
+        const today = new Date();
+        return formatDate(year, today.getMonth() + 1, today.getDate(), localeMsg.value.format.date_long);
+      }
       return formatDate(year, 1, 1, localeMsg.value.format.year);
+    }
     default:
       return rawLabel;
   }
@@ -2343,7 +2348,12 @@ watch(() => props.libraryEmpty, () => {
 }, { immediate: true });
 
 watch(contentReady, (ready) => {
-  if (!ready || config.main.sidebarIndex !== SIDEBAR.LIBRARY || libConfig.activePane !== 'main') return;
+  if (
+    !ready ||
+    tempViewMode.value !== 'none' ||
+    config.main.sidebarIndex !== SIDEBAR.LIBRARY ||
+    libConfig.activePane !== 'main'
+  ) return;
   void tauriEmit('library-item-count-updated', {
     item: libConfig.library.item,
     rating: libConfig.rating.item,
