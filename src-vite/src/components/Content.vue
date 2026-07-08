@@ -2065,6 +2065,13 @@ function sanitizeDragGhostClone(element: HTMLElement) {
   clone.removeAttribute('id');
   clone.querySelectorAll('[id]').forEach(child => child.removeAttribute('id'));
   clone.querySelectorAll('button, input, [role="button"]').forEach(child => child.remove());
+  clone.querySelectorAll('video').forEach(video => {
+    video.muted = true;
+    video.defaultMuted = true;
+    video.volume = 0;
+    video.pause();
+    video.removeAttribute('autoplay');
+  });
   clone.style.pointerEvents = 'none';
   clone.style.margin = '0';
   clone.style.width = `${element.getBoundingClientRect().width}px`;
@@ -7731,23 +7738,62 @@ const toggleDedupPanel = () => {
   });
 };
 
+let dedupNavigationRequestId = 0;
+
+async function resolveGroupedFileIndexForDedup(fileId: number): Promise<number> {
+  let fileIndexCursor = 0;
+
+  for (const group of groupedTimelineGroups.value) {
+    const groupId = String(group.groupId || '');
+    const groupCount = Number(group.count || 0);
+    if (!groupId || groupCount <= 0) {
+      fileIndexCursor += Math.max(0, groupCount);
+      continue;
+    }
+
+    const ids = await getCachedGroupFileIds(groupId);
+    const groupFileIndex = Array.isArray(ids)
+      ? ids.findIndex((id: number) => Number(id) === Number(fileId))
+      : -1;
+    if (groupFileIndex >= 0) {
+      return fileIndexCursor + groupFileIndex;
+    }
+
+    fileIndexCursor += groupCount;
+  }
+
+  return -1;
+}
+
 async function resolveFileIndexForDedup(fileId: number): Promise<number> {
   const loadedIndex = fileList.value.findIndex(file => file.id === fileId);
   if (loadedIndex !== -1) return loadedIndex;
 
-  const position = await getCurrentQueryFilePosition(fileId);
+  const position = groupedModeActive.value
+    ? await resolveGroupedFileIndexForDedup(fileId)
+    : await getCurrentQueryFilePosition(fileId);
   if (position === null || position < 0 || position >= totalFileCount.value) {
     return -1;
   }
 
   const buffer = 200;
-  await fetchDataRange(position - buffer, position + buffer);
-  return position;
+  if (groupedModeActive.value) {
+    const rowIndex = getGroupedRowIndexForFileIndex(position);
+    if (rowIndex < 0) return -1;
+    await fetchGroupedRowsRange(rowIndex - buffer, rowIndex + buffer);
+    if (!ensureGroupedFileAtIndex(position)) return -1;
+  } else {
+    await fetchDataRange(position - buffer, position + buffer);
+  }
+
+  return isRealFileItem(fileList.value[position]) ? position : -1;
 }
 
 const handleDedupSelectFile = (fileId: number) => {
+  const requestId = ++dedupNavigationRequestId;
   checkUnsavedChanges(async () => {
     const index = await resolveFileIndexForDedup(fileId);
+    if (requestId !== dedupNavigationRequestId) return;
     if (index === -1) return;
     selectedItemIndex.value = index;
     updateSelectedImage(index);
@@ -7755,8 +7801,10 @@ const handleDedupSelectFile = (fileId: number) => {
 };
 
 const handleDedupPreviewFile = (fileId: number) => {
+  const requestId = ++dedupNavigationRequestId;
   checkUnsavedChanges(async () => {
     const index = await resolveFileIndexForDedup(fileId);
+    if (requestId !== dedupNavigationRequestId) return;
     if (index === -1) return;
     selectedItemIndex.value = index;
     handleItemDblClicked(index);

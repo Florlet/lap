@@ -61,15 +61,13 @@
               }) }}
             </span>
           </div>
-          <div class="mx-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-1.5">
+          <div class="mx-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-2">
             <button
               v-for="group in visibleDuplicateGroups"
               :key="group.id"
-              class="group/thumb relative h-20 min-w-0 overflow-hidden rounded-box border bg-base-100/50 transition-colors cursor-pointer"
-              :class="selectedGroupId === group.id
-                ? 'border-primary/70 ring-1 ring-primary/30'
-                : 'border-base-content/5 hover:border-base-content/20'"
-              @click="selectedGroupId = group.id"
+              class="group/thumb relative h-20 min-w-0 overflow-hidden rounded-box cursor-pointer"
+              :class="selectedGroupId === group.id ? 'ring-2 ring-primary' : ''"
+              @click="selectDuplicateGroup(group)"
             >
               <img
                 v-if="group.keepItem?.file?.thumbnail"
@@ -353,6 +351,14 @@ function handleDuplicateSelection(fileId: number, preview = false) {
   emit('select-file', fileId);
   if (preview) {
     emit('preview-file', fileId);
+  }
+}
+
+function selectDuplicateGroup(group: any) {
+  selectedGroupId.value = Number(group.id);
+  const keepFileId = Number(group.keepItem?.file_id || 0);
+  if (keepFileId > 0) {
+    emit('select-file', keepFileId);
   }
 }
 
@@ -750,6 +756,7 @@ watch(
 watch(selectedGroupId, async (groupId, prevGroupId) => {
   if (!groupId || groupId === prevGroupId) return;
   await hydrateGroupThumbnails(rawGroups.value, groupId);
+  if (selectedGroupId.value !== groupId) return;
   const group = duplicateGroups.value.find((item: any) => item.id === groupId);
   const keepId = group?.keepItem?.file_id;
   if (keepId) {
