@@ -22,7 +22,7 @@
         </div>
 
         <div class="flex items-center gap-1 shink-0">
-          <component :is="currentFile?.file_type === 1 || currentFile?.file_type === 3 ? IconPhoto : IconVideo" class="t-icon-size-xs" />
+          <component :is="currentFile?.file_type === 1 || currentFile?.file_type === 3 ? IconAspectRatio : IconVideo" class="t-icon-size-xs" />
           <span>{{ formatDimensionText(currentFile?.width, currentFile?.height, true) }}</span>
         </div>
 
@@ -77,7 +77,7 @@ import {
 import {
   IconCheckAll,
   IconChecked,
-  IconPhoto,
+  IconAspectRatio,
   IconVideo,
   IconCamera,
   IconCameraAperture,

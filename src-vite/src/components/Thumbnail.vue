@@ -72,7 +72,7 @@
       ></div>
       <div
         v-if="statusBadges.length > 0"
-        class="pointer-events-none absolute left-0.5 top-0.5 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-1"
+        class="pointer-events-none absolute left-0.5 top-0.5 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-0.5"
       >
         <div
           v-for="badge in statusBadges"
@@ -102,11 +102,18 @@
         </div>
       </div>
 
-      <!-- video duration and dedup badges -->
+      <!-- bottom badges -->
       <div
-        v-if="videoDurationBadge || dedupStatus"
-        class="pointer-events-none absolute left-0.5 bottom-0.5 z-10 flex items-center gap-1"
+        v-if="isLivePhoto || videoDurationBadge || dedupStatus"
+        class="pointer-events-none absolute left-0.5 bottom-0.5 z-10 flex items-center gap-0.5"
       >
+        <div
+          v-if="isLivePhoto"
+          class="thumb-badge thumb-badge-muted"
+        >
+          <IconLivePhoto class="h-3.5 w-3.5 shrink-0" />
+          <span class="leading-none">LIVE</span>
+        </div>
         <div
           v-if="videoDurationBadge"
           class="thumb-badge thumb-badge-muted"
@@ -116,7 +123,7 @@
         <div
           v-if="dedupStatus"
           class="thumb-badge"
-          :class="dedupStatus === 'keep' ? 'text-primary/70' : 'text-error/70'"
+          :class="dedupStatus === 'keep' ? 'text-base-content/70' : 'text-error/70'"
         >
           {{ dedupStatus === 'keep' ? 'KEEP' : 'DUP' }}
         </div>
@@ -194,6 +201,7 @@ import {
   IconRotate,
   IconComment,
   IconStarFilled,
+  IconLivePhoto
 } from '@/common/icons';
 
 const props = defineProps({
@@ -244,10 +252,12 @@ let previewTimer: ReturnType<typeof setTimeout> | null = null;
 const showVideoPreview = ref(false);
 const isVideoPreviewReady = ref(false);
 const isVideoFile = computed(() => props.file?.file_type === 2);
+const isLivePhoto = computed(() => props.file?.media_subtype === 'live_photo' && !!props.file?.live_photo_video_path);
+const previewVideoPath = computed(() => isLivePhoto.value ? props.file.live_photo_video_path : props.file?.file_path);
 const canPreviewVideo = computed(() => (
-  isVideoFile.value
-  && !!props.file?.file_path
-  && !isWebViewVideoPlaybackDisabled(props.file.file_path)
+  (isVideoFile.value || isLivePhoto.value)
+  && !!previewVideoPath.value
+  && !isWebViewVideoPlaybackDisabled(previewVideoPath.value)
 ));
 const isGeometryGridStyle = computed(() => config.settings.grid.style === 2 || config.settings.grid.style === 3);
 const shouldScaleThumbnail = computed(() => config.settings.grid.style === 1 || isGeometryGridStyle.value);
@@ -325,7 +335,7 @@ watch(() => props.file.rotate, () => {
   }, 500);
 });
 
-watch(() => props.file.file_path, () => {
+watch(() => [props.file.file_path, props.file.live_photo_video_path], () => {
   stopVideoPreview();
 });
 
@@ -334,7 +344,7 @@ function startVideoPreview() {
 
   previewTimer = setTimeout(async () => {
     previewTimer = null;
-    if (!canPreviewVideo.value || !props.file?.file_path) return;
+    if (!canPreviewVideo.value || !previewVideoPath.value) return;
 
     isVideoPreviewReady.value = false;
     showVideoPreview.value = true;
@@ -343,7 +353,7 @@ function startVideoPreview() {
     const video = previewVideoRef.value;
     if (!video) return;
 
-    video.src = getAssetSrc(props.file.file_path);
+    video.src = getAssetSrc(previewVideoPath.value);
     video.muted = true;
 
     try {

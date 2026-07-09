@@ -147,14 +147,7 @@ fn scan_and_hash_files(
     } else if let Some(params) = query_params.as_ref() {
         get_files_by_query(params)?
     } else {
-        // Step 1: Find suspicious sizes (sizes shared by >1 file)
-        let suspicious_sizes = get_suspicious_file_sizes(&conn)?;
-        if suspicious_sizes.is_empty() {
-            rebuild_duplicate_groups(&mut conn, None)?;
-            return Ok(());
-        }
-        // Step 2: Get all files with those sizes
-        get_files_by_sizes(&conn, &suspicious_sizes)?
+        get_files_by_sizes(&conn)?
     };
 
     let files_to_check = filter_suspicious_files(files_to_check);
@@ -259,29 +252,7 @@ fn get_db_conn() -> Result<Connection, String> {
     Ok(conn)
 }
 
-fn get_suspicious_file_sizes(conn: &Connection) -> Result<Vec<i64>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT size 
-         FROM afiles 
-         GROUP BY size 
-         HAVING COUNT(size) > 1 AND size > 0",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let sizes = stmt
-        .query_map([], |row| row.get(0))
-        .map_err(|e| e.to_string())?
-        .filter_map(Result::ok)
-        .collect();
-
-    Ok(sizes)
-}
-
-fn get_files_by_sizes(conn: &Connection, _sizes: &[i64]) -> Result<Vec<AFile>, String> {
-    // Basic trick: parameterize the sizes. SQLite limits to 999 max vars usually.
-    // For safety, let's fetch in chunks if huge. But we'll just do a joined query.
-
+fn get_files_by_sizes(conn: &Connection) -> Result<Vec<AFile>, String> {
     let mut stmt = conn.prepare(
         "SELECT a.id, a.folder_id, a.name, a.name_pinyin, a.size, a.file_type, a.format_label,
                 a.created_at, a.modified_at, a.inode, a.taken_date, a.width, a.height, a.duration,
@@ -294,7 +265,17 @@ fn get_files_by_sizes(conn: &Connection, _sizes: &[i64]) -> Result<Vec<AFile>, S
                 f.path || '/' || a.name as file_path
          FROM afiles a
          JOIN afolders f ON a.folder_id = f.id
-         WHERE a.size IN (SELECT size FROM afiles GROUP BY size HAVING COUNT(size) > 1 AND size > 0)
+         WHERE a.id NOT IN (
+             SELECT live_photo_video_id FROM afiles WHERE live_photo_video_id IS NOT NULL
+         )
+         AND a.size IN (
+             SELECT size FROM afiles
+             WHERE id NOT IN (
+                 SELECT live_photo_video_id FROM afiles WHERE live_photo_video_id IS NOT NULL
+             )
+             GROUP BY size
+             HAVING COUNT(size) > 1 AND size > 0
+         )
          ORDER BY a.size DESC"
     ).map_err(|e| e.to_string())?;
 
@@ -350,6 +331,10 @@ fn get_files_by_sizes(conn: &Connection, _sizes: &[i64]) -> Result<Vec<AFile>, S
                 has_thumbnail: None,
                 has_embedding: None,
                 last_scan_time: Some(0),
+                content_identifier: None,
+                media_subtype: None,
+                live_photo_video_id: None,
+                live_photo_video_path: None,
             })
         })
         .map_err(|e| e.to_string())?;

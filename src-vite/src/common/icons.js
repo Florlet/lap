@@ -185,6 +185,8 @@ export { default as IconSparkles } from '@/assets/icons/sparkles.svg';
 export { default as IconBookmark } from '@/assets/icons/bookmark.svg';
 export { default as IconBookmarks } from '@/assets/icons/bookmarks.svg';
 export { default as IconBookmarkOff } from '@/assets/icons/bookmark-off.svg';
+export { default as IconLivePhoto } from '@/assets/icons/live-photo.svg';
+export { default as IconAspectRatio } from '@/assets/icons/aspect-ratio.svg';
 
 // ======================
 // MEDIA CONTROL ICONS

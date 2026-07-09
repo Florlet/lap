@@ -258,7 +258,7 @@
       ></div>
       <div
         v-if="showStatusBadges && quickViewStatusBadges.length > 0"
-        class="pointer-events-none absolute left-1 top-1 z-80 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-1"
+        class="pointer-events-none absolute left-4 top-4 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-1"
       >
         <div
           v-for="badge in quickViewStatusBadges"
@@ -316,7 +316,7 @@
         <IconRight class="w-8 h-8" />
       </button>
 
-      <Image v-if="file?.file_type === 1 || file?.file_type === 3"
+      <Image v-if="(file?.file_type === 1 || file?.file_type === 3) && !isLivePhotoPlaying"
         ref="mediaRef"
         :filePath="file?.file_path" 
         :fileId="file?.id"
@@ -336,6 +336,30 @@
         @pointerup.capture="handleOverlayPointerUp"
         @pointercancel.capture="resetOverlayPointer"
       ></Image>
+
+      <Video v-if="isLivePhotoPlaying"
+        class="absolute inset-0 z-50"
+        :filePath="file?.live_photo_video_path"
+        :rotate="file?.rotate ?? 0"
+        :isZoomFit="isZoomFit"
+        :isSlideShow="isSlideShow"
+        :isActive="isPlaybackActive"
+        @scale="(e) => $emit('scale', e)"
+        @viewport-change="(e) => $emit('viewport-change', e)"
+        @message-from-video-viewer="handleMessageFromImageViewer"
+        @slideshow-next="emit('slideshow-next')"
+        @context-menu="handleContextMenu"
+      ></Video>
+
+      <button
+        v-if="isLivePhoto && !isLivePhotoPlaying"
+        class="absolute left-4 bottom-4 z-60 inline-flex h-10 items-center gap-2 rounded-box bg-base-100/70 px-3 text-sm font-medium text-base-content/80 shadow hover:bg-base-100 hover:text-base-content"
+        @click.stop="isLivePhotoPlaying = true"
+        @dblclick.stop
+      >
+        <IconLivePhoto class="h-4 w-4" />
+        <span>LIVE</span>
+      </button>
       
       <Video v-if="file?.file_type === 2"
         ref="mediaRef"
@@ -356,7 +380,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, ref, computed, onMounted, onBeforeUnmount, type Component, type CSSProperties } from 'vue';
+import { defineAsyncComponent, ref, computed, watch, onMounted, onBeforeUnmount, type Component, type CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { config, libConfig } from '@/common/config';
@@ -401,6 +425,8 @@ import {
   IconSplitOff,
   IconSplitOn,
   IconSplitOn4,
+  IconVideoPlay,
+  IconLivePhoto,
 } from '@/common/icons';
 import ContextMenu from '@/components/ContextMenu.vue';
 import iconLogo from '@/assets/images/icon.png';
@@ -507,6 +533,16 @@ const props = defineProps({
     default: false
   },
 });
+
+const isLivePhotoPlaying = ref(false);
+const isLivePhoto = computed(() => props.file?.media_subtype === 'live_photo' && !!props.file?.live_photo_video_path);
+
+watch(
+  () => [props.file?.id, props.file?.live_photo_video_path],
+  () => {
+    isLivePhotoPlaying.value = false;
+  },
+);
 
 const emit = defineEmits([
   'prev', 

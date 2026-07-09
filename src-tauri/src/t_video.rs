@@ -595,6 +595,7 @@ pub struct VideoMetadata {
     pub gps_latitude: Option<f64>,
     pub gps_longitude: Option<f64>,
     pub gps_altitude: Option<f64>,
+    pub content_identifier: Option<String>,
 }
 
 pub async fn get_video_metadata_async(file_path: &str) -> Result<VideoMetadata, String> {
@@ -654,19 +655,41 @@ pub async fn get_video_metadata_async(file_path: &str) -> Result<VideoMetadata, 
         HashMap::new()
     };
 
+    let stream_meta = video["tags"].as_object().map(|tags| {
+        tags.iter()
+            .map(|(k, v)| (k.to_lowercase(), v.as_str().unwrap_or("").to_string()))
+            .collect::<HashMap<String, String>>()
+    });
+
     // Extract GPS from ISO 6709 location tag (e.g. "+40.6892-074.0445+000.000/").
     // Some cameras store it in format tags, others in stream-level video tags.
-    let (mut gps_latitude, mut gps_longitude, mut gps_altitude) =
-        parse_iso6709_location(&meta);
+    let (mut gps_latitude, mut gps_longitude, mut gps_altitude) = parse_iso6709_location(&meta);
     if gps_latitude.is_none() {
-        if let Some(tags) = video["tags"].as_object() {
-            let stream_meta: HashMap<String, String> = tags
-                .iter()
-                .map(|(k, v)| (k.to_lowercase(), v.as_str().unwrap_or("").to_string()))
-                .collect();
+        if let Some(stream_meta) = stream_meta.as_ref() {
             (gps_latitude, gps_longitude, gps_altitude) = parse_iso6709_location(&stream_meta);
         }
     }
+
+    let content_identifier = first_exist(
+        &meta,
+        &[
+            "com.apple.quicktime.content.identifier",
+            "content.identifier",
+            "live-photo-info",
+        ],
+    )
+    .or_else(|| {
+        stream_meta.as_ref().and_then(|meta| {
+            first_exist(
+                meta,
+                &[
+                    "com.apple.quicktime.content.identifier",
+                    "content.identifier",
+                    "live-photo-info",
+                ],
+            )
+        })
+    });
 
     Ok(VideoMetadata {
         width: w,
@@ -679,13 +702,16 @@ pub async fn get_video_metadata_async(file_path: &str) -> Result<VideoMetadata, 
         gps_latitude,
         gps_longitude,
         gps_altitude,
+        content_identifier,
     })
 }
 
 /// Parse GPS coordinates from ffprobe format tags using ISO 6709 notation.
 /// Common tag keys: "location", "com.apple.quicktime.location.ISO6709"
 /// Format: "+40.6892-074.0445+000.000/" (lat, lon, optional alt)
-fn parse_iso6709_location(meta: &HashMap<String, String>) -> (Option<f64>, Option<f64>, Option<f64>) {
+fn parse_iso6709_location(
+    meta: &HashMap<String, String>,
+) -> (Option<f64>, Option<f64>, Option<f64>) {
     let raw = meta
         .get("location")
         .or_else(|| meta.get("com.apple.quicktime.location.iso6709"))

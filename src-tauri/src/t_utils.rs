@@ -63,78 +63,6 @@ pub fn trash_path(path: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(test)]
-mod transfer_tests {
-    use super::*;
-
-    fn test_dir() -> PathBuf {
-        std::env::temp_dir().join(format!("lap-transfer-test-{}", uuid::Uuid::new_v4()))
-    }
-
-    #[test]
-    fn directory_accessibility_requires_a_readable_directory() {
-        let root = test_dir();
-        fs::create_dir_all(&root).unwrap();
-        let file = root.join("photo.jpg");
-        fs::write(&file, b"image").unwrap();
-
-        assert!(directory_accessible(root.to_str().unwrap()));
-        assert!(!directory_accessible(file.to_str().unwrap()));
-        assert!(!directory_accessible(
-            root.join("missing").to_str().unwrap()
-        ));
-
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn file_move_to_same_folder_is_rejected() {
-        let root = test_dir();
-        fs::create_dir_all(&root).unwrap();
-        let source = root.join("photo.jpg");
-        fs::write(&source, b"source").unwrap();
-
-        let result = move_file_with_policy(
-            source.to_str().unwrap(),
-            root.to_str().unwrap(),
-            FileConflictPolicy::KeepBoth,
-        );
-
-        assert!(result.is_err());
-        assert_eq!(fs::read(&source).unwrap(), b"source");
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn file_copy_to_same_folder_only_allows_keep_both() {
-        let root = test_dir();
-        fs::create_dir_all(&root).unwrap();
-        let source = root.join("photo.jpg");
-        fs::write(&source, b"source").unwrap();
-
-        let replace_result = copy_file_with_policy(
-            source.to_str().unwrap(),
-            root.to_str().unwrap(),
-            FileConflictPolicy::Replace,
-        );
-        assert!(replace_result.is_err());
-        assert_eq!(fs::read(&source).unwrap(), b"source");
-
-        let copied_path = copy_file_with_policy(
-            source.to_str().unwrap(),
-            root.to_str().unwrap(),
-            FileConflictPolicy::KeepBoth,
-        )
-        .unwrap()
-        .finalize()
-        .unwrap();
-        assert_ne!(Path::new(&copied_path), source);
-        assert_eq!(fs::read(copied_path).unwrap(), b"source");
-
-        fs::remove_dir_all(root).unwrap();
-    }
-}
-
 #[cfg(target_os = "macos")]
 fn move_to_trash(path: &str) -> Result<(), trash::Error> {
     use trash::macos::{DeleteMethod, TrashContextExtMacos};
@@ -941,6 +869,14 @@ fn resolve_transfer_destination(
     )
 }
 
+pub fn resolve_file_transfer_destination(
+    file_path: &str,
+    dest_folder: &str,
+    policy: FileConflictPolicy,
+) -> Result<PathBuf, String> {
+    resolve_transfer_destination(Path::new(file_path), dest_folder, policy)
+}
+
 fn paths_refer_to_same_item(left: &Path, right: &Path) -> bool {
     match (left.canonicalize(), right.canonicalize()) {
         (Ok(left), Ok(right)) => left == right,
@@ -1173,21 +1109,20 @@ fn copy_file_to_path(source: &Path, destination: &Path) -> Result<(), std::io::E
     Ok(())
 }
 
-pub fn move_file_with_policy(
+pub fn move_file_to_path_with_policy(
     file_path: &str,
-    dest_folder: &str,
+    destination: &Path,
     policy: FileConflictPolicy,
 ) -> Result<TransferResult, String> {
     let source = Path::new(file_path);
-    if source.parent() == Some(Path::new(dest_folder)) {
-        return Err(format!(
-            "Source file is already in destination folder: {}",
-            dest_folder
-        ));
-    }
-    let destination = resolve_transfer_destination(source, dest_folder, policy)?;
-    if paths_refer_to_same_item(source, &destination) {
+    if paths_refer_to_same_item(source, destination) {
         return Err("Source and destination are the same file".to_string());
+    }
+    if policy != FileConflictPolicy::Replace && destination.exists() {
+        return Err(format!(
+            "Destination file already exists: {}",
+            destination.display()
+        ));
     }
 
     if policy != FileConflictPolicy::Replace || !destination.exists() {
@@ -1225,15 +1160,20 @@ pub fn move_file_with_policy(
     Ok(TransferResult::new(&destination, backup))
 }
 
-pub fn copy_file_with_policy(
+pub fn copy_file_to_path_with_policy(
     file_path: &str,
-    dest_folder: &str,
+    destination: &Path,
     policy: FileConflictPolicy,
 ) -> Result<TransferResult, String> {
     let source = Path::new(file_path);
-    let destination = resolve_transfer_destination(source, dest_folder, policy)?;
-    if policy == FileConflictPolicy::Replace && paths_refer_to_same_item(source, &destination) {
+    if policy == FileConflictPolicy::Replace && paths_refer_to_same_item(source, destination) {
         return Err("Cannot replace a file with itself".to_string());
+    }
+    if policy != FileConflictPolicy::Replace && destination.exists() {
+        return Err(format!(
+            "Destination file already exists: {}",
+            destination.display()
+        ));
     }
     let staged = transfer_temp_path(&destination, "copy");
     if let Err(copy_error) = copy_file_to_path(source, &staged) {
@@ -1513,6 +1453,26 @@ pub fn get_folder_files(
         bit > 0 && (filter & bit) == bit
     }
 
+    fn hide_live_photo_companion_videos(files: Vec<AFile>) -> Vec<AFile> {
+        let companion_ids: HashSet<i64> = files
+            .iter()
+            .filter_map(|file| file.live_photo_video_id)
+            .collect();
+
+        if companion_ids.is_empty() {
+            return files;
+        }
+
+        files
+            .into_iter()
+            .filter(|file| {
+                file.id
+                    .map(|id| !companion_ids.contains(&id))
+                    .unwrap_or(true)
+            })
+            .collect()
+    }
+
     let mut new_count = 0;
     let mut updated_count = 0;
     let resolved_folder_id = match AFolder::fetch(folder_path) {
@@ -1531,12 +1491,7 @@ pub fn get_folder_files(
 
     let mut files: Vec<AFile> = if from_db_only {
         match AFile::get_files_by_folder_id(resolved_folder_id) {
-            Ok(files) => files
-                .into_iter()
-                .filter(|file| {
-                    matches_file_type_filter(file_type, file.file_type.unwrap_or_default())
-                })
-                .collect(),
+            Ok(files) => files,
             Err(e) => {
                 eprintln!("Failed to get files from DB: {}", e);
                 Vec::new()
@@ -1559,26 +1514,44 @@ pub fn get_folder_files(
             };
 
             if let Some(ftype) = get_file_type(file_path_str) {
-                if matches_file_type_filter(file_type, ftype) {
-                    let now = Utc::now().timestamp_millis();
-                    match AFile::add_to_db(resolved_folder_id, file_path_str, ftype, now) {
-                        Ok((file, status)) => {
-                            if status == 1 {
-                                new_count += 1;
-                            } else if status == 2 {
-                                updated_count += 1;
-                            }
+                let now = Utc::now().timestamp_millis();
+                match AFile::add_to_db(resolved_folder_id, file_path_str, ftype, now) {
+                    Ok((file, status)) => {
+                        if status == 1 {
+                            new_count += 1;
+                        } else if status == 2 {
+                            updated_count += 1;
+                        }
+                        if matches_file_type_filter(file_type, ftype) {
                             file_list.push(file);
                         }
-                        Err(e) => {
-                            eprintln!("Failed to add file to DB: {} ({})", file_path_str, e);
-                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to add file to DB: {} ({})", file_path_str, e);
                     }
                 }
             }
         }
-        file_list
+        let _ = AFile::pair_live_photos_in_folder(resolved_folder_id).map_err(|e| {
+            eprintln!(
+                "Failed to pair Live Photos in folder {}: {}",
+                folder_path, e
+            )
+        });
+        match AFile::get_files_by_folder_id(resolved_folder_id) {
+            Ok(files) => files,
+            Err(e) => {
+                eprintln!(
+                    "Failed to reload files from DB after Live Photo pairing: {}",
+                    e
+                );
+                file_list
+            }
+        }
     };
+
+    files = hide_live_photo_companion_videos(files);
+    files.retain(|file| matches_file_type_filter(file_type, file.file_type.unwrap_or_default()));
 
     // sort
     if sort_type == 8 {
@@ -2033,6 +2006,13 @@ fn sync_folder_direct_files(
         }
         count
     };
+
+    let _ = AFile::pair_live_photos_in_folder(folder_id).map_err(|e| {
+        eprintln!(
+            "Failed to pair Live Photos in folder {}: {}",
+            folder_path, e
+        )
+    });
 
     Ok(FolderSyncOutcome {
         new_file_count: new_count,

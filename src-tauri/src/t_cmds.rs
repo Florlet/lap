@@ -7,6 +7,12 @@
 use crate::t_config::{self, AppConfig, Library, LibraryInfo, LibraryState};
 use crate::t_face;
 use crate::t_image;
+use crate::t_apple_sidecar::{
+    apple_aae_sidecar_paths, build_apple_sidecar_rename_plan,
+    collect_original_rename_db_names, collect_replaced_file_ids_for_targets,
+    delete_apple_aae_sidecars, preflight_rename_plan, resolve_group_primary_target,
+    rollback_copied_transfers, rollback_rename_changes, rollback_renamed_sidecars,
+};
 use crate::t_sqlite::{
     ACamera, ACollection, ACollectionOrder, AFile, AFolder, ALens, ALocation, ATag, ATagFileState,
     ATagSelectionCount, AThumb, ATimeLine, Album, GroupedQueryResult, ImageSearchParams, Person,
@@ -17,9 +23,10 @@ use crate::t_utils;
 use crate::{t_ai, t_common, t_sqlite};
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::fs;
 use std::io::Cursor;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State};
@@ -646,10 +653,7 @@ pub fn open_file_with_app(file_path: &str, app_path: &str) -> Result<(), String>
 /// open one or more files with a specific external application
 #[tauri::command]
 pub fn open_files_with_app(file_paths: Vec<String>, app_path: &str) -> Result<(), String> {
-    let file_paths: Vec<String> = file_paths
-        .into_iter()
-        .filter(|p| !p.is_empty())
-        .collect();
+    let file_paths: Vec<String> = file_paths.into_iter().filter(|p| !p.is_empty()).collect();
 
     if file_paths.is_empty() || app_path.is_empty() {
         return Err("Missing file path or app path".to_string());
@@ -701,7 +705,11 @@ pub async fn get_query_time_line(params: QueryParams) -> Result<Vec<ATimeLine>, 
 
 /// get query file
 #[tauri::command]
-pub async fn get_query_files(params: QueryParams, offset: i64, limit: i64) -> Result<Vec<AFile>, String> {
+pub async fn get_query_files(
+    params: QueryParams,
+    offset: i64,
+    limit: i64,
+) -> Result<Vec<AFile>, String> {
     AFile::get_query_files(&params, offset, limit)
         .map_err(|e| format!("Error while getting query files: {}", e))
 }
@@ -735,7 +743,10 @@ pub async fn get_query_file_ids(params: QueryParams) -> Result<Vec<i64>, String>
 }
 
 #[tauri::command]
-pub async fn get_query_file_position(params: QueryParams, file_id: i64) -> Result<Option<i64>, String> {
+pub async fn get_query_file_position(
+    params: QueryParams,
+    file_id: i64,
+) -> Result<Option<i64>, String> {
     AFile::get_query_file_position(&params, file_id)
         .map_err(|e| format!("Error while getting query file position: {}", e))
 }
@@ -956,23 +967,59 @@ pub async fn copy_images(
 /// rename a file
 #[tauri::command]
 pub fn rename_file(file_id: i64, file_path: &str, new_name: &str) -> Option<String> {
+    let sidecar_rename_plan = build_apple_sidecar_rename_plan(file_id, file_path, new_name).ok()?;
+    if !preflight_rename_plan(file_path, new_name, &sidecar_rename_plan) {
+        return None;
+    }
+    let original_db_names = collect_original_rename_db_names(file_id, &sidecar_rename_plan);
+
+    let mut renamed_sidecars: Vec<(PathBuf, PathBuf)> = Vec::new();
+    for plan in &sidecar_rename_plan {
+        if let Err(error) = fs::rename(&plan.old_path, &plan.new_path) {
+            eprintln!(
+                "Failed to rename sidecar '{}' to '{}': {}",
+                plan.old_path.display(),
+                plan.new_path.display(),
+                error
+            );
+            rollback_renamed_sidecars(renamed_sidecars);
+            return None;
+        }
+        renamed_sidecars.push((plan.old_path.clone(), plan.new_path.clone()));
+    }
+
     match t_utils::rename_file(file_path, new_name) {
         Some(new_file_path) => {
-            let name_pinyin = t_utils::natural_sort_key(&new_name.to_lowercase());
-            if let Err(e) = AFile::update_column(file_id, "name_pinyin", &name_pinyin) {
-                eprintln!("Error while renaming file in DB: {}", e);
-                return None;
-            }
-
-            match AFile::update_column(file_id, "name", &new_name) {
-                Ok(_) => Some(new_file_path),
-                Err(e) => {
-                    eprintln!("Error while renaming file in DB: {}", e);
-                    None
+            let mut db_updates = vec![(
+                file_id,
+                new_name.to_string(),
+                Some(t_utils::natural_sort_key(&new_name.to_lowercase())),
+            )];
+            for plan in &sidecar_rename_plan {
+                if let Some(sidecar_file_id) = plan.file_id {
+                    db_updates.push((
+                        sidecar_file_id,
+                        plan.new_name.clone(),
+                        Some(t_utils::natural_sort_key(&plan.new_name.to_lowercase())),
+                    ));
                 }
             }
+            if let Err(e) = AFile::batch_update_names(&db_updates) {
+                eprintln!("Error while renaming file group in DB: {}", e);
+                rollback_rename_changes(
+                    file_path,
+                    Some(&new_file_path),
+                    renamed_sidecars,
+                    &original_db_names,
+                );
+                return None;
+            }
+            Some(new_file_path)
         }
-        None => None,
+        None => {
+            rollback_renamed_sidecars(renamed_sidecars);
+            None
+        }
     }
 }
 
@@ -985,47 +1032,95 @@ pub fn move_file(
     new_folder_path: &str,
     conflict_policy: &str,
 ) -> Result<String, String> {
-    let old_album_id = AFile::get_file_info(file_id)
-        .ok()
-        .flatten()
-        .and_then(|file| file.album_id);
+    let old_file_info = AFile::get_file_info(file_id).ok().flatten();
+    let old_album_id = old_file_info.as_ref().and_then(|file| file.album_id);
     let new_album_id = AFolder::get_by_id(new_folder_id)
         .ok()
         .flatten()
         .map(|folder| folder.album_id);
-    let replaced_file_id = if conflict_policy == "replace" {
-        AFile::fetch(new_folder_id, file_path)
-            .ok()
-            .flatten()
-            .and_then(|file| file.id)
-            .filter(|id| *id != file_id)
-    } else {
-        None
+    let policy = t_utils::FileConflictPolicy::from_str(conflict_policy);
+    let (primary_target, sidecar_plans) =
+        resolve_group_primary_target(Some(file_id), file_path, new_folder_path, policy)?;
+    let mut replaced_file_ids = Vec::new();
+    let mut source_file_ids = HashSet::from([file_id]);
+    for plan in &sidecar_plans {
+        if let Some(component_id) = plan.file_id {
+            source_file_ids.insert(component_id);
+        }
+    }
+    if policy == t_utils::FileConflictPolicy::Replace {
+        collect_replaced_file_ids_for_targets(
+            new_folder_id,
+            std::iter::once(&primary_target).chain(sidecar_plans.iter().map(|plan| &plan.new_path)),
+            &source_file_ids,
+            &mut replaced_file_ids,
+        );
+    }
+
+    let mut component_transfers = Vec::new();
+    for plan in &sidecar_plans {
+        let source_path = plan.old_path.to_string_lossy().into_owned();
+        match t_utils::move_file_to_path_with_policy(&source_path, &plan.new_path, policy) {
+            Ok(transfer) => {
+                component_transfers.push((plan.file_id, plan.old_path.clone(), transfer))
+            }
+            Err(error) => {
+                for (_, original_path, transfer) in component_transfers {
+                    let _ = transfer.rollback_move(&original_path);
+                }
+                return Err(error);
+            }
+        }
+    }
+
+    let transfer = match t_utils::move_file_to_path_with_policy(file_path, &primary_target, policy)
+    {
+        Ok(transfer) => transfer,
+        Err(error) => {
+            for (_, original_path, transfer) in component_transfers {
+                let _ = transfer.rollback_move(&original_path);
+            }
+            return Err(error);
+        }
     };
 
-    let transfer = t_utils::move_file_with_policy(
-        file_path,
-        new_folder_path,
-        t_utils::FileConflictPolicy::from_str(conflict_policy),
-    )?;
-    let db_result = if let Some(replaced_file_id) = replaced_file_id {
-        AFile::replace_moved_file(file_id, replaced_file_id, new_folder_id)
-    } else {
-        AFile::update_column(file_id, "folder_id", &new_folder_id)
-    };
-    if let Err(error) = db_result {
+    let component_file_ids = component_transfers
+        .iter()
+        .filter_map(|(component_id, _, _)| *component_id)
+        .collect::<Vec<_>>();
+    if let Err(error) = AFile::update_moved_file_group(
+        file_id,
+        &component_file_ids,
+        &replaced_file_ids,
+        new_folder_id,
+    ) {
         let rollback_error = transfer.rollback_move(Path::new(file_path)).err();
+        for (_, original_path, transfer) in component_transfers {
+            let _ = transfer.rollback_move(&original_path);
+        }
         return Err(match rollback_error {
             Some(rollback_error) => format!(
-                "Error while moving file in DB: {}; rollback also failed: {}",
+                "Error while moving file group in DB: {}; rollback also failed: {}",
                 error, rollback_error
             ),
-            None => format!("Error while moving file in DB: {}", error),
+            None => format!("Error while moving file group in DB: {}", error),
         });
     }
+
     if let (Some(old_album_id), Some(new_album_id)) = (old_album_id, new_album_id) {
         let _ = AThumb::relocate_for_file(file_id, old_album_id, new_album_id)
             .map_err(|e| format!("Error while relocating thumbnail cache: {}", e));
+    }
+    for (component_id, _, transfer) in component_transfers {
+        if let Some(component_id) = component_id {
+            if let (Some(old_album_id), Some(new_album_id)) = (old_album_id, new_album_id) {
+                let _ = AThumb::relocate_for_file(component_id, old_album_id, new_album_id)
+                    .map_err(|e| {
+                        format!("Error while relocating Live Photo thumbnail cache: {}", e)
+                    });
+            }
+        }
+        transfer.finalize()?;
     }
     transfer.finalize()
 }
@@ -1038,14 +1133,48 @@ pub fn move_file_outside_library(
     new_folder_path: &str,
     conflict_policy: &str,
 ) -> Result<String, String> {
-    let transfer = t_utils::move_file_with_policy(
-        file_path,
-        new_folder_path,
-        t_utils::FileConflictPolicy::from_str(conflict_policy),
-    )?;
+    let policy = t_utils::FileConflictPolicy::from_str(conflict_policy);
+    let (primary_target, sidecar_plans) =
+        resolve_group_primary_target(Some(file_id), file_path, new_folder_path, policy)?;
+    let mut component_transfers = Vec::new();
+    for plan in &sidecar_plans {
+        let source_path = plan.old_path.to_string_lossy().into_owned();
+        match t_utils::move_file_to_path_with_policy(&source_path, &plan.new_path, policy) {
+            Ok(transfer) => {
+                component_transfers.push((plan.file_id, plan.old_path.clone(), transfer))
+            }
+            Err(error) => {
+                for (_, original_path, transfer) in component_transfers {
+                    let _ = transfer.rollback_move(&original_path);
+                }
+                return Err(error);
+            }
+        }
+    }
 
-    if let Err(error) = AFile::delete(file_id) {
+    let transfer = match t_utils::move_file_to_path_with_policy(file_path, &primary_target, policy)
+    {
+        Ok(transfer) => transfer,
+        Err(error) => {
+            for (_, original_path, transfer) in component_transfers {
+                let _ = transfer.rollback_move(&original_path);
+            }
+            return Err(error);
+        }
+    };
+
+    let mut delete_ids = vec![file_id];
+    for (component_id, _, _) in &component_transfers {
+        if let Some(component_id) = component_id {
+            delete_ids.push(*component_id);
+        }
+    }
+
+    if let Err(error) = AFile::batch_delete(&delete_ids) {
         let rollback_error = transfer.rollback_move(Path::new(file_path)).err();
+        for (_, original_path, transfer) in component_transfers {
+            let _ = transfer.rollback_move(&original_path);
+        }
         return Err(match rollback_error {
             Some(rollback_error) => format!(
                 "Error while removing file from DB: {}; rollback also failed: {}",
@@ -1055,6 +1184,9 @@ pub fn move_file_outside_library(
         });
     }
 
+    for (_, _, transfer) in component_transfers {
+        transfer.finalize()?;
+    }
     transfer.finalize()
 }
 
@@ -1065,12 +1197,41 @@ pub fn copy_file(
     new_folder_path: &str,
     conflict_policy: &str,
 ) -> Result<String, String> {
-    t_utils::copy_file_with_policy(
-        file_path,
-        new_folder_path,
-        t_utils::FileConflictPolicy::from_str(conflict_policy),
-    )?
-    .finalize()
+    let policy = t_utils::FileConflictPolicy::from_str(conflict_policy);
+    let (primary_target, sidecar_plans) =
+        resolve_group_primary_target(None, file_path, new_folder_path, policy)?;
+    let mut sidecar_transfers = Vec::new();
+    for plan in &sidecar_plans {
+        let source_path = plan.old_path.to_string_lossy().into_owned();
+        match t_utils::copy_file_to_path_with_policy(&source_path, &plan.new_path, policy) {
+            Ok(transfer) => sidecar_transfers.push(transfer),
+            Err(error) => {
+                rollback_copied_transfers(sidecar_transfers);
+                return Err(error);
+            }
+        }
+    }
+
+    let transfer = match t_utils::copy_file_to_path_with_policy(file_path, &primary_target, policy)
+    {
+        Ok(transfer) => transfer,
+        Err(error) => {
+            rollback_copied_transfers(sidecar_transfers);
+            return Err(error);
+        }
+    };
+
+    let copied_file_path = match transfer.finalize() {
+        Ok(path) => path,
+        Err(error) => {
+            rollback_copied_transfers(sidecar_transfers);
+            return Err(error);
+        }
+    };
+    for transfer in sidecar_transfers {
+        transfer.finalize()?;
+    }
+    Ok(copied_file_path)
 }
 
 /// import a file into a folder preserving the original file name
@@ -1470,21 +1631,60 @@ pub async fn import_clipboard(
 /// delete a file
 #[tauri::command]
 pub fn delete_file(file_id: i64, file_path: &str) -> Result<usize, String> {
-    // trash the file
-    t_utils::trash_path(file_path)?;
-
-    // delete the file from db
-    AFile::delete(file_id).map_err(|e| format!("Error while deleting file from DB: {}", e))
+    delete_file_group(file_id, file_path, false)
 }
 
 /// delete a file permanently
 #[tauri::command]
 pub fn delete_file_permanently(file_id: i64, file_path: &str) -> Result<usize, String> {
-    // delete the file from disk first
-    t_utils::delete_file_permanently(file_path)?;
+    delete_file_group(file_id, file_path, true)
+}
 
-    // delete the file from db
-    AFile::delete(file_id).map_err(|e| format!("Error while deleting file from DB: {}", e))
+fn delete_file_group(file_id: i64, file_path: &str, permanently: bool) -> Result<usize, String> {
+    let component_files = AFile::live_photo_component_files(file_id)?;
+    let mut deleted_file_ids = Vec::with_capacity(component_files.len() + 1);
+    let mut delete_errors = Vec::new();
+
+    let primary_result = if permanently {
+        t_utils::delete_file_permanently(file_path)
+    } else {
+        t_utils::trash_path(file_path)
+    };
+    primary_result?;
+    deleted_file_ids.push(file_id);
+
+    for component in &component_files {
+        if let Some(path) = component.file_path.as_deref() {
+            let result = if permanently {
+                t_utils::delete_file_permanently(path)
+            } else {
+                t_utils::trash_path(path)
+            };
+            match result {
+                Ok(_) => {
+                    if let Some(id) = component.id {
+                        deleted_file_ids.push(id);
+                    }
+                }
+                Err(error) => delete_errors.push(format!(
+                    "Failed to delete Live Photo sidecar '{}': {}",
+                    path, error
+                )),
+            }
+        }
+    }
+
+    if let Err(error) = delete_apple_aae_sidecars(file_path, permanently) {
+        delete_errors.push(format!("Failed to delete Apple sidecar: {}", error));
+    }
+
+    let deleted = AFile::batch_delete(&deleted_file_ids)
+        .map_err(|e| format!("Error while deleting removed files from DB: {}", e))?;
+
+    for error in delete_errors {
+        eprintln!("{}", error);
+    }
+    Ok(deleted)
 }
 
 /// delete a file from db
@@ -1514,22 +1714,95 @@ pub async fn batch_delete_files(
     permanently: bool,
 ) -> Result<BatchDeleteResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let mut deleted_file_ids = Vec::with_capacity(files.len());
+        struct DeleteGroup {
+            primary_id: i64,
+            primary_path: String,
+            components: Vec<(i64, String)>,
+            aae_sidecars: Vec<String>,
+        }
+
+        let mut delete_groups = Vec::with_capacity(files.len());
+        let mut seen_ids = HashSet::new();
+        let mut seen_aae_paths = HashSet::new();
         for file in &files {
+            if !seen_ids.insert(file.file_id) {
+                continue;
+            }
+            let mut component_targets = Vec::new();
+            if let Ok(components) = AFile::live_photo_component_files(file.file_id) {
+                for component in components {
+                    if let (Some(id), Some(path)) = (component.id, component.file_path) {
+                        if seen_ids.insert(id) {
+                            component_targets.push((id, path));
+                        }
+                    }
+                }
+            }
+            let mut aae_sidecars = Vec::new();
+            for sidecar in apple_aae_sidecar_paths(&file.file_path) {
+                let sidecar_path = sidecar.to_string_lossy().into_owned();
+                if seen_aae_paths.insert(sidecar_path.to_ascii_lowercase()) {
+                    aae_sidecars.push(sidecar_path);
+                }
+            }
+            delete_groups.push(DeleteGroup {
+                primary_id: file.file_id,
+                primary_path: file.file_path.clone(),
+                components: component_targets,
+                aae_sidecars,
+            });
+        }
+
+        let mut deleted_file_ids = Vec::new();
+        let mut failed_count = 0usize;
+        for group in &delete_groups {
             let result = if permanently {
-                t_utils::delete_file_permanently(&file.file_path)
+                t_utils::delete_file_permanently(&group.primary_path)
             } else {
-                t_utils::trash_path(&file.file_path)
+                t_utils::trash_path(&group.primary_path)
             };
-            if result.is_ok() {
-                deleted_file_ids.push(file.file_id);
+            if result.is_err() {
+                failed_count += 1;
+                continue;
+            }
+            deleted_file_ids.push(group.primary_id);
+            let mut group_failed = false;
+
+            for (file_id, file_path) in &group.components {
+                let result = if permanently {
+                    t_utils::delete_file_permanently(file_path)
+                } else {
+                    t_utils::trash_path(file_path)
+                };
+                if result.is_ok() {
+                    deleted_file_ids.push(*file_id);
+                } else {
+                    group_failed = true;
+                    eprintln!("Failed to delete Live Photo sidecar: {}", file_path);
+                }
+            }
+
+            for sidecar_path in &group.aae_sidecars {
+                let result = if permanently {
+                    t_utils::delete_file_permanently(sidecar_path)
+                } else {
+                    t_utils::trash_path(sidecar_path)
+                };
+                if result.is_err() {
+                    group_failed = true;
+                    eprintln!("Failed to delete Apple sidecar: {}", sidecar_path);
+                }
+            }
+
+            if group_failed {
+                failed_count += 1;
             }
         }
 
         AFile::batch_delete(&deleted_file_ids)
             .map_err(|e| format!("Error while deleting files from DB: {}", e))?;
         Ok(BatchDeleteResult {
-            failed_count: files.len().saturating_sub(deleted_file_ids.len()),
+            failed_count,
             deleted_file_ids,
         })
     })

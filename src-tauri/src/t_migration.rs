@@ -99,6 +99,11 @@ fn get_migrations() -> Vec<Migration> {
             description: "Deduplicate album files and enforce unique folder names",
             sql: "",
         },
+        Migration {
+            version: 8,
+            description: "Add Apple Live Photo pairing columns",
+            sql: "",
+        },
     ]
 }
 
@@ -281,6 +286,57 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                 })?;
             } else if migration.version == 7 {
                 migrate_unique_album_files(conn)?;
+            } else if migration.version == 8 {
+                if !table_has_column(conn, "afiles", "content_identifier")? {
+                    conn.execute("ALTER TABLE afiles ADD COLUMN content_identifier TEXT", [])
+                        .map_err(|e| {
+                            format!(
+                                "Migration {} failed adding content_identifier: {}",
+                                migration.version, e
+                            )
+                        })?;
+                }
+                if !table_has_column(conn, "afiles", "media_subtype")? {
+                    conn.execute("ALTER TABLE afiles ADD COLUMN media_subtype TEXT", [])
+                        .map_err(|e| {
+                            format!(
+                                "Migration {} failed adding media_subtype: {}",
+                                migration.version, e
+                            )
+                        })?;
+                }
+                if !table_has_column(conn, "afiles", "live_photo_video_id")? {
+                    conn.execute(
+                        "ALTER TABLE afiles ADD COLUMN live_photo_video_id INTEGER",
+                        [],
+                    )
+                    .map_err(|e| {
+                        format!(
+                            "Migration {} failed adding live_photo_video_id: {}",
+                            migration.version, e
+                        )
+                    })?;
+                }
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_afiles_content_identifier ON afiles(content_identifier)",
+                    [],
+                )
+                .map_err(|e| {
+                    format!(
+                        "Migration {} failed adding content_identifier index: {}",
+                        migration.version, e
+                    )
+                })?;
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_afiles_live_photo_video_id ON afiles(live_photo_video_id)",
+                    [],
+                )
+                .map_err(|e| {
+                    format!(
+                        "Migration {} failed adding live_photo_video_id index: {}",
+                        migration.version, e
+                    )
+                })?;
             } else if !migration.sql.trim().is_empty() {
                 conn.execute_batch(migration.sql)
                     .map_err(|e| format!("Migration {} failed: {}", migration.version, e))?;

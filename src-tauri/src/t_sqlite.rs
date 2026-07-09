@@ -831,12 +831,16 @@ pub struct AFile {
     pub geo_cc: Option<String>,     // Country code
 
     // output only
-    pub file_path: Option<String>,   // file path (for webview)
-    pub album_id: Option<i64>,       // album id (for webview)
-    pub album_name: Option<String>,  // album name (for webview)
-    pub has_thumbnail: Option<bool>, // has thumbnail (for webview)
-    pub has_embedding: Option<bool>, // has embedding (for webview)
-    pub last_scan_time: Option<i64>, // last scan timestamp
+    pub file_path: Option<String>,          // file path (for webview)
+    pub album_id: Option<i64>,              // album id (for webview)
+    pub album_name: Option<String>,         // album name (for webview)
+    pub has_thumbnail: Option<bool>,        // has thumbnail (for webview)
+    pub has_embedding: Option<bool>,        // has embedding (for webview)
+    pub last_scan_time: Option<i64>,        // last scan timestamp
+    pub content_identifier: Option<String>, // Apple Live Photo content identifier
+    pub media_subtype: Option<String>,      // live_photo, motion_photo, raw_jpeg_pair, ...
+    pub live_photo_video_id: Option<i64>,   // paired Live Photo MOV file id
+    pub live_photo_video_path: Option<String>, // paired Live Photo MOV path
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1027,7 +1031,11 @@ impl ACollection {
         Self::ensure_exists(&conn, collection_id)?;
 
         // Find which file ids already exist in this collection
-        let placeholders = unique_file_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let placeholders = unique_file_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(",");
         let existing_sql = format!(
             "SELECT file_id FROM acollections_files WHERE collection_id = ?1 AND file_id IN ({})",
             placeholders
@@ -1302,7 +1310,7 @@ pub struct ImageSearchParams {
     pub threshold: f32,       // search threshold
     pub limit: i64,           // search limit
     #[serde(default)]
-    pub file_type: i64,       // file type bitmask (0=all, 1=image, 2=video, 4=raw)
+    pub file_type: i64, // file type bitmask (0=all, 1=image, 2=video, 4=raw)
 }
 
 impl AFile {
@@ -1358,6 +1366,7 @@ impl AFile {
         let mut gps_latitude: Option<f64> = None;
         let mut gps_longitude: Option<f64> = None;
         let mut gps_altitude: Option<f64> = None;
+        let mut content_identifier: Option<String> = None;
 
         // Pre-read file header once for images (saves 3-4 redundant File::open per file).
         let file_header: Option<Vec<u8>> = if file_type == 1 || file_type == 3 {
@@ -1392,6 +1401,7 @@ impl AFile {
                 gps_latitude = video_metadata.gps_latitude;
                 gps_longitude = video_metadata.gps_longitude;
                 gps_altitude = video_metadata.gps_altitude;
+                content_identifier = video_metadata.content_identifier;
             }
             3 => {
                 let (w, h) = t_image::get_raw_dimensions(file_path)?;
@@ -1700,6 +1710,10 @@ impl AFile {
             has_thumbnail: None,
             has_embedding: None,
             last_scan_time: Some(0),
+            content_identifier,
+            media_subtype: None,
+            live_photo_video_id: None,
+            live_photo_video_path: None,
         };
 
         Ok(file)
@@ -1962,9 +1976,9 @@ impl AFile {
                 is_favorite, rating, rotate, comments, has_tags,
                 e_make, e_model, e_date_time, e_software, e_artist, e_copyright, e_description, e_lens_make, e_lens_model, e_exposure_bias, e_exposure_time, e_f_number, e_focal_length, e_iso_speed, e_flash, e_orientation,
                 gps_latitude, gps_longitude, gps_altitude, geo_name, geo_admin1, geo_admin2, geo_cc,
-                last_scan_time
+                last_scan_time, content_identifier
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43)
             ON CONFLICT(folder_id, name) DO NOTHING",
             params![
                 self.folder_id,
@@ -2015,6 +2029,7 @@ impl AFile {
                 self.geo_admin2,
                 self.geo_cc,
                 self.last_scan_time,
+                self.content_identifier,
             ]
         ).map_err(|e| e.to_string())?;
         Ok(result)
@@ -2031,8 +2046,8 @@ impl AFile {
                 rating = ?13,
                 e_make = ?14, e_model = ?15, e_date_time = ?16, e_software = ?17, e_artist = ?18, e_copyright = ?19, e_description = ?20, e_lens_make = ?21, e_lens_model = ?22, e_exposure_bias = ?23, e_exposure_time = ?24, e_f_number = ?25, e_focal_length = ?26, e_iso_speed = ?27, e_flash = ?28, e_orientation = ?29,
                 gps_latitude = ?30, gps_longitude = ?31, gps_altitude = ?32, geo_name = ?33, geo_admin1 = ?34, geo_admin2 = ?35, geo_cc = ?36,
-                last_scan_time = ?37
-            WHERE id = ?38",
+                last_scan_time = ?37, content_identifier = ?38
+            WHERE id = ?39",
             params![
                 file.name,
                 file.name_pinyin,
@@ -2075,6 +2090,7 @@ impl AFile {
                 file.geo_admin2,
                 file.geo_cc,
                 file.last_scan_time,
+                file.content_identifier,
                 file_id,
             ]
         ).map_err(|e| e.to_string())?;
@@ -2118,31 +2134,49 @@ impl AFile {
         Ok(deleted)
     }
 
-    pub fn replace_moved_file(
+    pub fn update_moved_file_group(
         file_id: i64,
-        replaced_file_id: i64,
+        component_file_ids: &[i64],
+        replaced_file_ids: &[i64],
         new_folder_id: i64,
     ) -> Result<usize, String> {
         let mut conn = open_conn()?;
         let tx = conn.transaction().map_err(|e| e.to_string())?;
-        tx.execute(
-            "DELETE FROM athumbs WHERE file_id = ?1",
-            params![replaced_file_id],
-        )
-        .map_err(|e| e.to_string())?;
-        tx.execute(
-            "DELETE FROM afiles WHERE id = ?1",
-            params![replaced_file_id],
-        )
-        .map_err(|e| e.to_string())?;
-        let result = tx
-            .execute(
-                "UPDATE afiles SET folder_id = ?1 WHERE id = ?2",
-                params![new_folder_id, file_id],
-            )
-            .map_err(|e| e.to_string())?;
+        let mut updated = 0usize;
+
+        {
+            let mut thumb_delete_stmt = tx
+                .prepare_cached("DELETE FROM athumbs WHERE file_id = ?1")
+                .map_err(|e| e.to_string())?;
+            let mut file_delete_stmt = tx
+                .prepare_cached("DELETE FROM afiles WHERE id = ?1")
+                .map_err(|e| e.to_string())?;
+            for replaced_file_id in replaced_file_ids {
+                thumb_delete_stmt
+                    .execute(params![replaced_file_id])
+                    .map_err(|e| e.to_string())?;
+                file_delete_stmt
+                    .execute(params![replaced_file_id])
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+
+        {
+            let mut update_stmt = tx
+                .prepare_cached("UPDATE afiles SET folder_id = ?1 WHERE id = ?2")
+                .map_err(|e| e.to_string())?;
+            updated += update_stmt
+                .execute(params![new_folder_id, file_id])
+                .map_err(|e| e.to_string())?;
+            for component_file_id in component_file_ids {
+                updated += update_stmt
+                    .execute(params![new_folder_id, component_file_id])
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+
         tx.commit().map_err(|e| e.to_string())?;
-        Ok(result)
+        Ok(updated)
     }
 
     /// get all file IDs for a specific album
@@ -2188,6 +2222,10 @@ impl AFile {
         base_query.to_string()
     }
 
+    fn live_photo_companion_exclusion_condition() -> &'static str {
+        "a.id NOT IN (SELECT live_photo_video_id FROM afiles WHERE live_photo_video_id IS NOT NULL)"
+    }
+
     // build the base SQL query
     fn build_base_query() -> String {
         String::from(
@@ -2203,10 +2241,20 @@ impl AFile {
                 (SELECT 1 FROM athumbs t WHERE t.file_id = a.id LIMIT 1) AS has_thumbnail,
                 CASE WHEN a.embeds IS NOT NULL THEN 1 ELSE 0 END AS has_embedding,
                 a.has_faces,
-                a.last_scan_time
+                a.last_scan_time,
+                a.content_identifier,
+                a.media_subtype,
+                a.live_photo_video_id,
+                CASE
+                    WHEN lpv.id IS NOT NULL AND lpf.path IS NOT NULL
+                    THEN lpf.path || '/' || lpv.name
+                    ELSE NULL
+                END AS live_photo_video_path
             FROM afiles a 
             LEFT JOIN afolders b ON a.folder_id = b.id
-            LEFT JOIN albums c ON b.album_id = c.id"
+            LEFT JOIN albums c ON b.album_id = c.id
+            LEFT JOIN afiles lpv ON a.live_photo_video_id = lpv.id
+            LEFT JOIN afolders lpf ON lpv.folder_id = lpf.id"
         )
     }
 
@@ -2272,6 +2320,10 @@ impl AFile {
             has_embedding: row.get::<_, Option<i64>>(46)?.map(|v| v == 1),
             has_faces: row.get::<_, Option<i32>>(47)?,
             last_scan_time: row.get(48)?,
+            content_identifier: row.get(49)?,
+            media_subtype: row.get(50)?,
+            live_photo_video_id: row.get(51)?,
+            live_photo_video_path: row.get(52)?,
         })
     }
 
@@ -2597,6 +2649,26 @@ impl AFile {
             .map_err(|e| e.to_string())
     }
 
+    pub fn batch_update_names(updates: &[(i64, String, Option<String>)]) -> Result<usize, String> {
+        if updates.is_empty() {
+            return Ok(0);
+        }
+
+        let mut conn = open_conn()?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        let mut changed = 0usize;
+        for (file_id, name, name_pinyin) in updates {
+            changed += tx
+                .execute(
+                    "UPDATE afiles SET name = ?1, name_pinyin = ?2 WHERE id = ?3",
+                    params![name, name_pinyin, file_id],
+                )
+                .map_err(|e| e.to_string())?;
+        }
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(changed)
+    }
+
     pub fn batch_update_metadata(
         file_ids: &[i64],
         is_favorite: Option<bool>,
@@ -2660,6 +2732,236 @@ impl AFile {
 
         tx.commit().map_err(|e| e.to_string())?;
         Ok(updated)
+    }
+
+    pub fn pair_live_photos_in_folder(folder_id: i64) -> Result<usize, String> {
+        #[derive(Clone)]
+        struct Candidate {
+            id: i64,
+            name: String,
+            file_type: i64,
+            content_identifier: Option<String>,
+        }
+
+        fn lower_ext(name: &str) -> String {
+            Path::new(name)
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase()
+        }
+
+        fn lower_stem(name: &str) -> Option<String> {
+            Path::new(name)
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .map(|stem| stem.to_ascii_lowercase())
+        }
+
+        fn video_match_stems(name: &str) -> Vec<String> {
+            let Some(stem) = lower_stem(name) else {
+                return Vec::new();
+            };
+            let mut stems = vec![stem.clone()];
+            if let Some(stripped) = stem.strip_suffix("_hevc") {
+                if !stripped.is_empty() {
+                    stems.push(stripped.to_string());
+                }
+            }
+            stems
+        }
+
+        fn is_live_photo_image(candidate: &Candidate) -> bool {
+            if candidate.file_type != 1 {
+                return false;
+            }
+            matches!(
+                lower_ext(&candidate.name).as_str(),
+                "heic" | "heif" | "hif" | "jpg" | "jpeg"
+            )
+        }
+
+        fn is_live_photo_video(candidate: &Candidate) -> bool {
+            if candidate.file_type != 2 || lower_ext(&candidate.name) != "mov" {
+                return false;
+            }
+            has_content_identifier(candidate)
+        }
+
+        fn has_filename_video_candidate(
+            candidate: &Candidate,
+            video_stems: &HashSet<String>,
+        ) -> bool {
+            is_live_photo_image(candidate)
+                && lower_stem(&candidate.name)
+                    .map(|stem| video_stems.contains(&stem))
+                    .unwrap_or(false)
+        }
+
+        fn has_content_identifier(candidate: &Candidate) -> bool {
+            content_identifier_key(candidate).is_some()
+        }
+
+        fn content_identifier_key(candidate: &Candidate) -> Option<String> {
+            let identifier = candidate
+                .content_identifier
+                .as_ref()
+                .map(|identifier| identifier.trim())
+                .filter(|identifier| !identifier.is_empty())?;
+            Some(identifier.to_ascii_lowercase())
+        }
+
+        let conn = open_conn()?;
+        let folder_path: String = conn
+            .query_row(
+                "SELECT path FROM afolders WHERE id = ?1",
+                params![folder_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let candidates = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT id, name, file_type, content_identifier
+                     FROM afiles
+                     WHERE folder_id = ?1",
+                )
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map(params![folder_id], |row| {
+                    Ok(Candidate {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        file_type: row.get::<_, Option<i64>>(2)?.unwrap_or(0),
+                        content_identifier: row.get(3)?,
+                    })
+                })
+                .map_err(|e| e.to_string())?;
+
+            rows.collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?
+        };
+
+        let mut video_stems = HashSet::<String>::new();
+        for candidate in &candidates {
+            if candidate.file_type == 2 && lower_ext(&candidate.name) == "mov" {
+                for stem in video_match_stems(&candidate.name) {
+                    video_stems.insert(stem);
+                }
+            }
+        }
+
+        let mut image_stems = HashSet::<String>::new();
+        for candidate in &candidates {
+            if is_live_photo_image(candidate) {
+                if let Some(stem) = lower_stem(&candidate.name) {
+                    image_stems.insert(stem);
+                }
+            }
+        }
+
+        let mut candidates = candidates;
+        for candidate in candidates.iter_mut() {
+            if candidate.file_type == 2
+                && lower_ext(&candidate.name) == "mov"
+                && !has_content_identifier(candidate)
+                && video_match_stems(&candidate.name)
+                    .iter()
+                    .any(|stem| image_stems.contains(stem))
+            {
+                let file_path = PathBuf::from(&folder_path).join(&candidate.name);
+                let file_path = file_path.to_string_lossy();
+                if let Ok(metadata) = t_video::get_video_metadata(&file_path) {
+                    if let Some(identifier) = metadata.content_identifier {
+                        conn.execute(
+                            "UPDATE afiles SET content_identifier = ?1 WHERE id = ?2",
+                            params![identifier, candidate.id],
+                        )
+                        .map_err(|e| e.to_string())?;
+                        candidate.content_identifier = Some(identifier);
+                    }
+                }
+            }
+
+            if !has_filename_video_candidate(candidate, &video_stems)
+                || has_content_identifier(candidate)
+            {
+                continue;
+            }
+
+            let file_path = PathBuf::from(&folder_path).join(&candidate.name);
+            let file_path = file_path.to_string_lossy();
+            if let Some(identifier) =
+                crate::t_apple_sidecar::scan_apple_content_identifier(&file_path)
+            {
+                conn.execute(
+                    "UPDATE afiles SET content_identifier = ?1 WHERE id = ?2",
+                    params![identifier, candidate.id],
+                )
+                .map_err(|e| e.to_string())?;
+                candidate.content_identifier = Some(identifier);
+            }
+        }
+
+        let mut videos_by_identifier = HashMap::<String, Candidate>::new();
+        for candidate in &candidates {
+            if is_live_photo_video(candidate) {
+                if let Some(identifier) = content_identifier_key(candidate) {
+                    videos_by_identifier.insert(identifier, candidate.clone());
+                }
+            }
+        }
+
+        let mut updates = 0usize;
+        let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        tx.execute(
+            "UPDATE afiles
+             SET media_subtype = NULL, live_photo_video_id = NULL
+             WHERE folder_id = ?1 AND media_subtype = 'live_photo'",
+            params![folder_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        for candidate in &candidates {
+            if !has_filename_video_candidate(candidate, &video_stems)
+                || !has_content_identifier(candidate)
+            {
+                continue;
+            }
+
+            let matching_video = content_identifier_key(candidate)
+                .and_then(|identifier| videos_by_identifier.get(&identifier));
+
+            let Some(video) = matching_video else {
+                continue;
+            };
+            if video.id == candidate.id {
+                continue;
+            }
+
+            updates += tx
+                .execute(
+                    "UPDATE afiles
+                     SET media_subtype = 'live_photo', live_photo_video_id = ?1
+                     WHERE id = ?2",
+                    params![video.id, candidate.id],
+                )
+                .map_err(|e| e.to_string())?;
+        }
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(updates)
+    }
+
+    pub fn live_photo_component_files(file_id: i64) -> Result<Vec<Self>, String> {
+        let Some(file) = Self::get_file_info(file_id)? else {
+            return Ok(Vec::new());
+        };
+        let Some(video_id) = file.live_photo_video_id.filter(|id| *id > 0) else {
+            return Ok(Vec::new());
+        };
+        Self::get_files_by_ids(&[video_id])
     }
 
     /// delete unseen files in an album (database only)
@@ -2736,9 +3038,10 @@ impl AFile {
     // get total count and size of files
     pub fn get_total_count_and_sum() -> Result<(i64, i64), String> {
         let sql = format!(
-            "{} WHERE {}",
+            "{} WHERE {} AND {}",
             Self::build_count_query(),
-            Self::search_exclusion_condition("b")
+            Self::search_exclusion_condition("b"),
+            Self::live_photo_companion_exclusion_condition()
         );
         Self::query_count_and_sum(&sql, &[])
     }
@@ -2747,7 +3050,8 @@ impl AFile {
     // Returns (joins_clause, where_clause, params)
     fn build_search_query_parts(params: &QueryParams) -> (String, String, Vec<Box<dyn ToSql>>) {
         let mut joins = Vec::new();
-        let mut conditions: Vec<String> = Vec::new();
+        let mut conditions: Vec<String> =
+            vec![Self::live_photo_companion_exclusion_condition().to_string()];
         let mut sql_params: Vec<Box<dyn ToSql>> = Vec::new();
 
         if !params.search_file_name.is_empty() {
@@ -3801,6 +4105,7 @@ impl AFile {
         }
 
         conditions.push(Self::search_exclusion_condition("b"));
+        conditions.push(Self::live_photo_companion_exclusion_condition().to_string());
 
         let joiner = if params.r#match == "any" {
             " OR "
@@ -4492,7 +4797,11 @@ impl AFile {
         } else {
             params.threshold
         };
-        let query_norm = embedding.iter().map(|value| value * value).sum::<f32>().sqrt();
+        let query_norm = embedding
+            .iter()
+            .map(|value| value * value)
+            .sum::<f32>()
+            .sqrt();
 
         // Calculate similarity
         for row in rows {
@@ -4559,7 +4868,6 @@ impl AFile {
             dot_product / (query_norm * file_norm)
         }
     }
-
 }
 
 /// Define the album thumbnail struct
@@ -6976,6 +7284,9 @@ fn create_db_internal() -> Result<(), String> {
             geo_cc TEXT,
             embeds BLOB,
             last_scan_time INTEGER DEFAULT 0,
+            content_identifier TEXT,
+            media_subtype TEXT,
+            live_photo_video_id INTEGER,
             FOREIGN KEY (folder_id) REFERENCES afolders(id) ON DELETE CASCADE
         )",
         [],
@@ -7001,6 +7312,7 @@ fn create_db_internal() -> Result<(), String> {
         [],
     )
     .map_err(|e| e.to_string())?;
+
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_afiles_taken_date ON afiles(taken_date)",
         [],
@@ -7303,6 +7615,16 @@ fn create_db_internal() -> Result<(), String> {
 
     // Run schema migrations after base tables are ensured.
     crate::t_migration::check_and_migrate(&conn)?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_afiles_content_identifier ON afiles(content_identifier)",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_afiles_live_photo_video_id ON afiles(live_photo_video_id)",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
 
     Ok(())
 }

@@ -138,7 +138,7 @@
               @dblclick="emit('preview-file', activeGroup.keepItem.file_id)"
             >
               <div class="flex items-center gap-2">
-                <div class="shrink-0 text-primary/80" :title="$t('info_panel.dedup.keep_label')">
+                <div class="shrink-0 text-base-content/70" :title="$t('info_panel.dedup.keep_label')">
                   <IconLock class="w-4 h-4" />
                 </div>
                 <div class="w-10 h-10 rounded-box overflow-hidden shrink-0">
