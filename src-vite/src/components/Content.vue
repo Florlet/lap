@@ -181,11 +181,10 @@
                 :fileList="gridRows"
                 :timeline-data="timelineData"
                 :sort-type="currentQueryParams.sortType"
-                :showFolderFiles="showFolderFiles"
-                :folderExcluded="isCurrentFolderExcluded"
                 :selectMode="selectMode"
                 :content-ready="contentReady"
                 :empty-message="emptyFilesMessage"
+                :empty-hint="emptyFilesHint"
                 :layout-version="layoutVersion"
                 :group-by="activeGroupBy"
                 :group-selected-counts="groupSelectedCounts"
@@ -7635,9 +7634,9 @@ function normalizeFileTypeMask(mask: number): number {
 }
 
 const emptyFilesMessage = computed(() => {
-  if (currentQuerySource.value === 'collection') {
-    return `${localeMsg.value.collection.empty_content}`;
-  }
+  // if (currentQuerySource.value === 'collection') {
+  //   return `${localeMsg.value.collection.empty_content}`;
+  // }
   const notFound = localeMsg.value.tooltip.not_found;
   const mask = normalizeFileTypeMask(Number(config.search.fileType || 0));
   const messageKey = {
@@ -7650,6 +7649,14 @@ const emptyFilesMessage = computed(() => {
   }[mask];
 
   return (messageKey && notFound[messageKey]) || notFound.files;
+});
+
+const emptyFilesHint = computed(() => {
+  if (!showFolderFiles.value) return '';
+  const notFound = localeMsg.value.tooltip.not_found;
+  if (isCurrentFolderExcluded.value) return notFound.folder_excluded_hint || '';
+  if (!config.settings.showSubfolderFiles) return notFound.folder_files_hint || '';
+  return '';
 });
 
 const smartAlbumFileTypeMask = computed(() => {

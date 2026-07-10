@@ -43,8 +43,8 @@
         />
       </div>
 
-      <div class="max-h-[180px] overflow-y-auto rounded-box p-2 bg-base-100/40 border border-base-content/5">
-        <div v-if="filteredTags.length > 0" class="flex flex-wrap gap-2">
+      <div class="min-h-24 max-h-96 overflow-y-auto rounded-box p-2 bg-base-100/30 border border-base-content/5 flex" :class="filteredTags.length === 0 ? 'items-center justify-center' : ''">
+        <div v-if="filteredTags.length > 0" class="flex flex-wrap gap-2 w-full">
           <div
             v-for="(tag, index) in filteredTags"
             :key="tag.id"
@@ -62,9 +62,7 @@
             <span>{{ tag.name }}</span>
           </div>
         </div>
-        <div v-else class="py-10 text-center text-base-content/30">
-          {{ $t('tag.not_found') }}
-        </div>
+        <span v-else class="text-base-content/30">{{ $t('tag.not_found') }}</span>
       </div>
       <div v-if="tagLoadFailed" class="text-sm text-error">
         {{ $t('tag.load_failed') }}

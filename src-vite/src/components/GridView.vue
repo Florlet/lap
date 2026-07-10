@@ -92,17 +92,11 @@
             <span>{{ $t('tooltip.loading') }}</span>
           </div>
         </Transition>
-        <template v-if="contentReady">
-          <template v-if="showFolderFiles && folderExcluded">
-            <span>{{ $t('tooltip.not_found.folder_excluded') }}</span>
-            <span class="text-xs">{{ $t('tooltip.not_found.folder_excluded_hint') }}</span>
-          </template>
-          <template v-else-if="showFolderFiles">
-            <span>{{ $t('tooltip.not_found.folder_files') }}</span>
-            <span class="text-xs">{{ $t('tooltip.not_found.folder_files_hint') }}</span>
-          </template>
-          <span v-else class="whitespace-pre-line">{{ emptyMessage || $t('tooltip.not_found.files') }}</span>
-        </template>
+        <div v-if="contentReady" class="flex flex-col items-center gap-2">
+          <img src="@/assets/images/lazycat-300.png" class="w-48 object-contain opacity-30" alt="" />
+          <span class="text-sm">{{ emptyMessage }}</span>
+          <span class="text-xs">{{ emptyHint }}</span>
+        </div>
       </div>
     </div>
 
@@ -138,11 +132,10 @@ const props = withDefaults(defineProps<{
   fileList: any[];
   timelineData?: any[];
   sortType?: number;
-  showFolderFiles?: boolean;
-  folderExcluded?: boolean;
   selectMode?: boolean;
   contentReady?: boolean;
   emptyMessage?: string;
+  emptyHint?: string;
   layoutVersion?: number;
   groupBy?: number;
   groupSelectedCounts?: Record<string, number>;
@@ -154,11 +147,10 @@ const props = withDefaults(defineProps<{
   selectedItemIndex: -1,
   timelineData: () => [],
   sortType: 0,
-  showFolderFiles: false,
-  folderExcluded: false,
   selectMode: false,
   contentReady: false,
   emptyMessage: '',
+  emptyHint: '',
   layoutVersion: 0,
   groupBy: 0,
   groupSelectedCounts: () => ({}),
