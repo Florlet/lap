@@ -132,6 +132,9 @@ listen('settings-gridLabelPrimary-changed', (event) => {
 listen('settings-gridLabelSecondary-changed', (event) => {
   config.setGridLabelSecondary(event.payload)
 })
+listen('settings-gridMediaInfo-changed', (event) => {
+  config.setGridMediaInfo(event.payload)
+})
 listen('settings-showFilmStrip-changed', (event) => {
   config.setShowFilmStrip(event.payload)
 })

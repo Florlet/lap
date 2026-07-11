@@ -1143,6 +1143,16 @@
         "Objektiv",
         "Einstellungen"
       ],
+      "show_media_info": "Medieninformationen anzeigen",
+      "media_info_options": [
+        "(Leer)",
+        "Dateiformat",
+        "ISO",
+        "Verschlusszeit",
+        "Blende",
+        "Brennweite",
+        "Belichtung"
+      ],
       "filmstrip_view": {
         "title": "Filmstreifen",
         "enable_filmstrip": "Filmstreifenansicht aktivieren",

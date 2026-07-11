@@ -104,7 +104,7 @@
 
       <!-- bottom badges -->
       <div
-        v-if="isLivePhoto || videoDurationBadge || dedupStatus"
+        v-if="isLivePhoto || videoDurationBadge || mediaInfoBadge || dedupStatus"
         class="pointer-events-none absolute left-0.5 bottom-0.5 z-10 flex items-center gap-0.5"
       >
         <div
@@ -119,6 +119,12 @@
           class="thumb-badge thumb-badge-muted"
         >
           {{ videoDurationBadge }}
+        </div>
+        <div
+          v-if="mediaInfoBadge"
+          class="thumb-badge thumb-badge-muted"
+        >
+          {{ mediaInfoBadge }}
         </div>
         <div
           v-if="dedupStatus"
@@ -189,7 +195,8 @@ import { computed, nextTick, ref, watch, toRef, onBeforeUnmount, type CSSPropert
 import { useI18n } from 'vue-i18n';
 import { useUIStore } from '@/stores/uiStore';
 import { config } from '@/common/config';
-import { isMac, shortenFilename, formatFileSize, formatDimensionText, formatDuration, formatTimestamp, formatCaptureSettings, formatCameraInfo, getAssetSrc, getThumbUrl } from '@/common/utils';
+import { MEDIA_INFO } from '@/common/constants';
+import { isMac, shortenFilename, formatFileSize, formatDimensionText, formatDuration, formatTimestamp, formatCaptureSettings, formatCameraInfo, getAssetSrc, getThumbUrl, getFileExtension } from '@/common/utils';
 import { isWebViewVideoPlaybackDisabled } from '@/common/video';
 import ContextMenu from '@/components/ContextMenu.vue';
 import { useFileMenuItems } from '@/common/fileMenu';
@@ -505,9 +512,40 @@ const normalizedRotate = computed(() => {
 });
 
 const videoDurationBadge = computed(() => {
-  return props.file?.file_type === 2
-    ? formatDuration(props.file.duration)
-    : '';
+  if (props.file?.file_type !== 2) return '';
+
+  const duration = Number(props.file?.duration);
+  if (!Number.isFinite(duration)) return '';
+
+  const formattedDuration = formatDuration(duration);
+  return formattedDuration;
+});
+
+const mediaInfoBadge = computed(() => {
+  const summary = Number(config.settings.grid.mediaInfo || 0);
+  if (summary === MEDIA_INFO.EMPTY) return '';
+
+  const file = props.file || {};
+  switch (summary) {
+    case MEDIA_INFO.FILE_FORMAT: {
+      const extension = getFileExtension(file.name || file.file_path || '').trim();
+      return extension ? extension.toUpperCase() : '';
+    }
+    case MEDIA_INFO.ISO:
+      return file.e_iso_speed ? `ISO ${file.e_iso_speed}` : '';
+    case MEDIA_INFO.SHUTTER_SPEED:
+      return file.e_exposure_time || '';
+    case MEDIA_INFO.APERTURE: {
+      const fNumber = String(file.e_f_number || '').trim();
+      return fNumber ? (fNumber.toLowerCase().startsWith('f/') ? fNumber : `f/${fNumber}`) : '';
+    }
+    case MEDIA_INFO.FOCAL_LENGTH:
+      return file.e_focal_length || '';
+    case MEDIA_INFO.EXPOSURE:
+      return file.e_exposure_bias || '';
+    default:
+      return '';
+  }
 });
 
 const statusBadges = computed<ThumbnailBadge[]>(() => {

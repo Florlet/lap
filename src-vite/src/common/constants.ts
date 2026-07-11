@@ -32,6 +32,19 @@ export const RATE = {
   UNRATED: 0,
 } as const;
 
+// Thumbnail media info selection
+export const MEDIA_INFO = {
+  EMPTY: 0,
+  FILE_FORMAT: 1,
+  ISO: 2,
+  SHUTTER_SPEED: 3,
+  APERTURE: 4,
+  FOCAL_LENGTH: 5,
+  EXPOSURE: 6,
+} as const;
+
+export type MediaInfo = (typeof MEDIA_INFO)[keyof typeof MEDIA_INFO];
+
 // date sort enum
 export const DATE_SORT = {
   TAKEN_DESC: 1,

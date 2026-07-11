@@ -1143,6 +1143,16 @@
         "Lente",
         "Ajustes captura"
       ],
+      "show_media_info": "Mostrar información multimedia",
+      "media_info_options": [
+        "(Vacío)",
+        "Formato de archivo",
+        "ISO",
+        "Velocidad de obturación",
+        "Apertura",
+        "Distancia focal",
+        "Exposición"
+      ],
       "filmstrip_view": {
         "title": "Tira de película",
         "enable_filmstrip": "Activar vista de tira de película",

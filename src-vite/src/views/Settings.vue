@@ -215,6 +215,14 @@
                   <option v-for="(option, index) in gridLabelOptions" :key="index" :value="option.value">{{ option.label }}</option>
               </select>
             </div>
+            <div class="flex items-center justify-between px-1 rounded-box hover:bg-base-100/10 transition-colors duration-200">
+              <div class="flex flex-col gap-0.5 text-sm leading-5">
+                <div>{{ $t('settings.browse.show_media_info') }}</div>
+              </div>
+              <select class="select select-bordered select-sm min-w-32" v-model="config.settings.grid.mediaInfo">
+                <option v-for="option in mediaInfoOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </div>
           </div>
 
           <!-- filmstrip -->
@@ -635,6 +643,7 @@ import { emit } from '@tauri-apps/api/event';
 import { ask, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { useI18n } from 'vue-i18n';
 import { config, libConfig } from '@/common/config';
+import { MEDIA_INFO } from '@/common/constants';
 import {
   getExternalAppDisplayName,
   getDbStorageDir,
@@ -835,6 +844,23 @@ const gridLabelOptions = computed(() => {
   }
 
   return result;
+});
+
+const mediaInfoOptions = computed(() => {
+  const options = localeMsg.value.settings.browse.media_info_options;
+  const values = [
+    MEDIA_INFO.EMPTY,
+    MEDIA_INFO.FILE_FORMAT,
+    MEDIA_INFO.ISO,
+    MEDIA_INFO.SHUTTER_SPEED,
+    MEDIA_INFO.APERTURE,
+    MEDIA_INFO.FOCAL_LENGTH,
+    MEDIA_INFO.EXPOSURE,
+  ];
+  return options.map((label: string, index: number) => ({
+    label,
+    value: values[index],
+  }));
 });
 
 // Define the navigator view mode options
@@ -1342,6 +1368,9 @@ watch(() => config.settings.grid.labelPrimary, (newValue) => {
 });
 watch(() => config.settings.grid.labelSecondary, (newValue) => {
   emit('settings-gridLabelSecondary-changed', newValue);
+});
+watch(() => config.settings.grid.mediaInfo, (newValue) => {
+  emit('settings-gridMediaInfo-changed', newValue);
 });
 watch(() => config.settings.grid.showFilmStrip, (newValue) => {
   emit('settings-showFilmStrip-changed', newValue);

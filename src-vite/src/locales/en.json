@@ -1143,6 +1143,16 @@
         "Lens",
         "Capture settings"
       ],
+      "show_media_info": "Show media info",
+      "media_info_options": [
+        "(Empty)",
+        "File format",
+        "ISO",
+        "Shutter speed",
+        "Aperture",
+        "Focal length",
+        "Exposure"
+      ],
       "filmstrip_view": {
         "title": "Filmstrip",
         "enable_filmstrip": "Enable filmstrip view",

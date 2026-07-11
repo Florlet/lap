@@ -1143,6 +1143,16 @@
         "Objectif",
         "Paramètres"
       ],
+      "show_media_info": "Afficher les informations du média",
+      "media_info_options": [
+        "(Vide)",
+        "Format du fichier",
+        "ISO",
+        "Vitesse d’obturation",
+        "Ouverture",
+        "Focale",
+        "Exposition"
+      ],
       "filmstrip_view": {
         "title": "Pellicule",
         "enable_filmstrip": "Activer la vue pellicule",
