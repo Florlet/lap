@@ -410,6 +410,7 @@
             :selected-count="selectedCount"
             :selected-size="selectedSize"
             :query-source="currentQuerySource"
+            :more-actions="selectionMenuItems"
             @close="handleSelectMode(false)"
             @select-all="selectAllInCurrentList"
             @select-none="selectNoneInCurrentList"
@@ -426,6 +427,7 @@
             @comment-all="openCommentEditor"
             @rotate-all="clickRotate"
             @unselect-file="unselectFileFromSelection"
+            @more-action="action => action()"
           />
           <FileInfo
             v-else
@@ -517,6 +519,18 @@
     @ok="onTrashFile"
     @cancel="closeTrashMsgbox"
     @checkbox-change="deletePermanently = $event"
+  />
+
+  <!-- opening many files in an external app -->
+  <MessageBox
+    v-if="showExternalOpenWarningMsgbox"
+    :title="$t('msgbox.open_external_many.title', { count: pendingExternalOpen?.paths.length ?? 0 })"
+    :message="$t('msgbox.open_external_many.message', { count: pendingExternalOpen?.paths.length ?? 0 })"
+    :OkText="$t('msgbox.open_external_many.ok')"
+    :cancelText="$t('msgbox.cancel')"
+    :warningOk="true"
+    @ok="confirmExternalOpen"
+    @cancel="cancelExternalOpen"
   />
 
   <!-- tag -->
@@ -1503,6 +1517,8 @@ const fileConflictDialog = ref({
 });
 let fileConflictResolver: ((result: { policy: FileConflictPolicy; applyAll: boolean }) => void) | null = null;
 const showTrashMsgbox = ref(false);
+const showExternalOpenWarningMsgbox = ref(false);
+const pendingExternalOpen = ref<{ paths: string[]; appPath: string } | null>(null);
 const permanentDeleteChecked = ref(false);
 const deletePermanently = ref(false);
 const dedupReclaimBytes = ref(0);
@@ -6431,9 +6447,32 @@ const appPathForMediaKind = (kind: 'image' | 'video') =>
     ? String(config.settings.externalImageAppPath || '')
     : String(config.settings.externalVideoAppPath || '');
 
+const EXTERNAL_OPEN_WARNING_THRESHOLD = 100;
+
+const launchInExternalApp = async (paths: string[], appPath: string) => {
+  try {
+    await openFilesWithApp(paths, appPath);
+  } catch (error) {
+    console.error('Failed to open external app:', error);
+    toast.error(t('tooltip.open_external.failed'));
+  }
+};
+
+const confirmExternalOpen = () => {
+  const pending = pendingExternalOpen.value;
+  showExternalOpenWarningMsgbox.value = false;
+  pendingExternalOpen.value = null;
+  if (pending) void launchInExternalApp(pending.paths, pending.appPath);
+};
+
+const cancelExternalOpen = () => {
+  showExternalOpenWarningMsgbox.value = false;
+  pendingExternalOpen.value = null;
+};
+
 const openInExternalApp = async () => {
-  const items = selectMode.value && selectedCount.value > 0
-    ? await getActionableSelectedItemsForAction()
+  const items = selectMode.value
+    ? (selectedCount.value > 0 ? await getActionableSelectedItemsForAction() : [])
     : [fileList.value[selectedItemIndex.value]].filter(Boolean);
   if (!items || items.length === 0) return;
 
@@ -6453,12 +6492,13 @@ const openInExternalApp = async () => {
   const paths = items.map((item: any) => item.file_path).filter(Boolean);
   if (paths.length === 0) return;
 
-  try {
-    await openFilesWithApp(paths, appPath);
-  } catch (error) {
-    console.error('Failed to open external app:', error);
-    toast.error(t('tooltip.open_external.failed'));
+  if (paths.length > EXTERNAL_OPEN_WARNING_THRESHOLD) {
+    pendingExternalOpen.value = { paths, appPath };
+    showExternalOpenWarningMsgbox.value = true;
+    return;
   }
+
+  await launchInExternalApp(paths, appPath);
 }
 
 const onRenameFile = async (newName: string) => {

@@ -406,6 +406,7 @@
     "action": "Aktion",
     "file_actions": "Dateiaktionen",
     "organize": "Organisieren",
+    "more_actions": "Weitere Aktionen",
     "tag_all": "Tag",
     "dedup": {
       "title": "Duplikate",
@@ -748,6 +749,11 @@
       "file_error": "Datei konnte nicht endgültig gelöscht werden.",
       "files_error": "Ausgewählte Dateien konnten nicht endgültig gelöscht werden.",
       "folder_error": "Ordner konnte nicht endgültig gelöscht werden."
+    },
+    "open_external_many": {
+      "title": "{count} Dateien in einer externen App öffnen?",
+      "message": "Das gleichzeitige Öffnen vieler Dateien kann die externe App verlangsamen oder blockieren und die Systemleistung beeinträchtigen. Möchten Sie fortfahren?",
+      "ok": "Trotzdem öffnen"
     },
     "new_tag": {
       "title": "Neuer Tag",

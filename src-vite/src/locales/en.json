@@ -406,6 +406,7 @@
     "action": "Action",
     "file_actions": "File actions",
     "organize": "Organize",
+    "more_actions": "More actions",
     "tag_all": "Tag",
     "dedup": {
       "title": "Duplicates",
@@ -748,6 +749,11 @@
       "file_error": "Failed to permanently delete the file.",
       "files_error": "Failed to permanently delete selected files.",
       "folder_error": "Failed to permanently delete the folder."
+    },
+    "open_external_many": {
+      "title": "Open {count} files in an external app?",
+      "message": "Opening a large number of files at once may make the external app slow or unresponsive and can affect system performance. Do you want to continue?",
+      "ok": "Continue opening"
     },
     "new_tag": {
       "title": "New tag",

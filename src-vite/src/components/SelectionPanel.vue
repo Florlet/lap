@@ -167,6 +167,24 @@
         </div>
 
       </div>
+
+      <!-- more actions mirrored from the multi-select context menu -->
+      <div v-if="visibleMoreActions.length > 0" class="border-t border-base-content/5 px-1 py-4 space-y-3">
+        <div class="text-[10px] uppercase tracking-widest font-bold text-base-content/30">
+          {{ $t('info_panel.more_actions') }}
+        </div>
+        <div class="flex flex-wrap items-center gap-1">
+          <PanelActionButton
+            v-for="item in visibleMoreActions"
+            :key="item.label"
+            :icon="item.icon"
+            :disabled="Boolean(item.disabled)"
+            @click="$emit('moreAction', item.action)"
+          >
+            {{ item.label }}
+          </PanelActionButton>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -211,6 +229,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  moreActions: {
+    type: Array as () => any[],
+    default: () => [],
+  },
 });
 
 defineEmits([
@@ -230,6 +252,7 @@ defineEmits([
   'rotateAll',
   'removeFromCollection',
   'unselectFile',
+  'moreAction',
 ]);
 
 const { locale, messages, t } = useI18n();
@@ -301,5 +324,9 @@ const rotateDisplayLabel = computed(() => {
   }
   return `${rotateText} (${multiSelectRotate.value}°)`;
 });
+
+const visibleMoreActions = computed(() =>
+  props.moreActions.filter((item: any) => item?.label && item?.action && !item.hidden)
+);
 
 </script>

@@ -406,6 +406,7 @@
     "action": "Ação",
     "file_actions": "Ações de arquivo",
     "organize": "Organizar",
+    "more_actions": "Mais ações",
     "tag_all": "Tag",
     "dedup": {
       "title": "Duplicados",
@@ -748,6 +749,11 @@
       "file_error": "Falha ao excluir o arquivo permanentemente.",
       "files_error": "Falha ao excluir permanentemente os arquivos selecionados.",
       "folder_error": "Falha ao excluir permanentemente a pasta."
+    },
+    "open_external_many": {
+      "title": "Abrir {count} arquivos em um aplicativo externo?",
+      "message": "Abrir muitos arquivos de uma vez pode deixar o aplicativo externo lento ou sem resposta e afetar o desempenho do sistema. Deseja continuar?",
+      "ok": "Abrir mesmo assim"
     },
     "new_tag": {
       "title": "Nova tag",

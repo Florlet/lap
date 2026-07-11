@@ -406,6 +406,7 @@
     "action": "操作",
     "file_actions": "文件操作",
     "organize": "整理",
+    "more_actions": "更多操作",
     "tag_all": "标签",
     "dedup": {
       "title": "重复项",
@@ -748,6 +749,11 @@
       "file_error": "永久删除文件失败。",
       "files_error": "永久删除所选文件失败。",
       "folder_error": "永久删除文件夹失败。"
+    },
+    "open_external_many": {
+      "title": "要在外部应用中打开 {count} 个文件吗？",
+      "message": "一次打开大量文件可能使外部应用变慢或无响应，并占用较多系统资源。是否继续？",
+      "ok": "继续打开"
     },
     "new_tag": {
       "title": "新建标签",

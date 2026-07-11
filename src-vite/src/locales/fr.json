@@ -406,6 +406,7 @@
     "action": "Action",
     "file_actions": "Actions sur les fichiers",
     "organize": "Organiser",
+    "more_actions": "Autres actions",
     "tag_all": "Tag",
     "dedup": {
       "title": "Doublons",
@@ -748,6 +749,11 @@
       "file_error": "Impossible de supprimer définitivement le fichier.",
       "files_error": "Impossible de supprimer définitivement les fichiers sélectionnés.",
       "folder_error": "Impossible de supprimer définitivement le dossier."
+    },
+    "open_external_many": {
+      "title": "Ouvrir {count} fichiers dans une application externe ?",
+      "message": "L’ouverture simultanée d’un grand nombre de fichiers peut ralentir ou bloquer l’application externe et affecter les performances du système. Voulez-vous continuer ?",
+      "ok": "Ouvrir quand même"
     },
     "new_tag": {
       "title": "Nouveau tag",

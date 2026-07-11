@@ -58,14 +58,19 @@ export const useFileMenuItems = (
     String(localeMsg.value.menu.file[key] || fallback);
 
   // Constructs a label for the "open in external app" entry, depending on media type
-  // and item count.
-  const openInAppLabel = (kind: 'image' | 'video' | 'mixed' | 'empty', count = 1) => {
+  // and item count. Multi-select always uses the selected-items wording, including
+  // when only one item is selected.
+  const openInAppLabel = (
+    kind: 'image' | 'video' | 'mixed' | 'empty',
+    count = 1,
+    isMultiSelect = false,
+  ) => {
     if (kind !== 'image' && kind !== 'video') return menuLabel(OPEN_IN_APP_LABELS.generic);
     const name = String(
       (kind === 'video' ? config.settings.externalVideoAppName : config.settings.externalImageAppName) || '',
     );
     if (!name) return menuLabel(OPEN_IN_APP_LABELS.generic);
-    const variant = OPEN_IN_APP_LABELS[kind][count > 1 ? 'many' : 'one'];
+    const variant = OPEN_IN_APP_LABELS[kind][isMultiSelect || count > 1 ? 'many' : 'one'];
     return menuLabel(variant).replace('{app}', name);
   };
 
@@ -83,10 +88,9 @@ export const useFileMenuItems = (
     );
     return [
       {
-        label: openInAppLabel(kind, options?.selectionCount?.value ?? 0),
+        label: openInAppLabel(kind, options?.selectionCount?.value ?? 0, true),
         icon: markRaw(IconExternal),
-        hidden: kind === 'empty',
-        disabled: selectionIsMixed || !appPath,
+        disabled: kind === 'empty' || selectionIsMixed || !appPath,
         shortcut: shortcut('file.openExternalApp'),
         action: createAction('open-external-app'),
       },

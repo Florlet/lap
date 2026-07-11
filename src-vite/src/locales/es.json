@@ -406,6 +406,7 @@
     "action": "Acción",
     "file_actions": "Acciones de archivo",
     "organize": "Organizar",
+    "more_actions": "Más acciones",
     "tag_all": "Etiqueta",
     "dedup": {
       "title": "Duplicados",
@@ -748,6 +749,11 @@
       "file_error": "No se pudo eliminar permanentemente el archivo.",
       "files_error": "No se pudieron eliminar permanentemente los archivos seleccionados.",
       "folder_error": "No se pudo eliminar permanentemente la carpeta."
+    },
+    "open_external_many": {
+      "title": "¿Abrir {count} archivos en una aplicación externa?",
+      "message": "Abrir muchos archivos a la vez puede ralentizar o bloquear la aplicación externa y afectar al rendimiento del sistema. ¿Quieres continuar?",
+      "ok": "Abrir de todos modos"
     },
     "new_tag": {
       "title": "Nueva etiqueta",
