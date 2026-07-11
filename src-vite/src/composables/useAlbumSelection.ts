@@ -95,8 +95,18 @@ export function useAlbumSelectionProvider(
         markAlbumActivated();
         const requestId = ++folderRequestId;
         const selectedPath = folder.path;
+        const isRestoringCurrentFolder =
+            albumId.value === albumIdVal &&
+            folderPath.value === selectedPath &&
+            !selected.value;
         albumId.value = albumIdVal;
-        folderId.value = Number(folder.id || 0) || null;
+        // Folder-tree nodes are filesystem nodes and do not carry the database
+        // folder id. When AlbumList remounts and restores the already selected
+        // folder, keep its known id instead of changing it to null and then back
+        // again after select_folder resolves.
+        if (!isRestoringCurrentFolder) {
+            folderId.value = Number(folder.id || 0) || null;
+        }
         folderPath.value = selectedPath;
         selected.value = false;
 
