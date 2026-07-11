@@ -5,6 +5,7 @@
  * date:    2024-08-08
  */
 use crate::t_ai;
+use crate::t_ai_png;
 use crate::t_config;
 use crate::t_image;
 use crate::t_lens;
@@ -1742,7 +1743,7 @@ impl AFile {
             is_favorite: None,
             rating: Some(0),
             rotate: None,
-            comments: None,
+            comments: t_ai_png::extract_comment(file_path),
             has_tags: Some(false),
             has_faces: Some(0),
 
@@ -2557,7 +2558,7 @@ impl AFile {
     ) -> Result<(Self, i32), String> {
         // Check if the file exists
         let existing_file = Self::fetch(folder_id, file_path)?;
-        if let Some(file) = existing_file {
+        if let Some(mut file) = existing_file {
             // check file modified time or if thumbnail is missing
             let file_info = t_utils::FileInfo::new(file_path)?;
             let modified = file.modified_at != file_info.modified;
@@ -2594,6 +2595,16 @@ impl AFile {
                 // for the mark-and-sweep deletion logic.
                 if let Some(file_id) = file.id {
                     let _ = Self::update_column(file_id, "last_scan_time", &last_scan_time);
+                    if file
+                        .comments
+                        .as_deref()
+                        .is_none_or(|comment| comment.trim().is_empty())
+                    {
+                        if let Some(comment) = t_ai_png::extract_comment(file_path) {
+                            let _ = Self::update_column(file_id, "comments", &comment);
+                            file.comments = Some(comment);
+                        }
+                    }
                 }
             }
             return Ok((file, 0));
@@ -2684,7 +2695,13 @@ impl AFile {
         new_file_info.is_favorite = old_file_info.is_favorite;
         new_file_info.rating = old_file_info.rating;
         new_file_info.rotate = old_file_info.rotate;
-        new_file_info.comments = old_file_info.comments;
+        if old_file_info
+            .comments
+            .as_deref()
+            .is_some_and(|comment| !comment.trim().is_empty())
+        {
+            new_file_info.comments = old_file_info.comments;
+        }
         new_file_info.has_tags = old_file_info.has_tags;
         new_file_info.has_thumbnail = old_file_info.has_thumbnail;
         new_file_info.has_embedding = old_file_info.has_embedding;
