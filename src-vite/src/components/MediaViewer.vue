@@ -258,7 +258,7 @@
       ></div>
       <div
         v-if="showStatusBadges && quickViewStatusBadges.length > 0"
-        class="pointer-events-none absolute left-4 top-4 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-1"
+        class="pointer-events-none absolute left-4 top-4 z-30 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-1"
       >
         <div
           v-for="badge in quickViewStatusBadges"

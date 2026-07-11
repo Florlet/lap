@@ -489,7 +489,7 @@
   <!-- move to -->
   <MoveTo
     v-if="showMoveTo"
-    :title="`${$t('msgbox.move_to.title', { source: selectMode ? $t('toolbar.filter.select_count', { count: selectedCount.toLocaleString() }) : shortenFilename(fileList[selectedItemIndex].name, 32) })}`"
+    :title="`${$t('msgbox.move_to.title', { source: selectMode ? $t('toolbar.filter.select_count', { count: selectedCount.toLocaleString() }) : shortenFilename(fileList[selectedItemIndex]?.name || '', 32) })}`"
     :message="$t('msgbox.move_to.content')"
     :OkText="$t('msgbox.move_to.ok')" 
     :cancelText="$t('msgbox.cancel')"
@@ -6646,6 +6646,9 @@ const onMoveTo = async () => {
   if (destAlbumId > 0) affectedAlbumIds.add(destAlbumId);
   await refreshAffectedAlbums(Array.from(affectedAlbumIds));
   await refreshLibraryTotalCount();
+  if (successCount > 0 && (groupedModeActive.value || activeGroupBy.value > 0)) {
+    await updateContent(true);
+  }
 
   if (successCount === 0) {
     const sourceLabel = selectMode.value
@@ -6809,6 +6812,12 @@ const onMoveToFolder = async () => {
     toast.success(t('msgbox.move_to_folder.success', { source: sourceLabel, dest: getFolderName(destPath) || destPath }));
     await refreshAffectedAlbums(Array.from(affectedAlbumIds));
     await refreshLibraryTotalCount();
+    // Moving a file changes its grouping key (for example, folder grouping).
+    // The flat list was updated optimistically above, but grouped rows and
+    // group counts must be rebuilt from the current query result.
+    if (groupedModeActive.value || activeGroupBy.value > 0) {
+      await updateContent(true);
+    }
   }
   if (moveResults.some(result => result.status === 'rejected')) {
     toast.error(t('msgbox.move_to_folder.error', { source: sourceLabel, dest: getFolderName(destPath) || destPath }));

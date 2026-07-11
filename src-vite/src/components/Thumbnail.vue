@@ -104,7 +104,18 @@
 
       <!-- bottom badges -->
       <div
-        v-if="isLivePhoto || videoDurationBadge || mediaInfoBadge || dedupStatus"
+        v-if="mediaInfoBadge"
+        :class="[
+          'pointer-events-none absolute left-0.5 z-10 flex items-center gap-0.5',
+          hasBottomMediaBadges ? 'bottom-6' : 'bottom-0.5',
+        ]"
+      >
+        <div class="thumb-badge thumb-badge-muted">
+          {{ mediaInfoBadge }}
+        </div>
+      </div>
+      <div
+        v-if="hasBottomMediaBadges"
         class="pointer-events-none absolute left-0.5 bottom-0.5 z-10 flex items-center gap-0.5"
       >
         <div
@@ -119,12 +130,6 @@
           class="thumb-badge thumb-badge-muted"
         >
           {{ videoDurationBadge }}
-        </div>
-        <div
-          v-if="mediaInfoBadge"
-          class="thumb-badge thumb-badge-muted"
-        >
-          {{ mediaInfoBadge }}
         </div>
         <div
           v-if="dedupStatus"
@@ -547,6 +552,10 @@ const mediaInfoBadge = computed(() => {
       return '';
   }
 });
+
+const hasBottomMediaBadges = computed(() => (
+  isLivePhoto.value || Boolean(videoDurationBadge.value) || Boolean(props.dedupStatus)
+));
 
 const statusBadges = computed<ThumbnailBadge[]>(() => {
   const badges: ThumbnailBadge[] = [];
