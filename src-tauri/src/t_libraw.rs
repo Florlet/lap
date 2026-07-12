@@ -539,7 +539,18 @@ pub fn get_raw_preview_image(file_path: &str) -> Result<Option<Vec<u8>>, String>
             let orient = jpeg_exif_orientation(&thumb.data);
             if let Ok(image) = image::load_from_memory(&thumb.data) {
                 let image = orient_image(image, orient);
-                return encode_as_jpeg(&image).map(Some);
+                if let Ok(bytes) = encode_as_jpeg(&image) {
+                    return Ok(Some(bytes));
+                }
+                eprintln!(
+                    "Embedded preview encode failed for {}, falling back to dcraw_process",
+                    file_path
+                );
+            } else {
+                eprintln!(
+                    "Embedded preview decode failed for {}, falling back to dcraw_process",
+                    file_path
+                );
             }
         }
     }
@@ -547,12 +558,52 @@ pub fn get_raw_preview_image(file_path: &str) -> Result<Option<Vec<u8>>, String>
     // Processed preview: LibRaw dcraw_process auto-rotates, correct WB
     match render_processed_preview(file_path, 4096) {
         Ok(bytes) => Ok(Some(bytes)),
-        Err(_) => Ok(None),
+        Err(e) => {
+            eprintln!("LibRaw render_processed_preview failed for {}: {}", file_path, e);
+            Ok(None)
+        }
     }
 }
 
 pub fn get_raw_thumbnail(file_path: &str, thumbnail_size: u32) -> Result<Option<Vec<u8>>, String> {
-    // Always use dcraw_process with half_size for thumbnails.
+    let mut raw = RawHandle::open(file_path)?;
+    let thumbs = raw.extract_thumbnails();
+
+    // Try the largest embedded JPEG thumbnail first
+    let best = thumbs
+        .iter()
+        .filter(|thumb| thumb.format == LIBRAW_THUMBNAIL_JPEG && !thumb.data.is_empty())
+        .max_by_key(|thumb| {
+            let max_edge = thumb.width.max(thumb.height);
+            (max_edge >= thumbnail_size, max_edge)
+        });
+
+    if let Some(thumb) = best {
+        let orient = jpeg_exif_orientation(&thumb.data);
+        if let Ok(image) = image::load_from_memory(&thumb.data) {
+            let image = orient_image(image, orient);
+            let thumbnail = image.thumbnail(u32::MAX, thumbnail_size);
+            if let Ok(bytes) = encode_as_jpeg(&thumbnail) {
+                return Ok(Some(bytes));
+            }
+            eprintln!(
+                "Embedded thumbnail encode failed for {}, falling back to dcraw_process",
+                file_path
+            );
+        } else {
+            eprintln!(
+                "Embedded thumbnail decode failed for {}, falling back to dcraw_process",
+                file_path
+            );
+        }
+    } else {
+        eprintln!(
+            "No embedded JPEG thumbnail found for {}, falling back to dcraw_process",
+            file_path
+        );
+    }
+
+    // Fallback: LibRaw dcraw_process with half_size for thumbnails.
     // - Guaranteed correct rotation (LibRaw auto-rotates)
     // - Guaranteed correct colors (full WB pipeline)
     // - 4x faster than full decode (half_size=1)
@@ -592,7 +643,7 @@ pub fn get_raw_thumbnail(file_path: &str, thumbnail_size: u32) -> Result<Option<
             return encode_as_jpeg(&thumbnail).map(Some);
         } else {
             eprintln!(
-                "LibRaw decode_processed_image failed for {}, falling back to embedded thumbnail",
+                "LibRaw decode_processed_image failed for {}",
                 file_path
             );
         }
@@ -601,30 +652,9 @@ pub fn get_raw_thumbnail(file_path: &str, thumbnail_size: u32) -> Result<Option<
             unsafe { lap_libraw_free_buffer(out.data) };
         }
         eprintln!(
-            "LibRaw dcraw_process failed for {} (likely HE/HE* NEF), falling back to embedded thumbnail",
+            "LibRaw dcraw_process failed for {} (likely HE/HE* NEF)",
             file_path
         );
-    }
-
-    // Reopen the file for thumbnail extraction — the handle used for
-    // render_preview may be in an undefined state after a data error.
-    let mut raw = RawHandle::open(file_path)?;
-    let thumbs = raw.extract_thumbnails();
-    let best = thumbs
-        .iter()
-        .filter(|thumb| thumb.format == LIBRAW_THUMBNAIL_JPEG && !thumb.data.is_empty())
-        .max_by_key(|thumb| {
-            let max_edge = thumb.width.max(thumb.height);
-            (max_edge >= thumbnail_size, max_edge)
-        });
-
-    if let Some(thumb) = best {
-        let orient = jpeg_exif_orientation(&thumb.data);
-        if let Ok(image) = image::load_from_memory(&thumb.data) {
-            let image = orient_image(image, orient);
-            let thumbnail = image.thumbnail(u32::MAX, thumbnail_size);
-            return encode_as_jpeg(&thumbnail).map(Some);
-        }
     }
 
     Ok(None)
