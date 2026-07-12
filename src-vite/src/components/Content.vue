@@ -1042,8 +1042,7 @@ function getAutoGroupByForCurrentView() {
       if (libConfig.library.item === LIB_ITEM.TODAY) return GROUP.YEAR;
       return libConfig.library.item === LIB_ITEM.RATINGS && libConfig.rating.item === RATE.ALL ? GROUP.RATING : GROUP.NONE;
     case SIDEBAR.ALBUM:
-      return !libConfig.album.selected
-        && (!config.settings.showSubfolderFiles || !selectedFolderHasChildren.value)
+      return libConfig.album.selected || !config.settings.showSubfolderFiles || !selectedFolderHasChildren.value
         ? GROUP.NONE
         : GROUP.FOLDER;
     case SIDEBAR.SMART_ALBUM:
