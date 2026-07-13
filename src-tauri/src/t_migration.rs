@@ -76,7 +76,7 @@ fn get_migrations() -> Vec<Migration> {
         // Post v0.2.4 — collections, unique folder names, Live Photo,
         // case-insensitive index, folder scan state
         Migration {
-            version: 6,
+            version: 9,
             description: "Post v0.2.4 schema updates",
             sql: "",
         },
@@ -86,7 +86,7 @@ fn get_migrations() -> Vec<Migration> {
 fn migrate_unique_album_files(conn: &Connection) -> Result<(), String> {
     let tx = conn
         .unchecked_transaction()
-        .map_err(|e| format!("Migration 6 (deduplicate album files) failed starting transaction: {}", e))?;
+        .map_err(|e| format!("Migration 9 (deduplicate album files) failed starting transaction: {}", e))?;
 
     tx.execute_batch(
         "
@@ -135,10 +135,10 @@ fn migrate_unique_album_files(conn: &Connection) -> Result<(), String> {
         DROP TABLE duplicate_afile_map;
         ",
     )
-    .map_err(|e| format!("Migration 6 (deduplicate album files) failed: {}", e))?;
+    .map_err(|e| format!("Migration 9 (deduplicate album files) failed: {}", e))?;
 
     tx.commit()
-        .map_err(|e| format!("Migration 6 (deduplicate album files) failed committing transaction: {}", e))
+        .map_err(|e| format!("Migration 9 (deduplicate album files) failed committing transaction: {}", e))
 }
 
 fn table_has_column(conn: &Connection, table: &str, column: &str) -> Result<bool, String> {
@@ -260,7 +260,7 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                         migration.version, e
                     )
                 })?;
-            } else if migration.version == 6 {
+            } else if migration.version == 9 {
                 // --- collections ---
                 conn.execute_batch(
                     "CREATE TABLE IF NOT EXISTS acollections (
@@ -284,7 +284,7 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                     CREATE INDEX IF NOT EXISTS idx_acollections_files_collection_added
                         ON acollections_files(collection_id, added_at DESC, file_id);",
                 )
-                .map_err(|e| format!("Migration 6 failed creating collections: {}", e))?;
+                .map_err(|e| format!("Migration 9 failed creating collections: {}", e))?;
 
                 // --- deduplicate album files ---
                 migrate_unique_album_files(conn)?;
@@ -292,31 +292,31 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                 // --- Live Photo pairing columns ---
                 if !table_has_column(conn, "afiles", "content_identifier")? {
                     conn.execute("ALTER TABLE afiles ADD COLUMN content_identifier TEXT", [])
-                        .map_err(|e| format!("Migration 6 failed adding content_identifier: {}", e))?;
+                        .map_err(|e| format!("Migration 9 failed adding content_identifier: {}", e))?;
                 }
                 if !table_has_column(conn, "afiles", "media_subtype")? {
                     conn.execute("ALTER TABLE afiles ADD COLUMN media_subtype TEXT", [])
-                        .map_err(|e| format!("Migration 6 failed adding media_subtype: {}", e))?;
+                        .map_err(|e| format!("Migration 9 failed adding media_subtype: {}", e))?;
                 }
                 if !table_has_column(conn, "afiles", "live_photo_video_id")? {
                     conn.execute("ALTER TABLE afiles ADD COLUMN live_photo_video_id INTEGER", [])
-                        .map_err(|e| format!("Migration 6 failed adding live_photo_video_id: {}", e))?;
+                        .map_err(|e| format!("Migration 9 failed adding live_photo_video_id: {}", e))?;
                 }
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_afiles_content_identifier ON afiles(content_identifier)",
                     [],
-                ).map_err(|e| format!("Migration 6 failed adding content_identifier index: {}", e))?;
+                ).map_err(|e| format!("Migration 9 failed adding content_identifier index: {}", e))?;
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_afiles_live_photo_video_id ON afiles(live_photo_video_id)",
                     [],
-                ).map_err(|e| format!("Migration 6 failed adding live_photo_video_id index: {}", e))?;
+                ).map_err(|e| format!("Migration 9 failed adding live_photo_video_id index: {}", e))?;
 
                 // --- case-insensitive filename index ---
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_afiles_folder_name_nocase
                      ON afiles(folder_id, name COLLATE NOCASE)",
                     [],
-                ).map_err(|e| format!("Migration 6 failed adding case-insensitive index: {}", e))?;
+                ).map_err(|e| format!("Migration 9 failed adding case-insensitive index: {}", e))?;
 
                 // --- per-folder scan state ---
                 conn.execute_batch(
@@ -330,7 +330,7 @@ pub fn check_and_migrate(conn: &Connection) -> Result<(), String> {
                     );
                     CREATE INDEX IF NOT EXISTS idx_folder_scan_state_scanner_version
                         ON folder_scan_state(scanner, version);",
-                ).map_err(|e| format!("Migration 6 failed creating folder scan state: {}", e))?;
+                ).map_err(|e| format!("Migration 9 failed creating folder scan state: {}", e))?;
             } else if !migration.sql.trim().is_empty() {
                 conn.execute_batch(migration.sql)
                     .map_err(|e| format!("Migration {} failed: {}", migration.version, e))?;
