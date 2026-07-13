@@ -399,6 +399,7 @@ function clickOk() {
     },
     group: { type: groupType.value },
     sort: { type: sortType.value, order: sortOrder.value },
+    coverFileId: props.smartAlbum?.coverFileId || null,
     createdAt: props.smartAlbum?.createdAt || now,
     updatedAt: now,
   });

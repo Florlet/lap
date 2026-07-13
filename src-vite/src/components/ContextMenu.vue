@@ -1,5 +1,5 @@
 <template>
-  <div ref="dropdown" class="relative inline-block text-left">
+  <div ref="dropdown" class="relative inline-flex leading-none text-left">
 
     <!-- Dropdown Trigger -->
     <slot name="trigger" :toggle="toggleDropdown">

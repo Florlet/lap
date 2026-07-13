@@ -145,7 +145,7 @@
         <label class="flex items-center text-primary cursor-pointer" @click.stop @dblclick.stop>
           <input
             type="checkbox"
-            class="checkbox checkbox-sm"
+            class="checkbox checkbox-sm border-base-content/30 hover:border-base-content/70"
             :class="isSelected ? (isContentActive ? 'checkbox-primary' : 'checkbox-primary opacity-50') : ''"
             :checked="isSelected"
             @click.stop="(event: MouseEvent) => $emit('select-toggled', event.shiftKey)"

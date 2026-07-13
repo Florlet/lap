@@ -35,18 +35,24 @@
     >
       <div
         v-if="isGroupRow(item)"
-        class="w-full h-12 flex items-center gap-1 px-2 text-base-content/70 select-none bg-base-100/5 rounded-box"
+        class="group w-full h-12 flex items-center gap-1 px-1 text-base-content/70 select-none bg-base-100/5 rounded-box"
       >
-        <input
-          v-if="selectMode"
-          type="checkbox"
-          class="checkbox checkbox-xs border-base-content/30"
-          :checked="getGroupSelectionState(item).checked"
-          :indeterminate.prop="getGroupSelectionState(item).indeterminate"
-          :disabled="isGroupSelectionLoading(item)"
-          @change="(event) => $emit('group-select-toggled', item, (event.target as HTMLInputElement).checked)"
-        />
-        <span v-if="selectMode && isGroupSelectionLoading(item)" class="loading loading-spinner loading-xs text-primary"></span>
+        <div
+          class="flex shrink-0 items-center overflow-hidden transition-all duration-100 ease-out"
+          :class="selectMode
+            ? 'w-4 mr-1 opacity-100'
+            : 'w-0 mr-0 opacity-0 group-hover:w-4 group-hover:mr-1 group-hover:opacity-100'"
+        >
+          <span v-if="isGroupSelectionLoading(item)" class="loading loading-spinner loading-xs text-primary"></span>
+          <input
+            v-else
+            type="checkbox"
+            class="checkbox checkbox-xs border-base-content/30 hover:border-base-content/70"
+            :checked="getGroupSelectionState(item).checked"
+            :indeterminate.prop="getGroupSelectionState(item).indeterminate"
+            @change="(event) => $emit('group-select-toggled', item, (event.target as HTMLInputElement).checked)"
+          />
+        </div>
         <component :is="getGroupIcon(item)" class="w-4 h-4 shrink-0 text-base-content/30" />
         <Breadcrumb
           v-if="isFolderPathGroup()"

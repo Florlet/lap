@@ -2906,6 +2906,19 @@ async function handleGroupSelectToggled(groupRow: any, selected: boolean) {
     updateGroupSelectedSize(groupId, nextGroupSize);
     selectedCount.value = Math.max(0, selectedCount.value + (nextGroupCount - currentGroupCount));
     selectedSize.value = Math.max(0, selectedSize.value + (nextGroupSize - currentGroupSize));
+
+    if (selected) {
+      let firstFileIndex = 0;
+      for (const group of groupedTimelineGroups.value) {
+        if (String(group.groupId) === groupId) {
+          selectedItemIndex.value = firstFileIndex;
+          lastSelectedIndex.value = firstFileIndex;
+          break;
+        }
+        firstFileIndex += Number(group.count || 0);
+      }
+    }
+
     syncSelectionVersions();
   } catch (error) {
     console.error('handleGroupSelectToggled error:', error);
@@ -5489,6 +5502,7 @@ async function getSmartFileList(smartAlbum: any, requestId: number) {
     categorySort: Number(config.settings.categorySort || 0),
     groupBy: Number(smartAlbum?.group?.type ?? GROUP.NONE),
   };
+  void updateSmartAlbumCover(smartAlbum, requestId);
 
   isLoading.value = true;
 
@@ -5540,6 +5554,27 @@ async function getSmartFileList(smartAlbum: any, requestId: number) {
       contentReady.value = true;
     }
   }
+}
+
+async function updateSmartAlbumCover(smartAlbum: any, requestId: number) {
+  const result = await getSmartQueryFiles(currentSmartQueryParams.value, 0, 1);
+  if (
+    requestId !== currentContentRequestId ||
+    libConfig.smartAlbum.type !== 'custom' ||
+    String(libConfig.smartAlbum.id) !== String(smartAlbum?.id)
+  ) return;
+
+  const firstFile = Array.isArray(result) ? result[0] : result?.files?.[0];
+  const coverFileId = Number(firstFile?.id || 0) || null;
+  const albums = [...(libConfig.smartAlbums || [])];
+  const albumIndex = albums.findIndex((album: any) => String(album.id) === String(smartAlbum?.id));
+  if (albumIndex < 0 || Number(albums[albumIndex].coverFileId || 0) === Number(coverFileId || 0)) return;
+
+  albums[albumIndex] = {
+    ...albums[albumIndex],
+    coverFileId,
+  };
+  libConfig.smartAlbums = albums;
 }
 
 async function getImageSearchFileList(

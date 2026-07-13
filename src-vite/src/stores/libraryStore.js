@@ -39,7 +39,7 @@ export const useLibraryStore = defineStore('libraryStore', {
       id: null,               // selected smart album id
     },
 
-    /** @type {Array<{ id: string, name: string, description: string, source: 'rules', query: { version: number, match: 'all' | 'any', rules: Array<{ id: string, field: string, operator: string, value: any }> }, sort: { type: number, order: number }, createdAt: number, updatedAt: number }>} */
+    /** @type {Array<{ id: string, name: string, description: string, source: 'rules', query: { version: number, match: 'all' | 'any', rules: Array<{ id: string, field: string, operator: string, value: any }> }, sort: { type: number, order: number }, coverFileId: number | null, createdAt: number, updatedAt: number }>} */
     smartAlbums: [],          // custom smart albums
 
     /** @type {{ selectedId: number | null }} */

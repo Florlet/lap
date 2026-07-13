@@ -130,6 +130,8 @@ pub struct CustomSmartAlbumState {
     #[serde(default)]
     pub group: SmartAlbumGroupState,
     #[serde(default)]
+    pub cover_file_id: Option<i64>,
+    #[serde(default)]
     pub created_at: i64,
     #[serde(default)]
     pub updated_at: i64,

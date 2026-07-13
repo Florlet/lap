@@ -17,13 +17,23 @@
       <li v-for="smartAlbum in customSmartAlbums" :key="smartAlbum.id">
         <div
           :class="[
-            'sidebar-item group',
+            'sidebar-item sidebar-item-media group',
             libConfig.smartAlbum.type === 'custom' && libConfig.smartAlbum.id === smartAlbum.id ? 'sidebar-item-selected' : 'sidebar-item-hover',
           ]"
           @click="clickCustomSmartAlbum(smartAlbum)"
           @contextmenu.prevent.stop="(event: MouseEvent) => handleSmartAlbumContextMenu(smartAlbum, event)"
         >
-          <IconBolt class="mx-1 w-5 h-5 shrink-0" />
+          <div class="w-10 h-10 mr-2 rounded-box shrink-0 overflow-hidden border border-base-content/5 bg-base-content/5">
+            <img
+              v-if="getSmartAlbumCoverSrc(smartAlbum) && Number(smartAlbumCoverErrors[smartAlbum.id]) !== Number(smartAlbum.coverFileId)"
+              :src="getSmartAlbumCoverSrc(smartAlbum)"
+              class="w-full h-full object-cover"
+              @error="smartAlbumCoverErrors[smartAlbum.id] = Number(smartAlbum.coverFileId)"
+            />
+            <div v-else class="w-full h-full flex items-center justify-center text-base-content/30">
+              <IconPhoto class="w-5 h-5" />
+            </div>
+          </div>
           <span class="sidebar-item-label">{{ smartAlbum.name }}</span>
           <div
             :class="[
@@ -65,10 +75,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { libConfig } from '@/common/config';
-import { IconAdd, IconBolt, IconEdit, IconMore, IconTrash } from '@/common/icons';
+import { config, libConfig } from '@/common/config';
+import { getThumbUrl, getThumbnailDataUrl, getThumbnailDataUrlInflight, isWin, setThumbnailDataUrlInflight } from '@/common/utils';
+import { getFileThumbById } from '@/common/api';
+import { IconAdd, IconEdit, IconMore, IconPhoto, IconTrash } from '@/common/icons';
 import TButton from '@/components/TButton.vue';
 import ContextMenu from '@/components/ContextMenu.vue';
 import SmartAlbumEdit from '@/components/SmartAlbumEdit.vue';
@@ -81,6 +93,43 @@ const editingSmartAlbum = ref<any | null>(null);
 const showDeleteDialog = ref(false);
 const deletingSmartAlbum = ref<any | null>(null);
 const smartAlbumContextMenus = ref<Record<string, any>>({});
+const smartAlbumCoverErrors = ref<Record<string, number>>({});
+const smartAlbumCoverUrls = ref<Record<string, string>>({});
+let smartAlbumCoverLoadToken = 0;
+
+const getSmartAlbumCoverSrc = (smartAlbum: any) => {
+  const coverFileId = Number(smartAlbum?.coverFileId || 0);
+  if (!coverFileId) return '';
+  return isWin ? smartAlbumCoverUrls.value[String(smartAlbum.id)] || '' : getThumbUrl(coverFileId, false, config.settings.thumbnailSize);
+};
+
+const loadWindowsSmartAlbumCovers = async (albums: any[]) => {
+  if (!isWin) return;
+  const loadToken = ++smartAlbumCoverLoadToken;
+
+  const covers = await Promise.all(albums.map(async (smartAlbum) => {
+    const coverFileId = Number(smartAlbum?.coverFileId || 0);
+    if (!coverFileId) return [String(smartAlbum.id), ''] as const;
+
+    const inflight = getThumbnailDataUrlInflight(coverFileId, config.settings.thumbnailSize);
+    const url = await (inflight || setThumbnailDataUrlInflight(
+      coverFileId,
+      config.settings.thumbnailSize,
+      getFileThumbById(coverFileId, config.settings.thumbnailSize, false)
+        .then(thumb => getThumbnailDataUrl(thumb, '', false, config.settings.thumbnailSize))
+    ));
+    return [String(smartAlbum.id), url || ''] as const;
+  }));
+
+  if (loadToken !== smartAlbumCoverLoadToken) return;
+  smartAlbumCoverUrls.value = Object.fromEntries(covers.filter(([, url]) => url));
+};
+
+watch(
+  () => customSmartAlbums.value.map((smartAlbum: any) => [smartAlbum.id, smartAlbum.coverFileId]),
+  () => { void loadWindowsSmartAlbumCovers(customSmartAlbums.value); },
+  { immediate: true },
+);
 
 function clickCustomSmartAlbum(smartAlbum: any) {
   libConfig.smartAlbum.type = 'custom';

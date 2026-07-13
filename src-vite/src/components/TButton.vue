@@ -1,13 +1,13 @@
 <template>
-  <div>
+  <div class="inline-flex leading-none">
     <div 
       ref="triggerRef"
-      class="relative inline-block"
+      class="relative inline-flex"
       @mouseenter="showTooltip"
       @mouseleave="hideTooltip"
     >
       <div
-        class="btn btn-ghost btn-square rounded-box border-0 focus:outline-none shadow-none flex flex-col text-base-content/70 hover:text-base-content"
+        class="btn btn-ghost btn-square rounded-box border-0 focus:outline-none shadow-none! flex flex-col text-base-content/70 hover:text-base-content"
         :class="[
           buttonClasses,
           {
